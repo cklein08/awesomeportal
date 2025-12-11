@@ -1,4 +1,4 @@
 mountpoints:
-  /: 
-    url: https://docs.google.com/document/d/19WbJ7uWjA_8V48JePW0ZrbFT9WBylXeah-lhI-WXtJw/edit?usp=drive_link
+  /:
+    url: https://content.da.live/gallardo-adobe/eds-da/
     type: markup

@@ -71,7 +71,7 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
             {!isBlockIntegration && (
                 <img
                     className="app-logo"
-                    src={`${import.meta.env.BASE_URL}ko-assets-logo.png`}
+                    src={`${import.meta.env.BASE_URL}android-chrome-192x192.png`}
                     alt="KO Assets Logo"
                     onClick={handleLogoClick}
                 />

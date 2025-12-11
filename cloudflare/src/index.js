@@ -19,10 +19,10 @@ import { cors } from './util/itty';
 
 const { preflight, corsify } = cors({
   origin: [
-    'https://assetsDashboard.adobeaem.workers.dev',
+    'https://awesomeportal.adobeaem.workers.dev',
     // development URLs
-    /https:\/\/.*-assetsDashboard\.adobeaem\.workers\.dev$/,
-    /https:\/\/.*-assetsDashboard--aemsites\.aem\.(live|page)$/,
+    /https:\/\/.*-awesomeportal\.adobeaem\.workers\.dev$/,
+    /https:\/\/.*-awesomeportal--aemsites\.aem\.(live|page)$/,
     /http:\/\/localhost:(3000|8787)/
   ],
   allowMethods: ['GET', 'POST'],

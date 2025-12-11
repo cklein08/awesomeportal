@@ -1,187 +1,269 @@
 import {
-  convertHtmlListToArray,
-  fetchSpreadsheetData,
-  getBlockKeyValues,
-} from '../../scripts/scripts.js';
+  createOptimizedPicture,
+  decorateIcons,
+  fetchPlaceholders,
+} from '../../scripts/aem.js';
 
-function createCustomDropdown(pathObjects) {
-  // Create custom dropdown instead of select
-  const searchTypeSelect = document.createElement('div');
-  searchTypeSelect.className = 'custom-select';
+const searchParams = new URLSearchParams(window.location.search);
 
-  const selectedOption = document.createElement('div');
-  selectedOption.className = 'selected-option';
-  selectedOption.innerHTML = '<span class="selected-text">Assets</span>';
-
-  const optionsList = document.createElement('div');
-  optionsList.className = 'options-list';
-
-  // Create options from pathObjects array
-  pathObjects.forEach((queryType) => {
-    const option = document.createElement('div');
-    option.className = 'option';
-    option.textContent = queryType.title;
-    option.dataset.value = queryType.value;
-    option.addEventListener('click', () => {
-      // Remove selected class from all options
-      optionsList.querySelectorAll('.option').forEach((opt) => opt.classList.remove('selected'));
-      // Add selected class to clicked option
-      option.classList.add('selected');
-
-      selectedOption.querySelector('.selected-text').textContent = queryType.title;
-      selectedOption.dataset.value = queryType.value;
-      searchTypeSelect.dataset.value = queryType.value;
-      optionsList.style.display = 'none';
-      searchTypeSelect.classList.remove('open');
-    });
-    optionsList.append(option);
-  });
-
-  // Toggle dropdown
-  selectedOption.addEventListener('click', () => {
-    const isOpen = searchTypeSelect.classList.contains('open');
-    if (isOpen) {
-      optionsList.style.display = 'none';
-      searchTypeSelect.classList.remove('open');
+function findNextHeading(el) {
+  let preceedingEl = el.parentElement.previousElement || el.parentElement.parentElement;
+  let h = 'H2';
+  while (preceedingEl) {
+    const lastHeading = [...preceedingEl.querySelectorAll('h1, h2, h3, h4, h5, h6')].pop();
+    if (lastHeading) {
+      const level = parseInt(lastHeading.nodeName[1], 10);
+      h = level < 6 ? `H${level + 1}` : 'H6';
+      preceedingEl = false;
     } else {
-      optionsList.style.display = 'block';
-      searchTypeSelect.classList.add('open');
+      preceedingEl = preceedingEl.previousElement || preceedingEl.parentElement;
+    }
+  }
+  return h;
+}
+
+function highlightTextElements(terms, elements) {
+  elements.forEach((element) => {
+    if (!element || !element.textContent) return;
+
+    const matches = [];
+    const { textContent } = element;
+    terms.forEach((term) => {
+      let start = 0;
+      let offset = textContent.toLowerCase().indexOf(term.toLowerCase(), start);
+      while (offset >= 0) {
+        matches.push({ offset, term: textContent.substring(offset, offset + term.length) });
+        start = offset + term.length;
+        offset = textContent.toLowerCase().indexOf(term.toLowerCase(), start);
+      }
+    });
+
+    if (!matches.length) {
+      return;
+    }
+
+    matches.sort((a, b) => a.offset - b.offset);
+    let currentIndex = 0;
+    const fragment = matches.reduce((acc, { offset, term }) => {
+      if (offset < currentIndex) return acc;
+      const textBefore = textContent.substring(currentIndex, offset);
+      if (textBefore) {
+        acc.appendChild(document.createTextNode(textBefore));
+      }
+      const markedTerm = document.createElement('mark');
+      markedTerm.textContent = term;
+      acc.appendChild(markedTerm);
+      currentIndex = offset + term.length;
+      return acc;
+    }, document.createDocumentFragment());
+    const textAfter = textContent.substring(currentIndex);
+    if (textAfter) {
+      fragment.appendChild(document.createTextNode(textAfter));
+    }
+    element.innerHTML = '';
+    element.appendChild(fragment);
+  });
+}
+
+export async function fetchData(source) {
+  const response = await fetch(source);
+  if (!response.ok) {
+    // eslint-disable-next-line no-console
+    console.error('error loading API response', response);
+    return null;
+  }
+
+  const json = await response.json();
+  if (!json) {
+    // eslint-disable-next-line no-console
+    console.error('empty API response', source);
+    return null;
+  }
+
+  return json.data;
+}
+
+function renderResult(result, searchTerms, titleTag) {
+  const li = document.createElement('li');
+  const a = document.createElement('a');
+  a.href = result.path;
+  if (result.image) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'search-result-image';
+    const pic = createOptimizedPicture(result.image, '', false, [{ width: '375' }]);
+    wrapper.append(pic);
+    a.append(wrapper);
+  }
+  if (result.title) {
+    const title = document.createElement(titleTag);
+    title.className = 'search-result-title';
+    const link = document.createElement('a');
+    link.href = result.path;
+    link.textContent = result.title;
+    highlightTextElements(searchTerms, [link]);
+    title.append(link);
+    a.append(title);
+  }
+  if (result.description) {
+    const description = document.createElement('p');
+    description.textContent = result.description;
+    highlightTextElements(searchTerms, [description]);
+    a.append(description);
+  }
+  li.append(a);
+  return li;
+}
+
+function clearSearchResults(block) {
+  const searchResults = block.querySelector('.search-results');
+  searchResults.innerHTML = '';
+}
+
+function clearSearch(block) {
+  clearSearchResults(block);
+  if (window.history.replaceState) {
+    const url = new URL(window.location.href);
+    url.search = '';
+    searchParams.delete('q');
+    window.history.replaceState({}, '', url.toString());
+  }
+}
+
+async function renderResults(block, config, filteredData, searchTerms) {
+  clearSearchResults(block);
+  const searchResults = block.querySelector('.search-results');
+  const headingTag = searchResults.dataset.h;
+
+  if (filteredData.length) {
+    searchResults.classList.remove('no-results');
+    filteredData.forEach((result) => {
+      const li = renderResult(result, searchTerms, headingTag);
+      searchResults.append(li);
+    });
+  } else {
+    const noResultsMessage = document.createElement('li');
+    searchResults.classList.add('no-results');
+    noResultsMessage.textContent = config.placeholders.searchNoResults || 'No results found.';
+    searchResults.append(noResultsMessage);
+  }
+}
+
+function compareFound(hit1, hit2) {
+  return hit1.minIdx - hit2.minIdx;
+}
+
+function filterData(searchTerms, data) {
+  const foundInHeader = [];
+  const foundInMeta = [];
+
+  data.forEach((result) => {
+    let minIdx = -1;
+
+    searchTerms.forEach((term) => {
+      const idx = (result.header || result.title).toLowerCase().indexOf(term);
+      if (idx < 0) return;
+      if (minIdx < idx) minIdx = idx;
+    });
+
+    if (minIdx >= 0) {
+      foundInHeader.push({ minIdx, result });
+      return;
+    }
+
+    const metaContents = `${result.title} ${result.description} ${result.path.split('/').pop()}`.toLowerCase();
+    searchTerms.forEach((term) => {
+      const idx = metaContents.indexOf(term);
+      if (idx < 0) return;
+      if (minIdx < idx) minIdx = idx;
+    });
+
+    if (minIdx >= 0) {
+      foundInMeta.push({ minIdx, result });
     }
   });
 
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!searchTypeSelect.contains(e.target)) {
-      optionsList.style.display = 'none';
-      searchTypeSelect.classList.remove('open');
-    }
+  return [
+    ...foundInHeader.sort(compareFound),
+    ...foundInMeta.sort(compareFound),
+  ].map((item) => item.result);
+}
+
+async function handleSearch(e, block, config) {
+  const searchValue = e.target.value;
+  searchParams.set('q', searchValue);
+  if (window.history.replaceState) {
+    const url = new URL(window.location.href);
+    url.search = searchParams.toString();
+    window.history.replaceState({}, '', url.toString());
+  }
+
+  if (searchValue.length < 3) {
+    clearSearch(block);
+    return;
+  }
+  const searchTerms = searchValue.toLowerCase().split(/\s+/).filter((term) => !!term);
+
+  const data = await fetchData(config.source);
+  const filteredData = filterData(searchTerms, data);
+  await renderResults(block, config, filteredData, searchTerms);
+}
+
+function searchResultsContainer(block) {
+  const results = document.createElement('ul');
+  results.className = 'search-results';
+  results.dataset.h = findNextHeading(block);
+  return results;
+}
+
+function searchInput(block, config) {
+  const input = document.createElement('input');
+  input.setAttribute('type', 'search');
+  input.className = 'search-input';
+
+  const searchPlaceholder = config.placeholders.searchPlaceholder || 'Search...';
+  input.placeholder = searchPlaceholder;
+  input.setAttribute('aria-label', searchPlaceholder);
+
+  input.addEventListener('input', (e) => {
+    handleSearch(e, block, config);
   });
 
-  searchTypeSelect.append(selectedOption, optionsList);
+  input.addEventListener('keyup', (e) => { if (e.code === 'Escape') { clearSearch(block); } });
 
-  return { searchTypeSelect, selectedOption, optionsList };
+  return input;
+}
+
+function searchIcon() {
+  const icon = document.createElement('span');
+  icon.classList.add('icon', 'icon-search');
+  return icon;
+}
+
+function searchBox(block, config) {
+  const box = document.createElement('div');
+  box.classList.add('search-box');
+  box.append(
+    searchIcon(),
+    searchInput(block, config),
+  );
+
+  return box;
 }
 
 export default async function decorate(block) {
-  const searchObj = getBlockKeyValues(block);
+  const placeholders = await fetchPlaceholders();
+  const source = block.querySelector('a[href]') ? block.querySelector('a[href]').href : '/query-index.json';
+  block.innerHTML = '';
+  block.append(
+    searchBox(block, { source, placeholders }),
+    searchResultsContainer(block),
+  );
 
-  let pathObjects = [];
-  if (searchObj?.paths) { // block has own paths configured
-    const pathArray = convertHtmlListToArray(searchObj.paths);
-
-    // Convert pathArray from "title: value" strings to objects
-    pathObjects = pathArray.map((item) => {
-      const [title, value] = item.split(':')
-        .map((part) => part.trim());
-      return {
-        title,
-        value,
-      };
-    });
-  } else if (searchObj?.paths === undefined) { // fallback to centrally configured search page paths
-    const configs = await fetchSpreadsheetData('configs', 'search-pages');
-    pathObjects = configs?.data || [];
+  if (searchParams.get('q')) {
+    const input = block.querySelector('input');
+    input.value = searchParams.get('q');
+    input.dispatchEvent(new Event('input'));
   }
 
-  // Create the main container
-  const queryInputContainer = document.createElement('div');
-  queryInputContainer.className = 'query-input-container';
-
-  // Create the input bar
-  const queryInputBar = document.createElement('div');
-  queryInputBar.className = 'query-input-bar';
-
-  // Dropdown
-  const queryDropdown = document.createElement('div');
-  queryDropdown.className = 'query-dropdown';
-
-  // Create custom dropdown using the extracted method only if pathObjects has items
-  let searchTypeSelect;
-  let selectedOption;
-  let optionsList;
-  if (pathObjects.length > 0) {
-    const dropdown = createCustomDropdown(pathObjects);
-    searchTypeSelect = dropdown.searchTypeSelect;
-    selectedOption = dropdown.selectedOption;
-    optionsList = dropdown.optionsList;
-    queryDropdown.append(searchTypeSelect);
-  }
-
-  // Input wrapper
-  const queryInputWrapper = document.createElement('div');
-  queryInputWrapper.className = 'query-input-wrapper';
-
-  // Search icon
-  const querySearchIcon = document.createElement('span');
-  querySearchIcon.className = 'query-search-icon';
-
-  // Input
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'query-input';
-  input.placeholder = 'What are you looking for?';
-  input.autofocus = true;
-
-  queryInputWrapper.append(querySearchIcon, input);
-
-  // Initialize values from URL parameters
-  const urlParams = new URLSearchParams(window.location.search);
-
-  const queryParam = urlParams.get('query');
-  if (queryParam) {
-    input.value = decodeURIComponent(queryParam) || '';
-  }
-
-  // Set searchTypeSelect based on current page path (only if dropdown exists)
-  if (pathObjects.length > 0 && selectedOption) {
-    const currentPath = window.location.pathname;
-    const matchingQueryType = pathObjects.find((queryType) => queryType.value === currentPath);
-    const defaultQueryType = matchingQueryType || pathObjects[0];
-
-    selectedOption.querySelector('.selected-text').textContent = defaultQueryType.title;
-    selectedOption.dataset.value = defaultQueryType.value;
-    searchTypeSelect.dataset.value = defaultQueryType.value;
-
-    // Mark the default option as selected
-    const defaultOption = optionsList.querySelector(`[data-value="${defaultQueryType.value}"]`);
-    if (defaultOption) {
-      defaultOption.classList.add('selected');
-    }
-  }
-
-  const performSearch = () => {
-    const query = input.value;
-
-    // If no dropdown exists, use a current page path
-    const selectedSearchPath = searchTypeSelect?.dataset.value || window.location.pathname;
-
-    // Redirect to search page with search parameters
-    window.location.href = `${selectedSearchPath}?query=${encodeURIComponent(query)}`;
-  };
-
-  // Search button
-  const searchBtn = document.createElement('button');
-  searchBtn.className = 'query-search-btn';
-  searchBtn.setAttribute('aria-label', 'Search');
-  searchBtn.textContent = 'Search';
-  // Add event listener to log input and selected option
-  searchBtn.addEventListener('click', performSearch);
-  // Add event listeners to match React SearchBar behavior
-  input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      performSearch();
-    }
-  });
-
-  // Assemble everything
-  if (pathObjects.length > 0) {
-    queryInputBar.append(queryDropdown, queryInputWrapper, searchBtn);
-  } else {
-    queryInputBar.append(queryInputWrapper, searchBtn);
-    input.classList.add('rounded-box');
-  }
-  queryInputContainer.append(queryInputBar);
-
-  block.textContent = '';
-  block.append(queryInputContainer);
+  decorateIcons(block);
 }

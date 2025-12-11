@@ -45,6 +45,7 @@ import ImageGallery from './ImageGallery';
 import SearchBar from './SearchBar';
 import LeftNav, { type AppItem } from './LeftNav';
 import AppGrid, { type AppTile } from './AppGrid';
+import Firefly from '../pages/Firefly';
 
 const HITS_PER_PAGE = 24;
 
@@ -185,13 +186,28 @@ function MainApp(): React.JSX.Element {
 
     // Application navigation state
     const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+    const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
     const [apps] = useState<AppItem[]>([
         { id: 'assets-browser', name: 'Assets Browser' },
         { id: 'dashboard', name: 'Dashboard' },
         { id: 'analytics', name: 'Analytics' },
         { id: 'settings', name: 'Settings' },
     ]);
-    const [appTiles, setAppTiles] = useState<AppTile[]>([]);
+    const [appTiles] = useState<AppTile[]>([
+        {
+            id: 'firefly',
+            title: 'Adobe Firefly',
+            description: 'Generate images using AI',
+            icon: (
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+            ),
+            onClick: () => setSelectedTileId('firefly'),
+        },
+    ]);
 
     // Expose cart functions to window for EDS header integration
     useEffect(() => {
@@ -680,7 +696,13 @@ function MainApp(): React.JSX.Element {
     // Handle app selection
     const handleAppSelect = (appId: string): void => {
         setSelectedAppId(appId);
+        setSelectedTileId(null); // Reset tile selection when switching apps
         // TODO: Load app-specific tiles/content based on selected app
+    };
+
+    // Handle tile click
+    const handleTileClick = (tileId: string): void => {
+        setSelectedTileId(tileId);
     };
 
     const handleProfileClick = (): void => {
@@ -839,8 +861,10 @@ function MainApp(): React.JSX.Element {
                                     {/* <Footer /> */}
                                 </div>
                             </div>
+                        ) : selectedTileId === 'firefly' ? (
+                            <Firefly onBack={() => setSelectedTileId(null)} />
                         ) : (
-                            <AppGrid tiles={appTiles} />
+                            <AppGrid tiles={appTiles} onTileClick={handleTileClick} />
                         )}
                     </div>
                 </div>

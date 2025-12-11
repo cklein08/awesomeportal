@@ -1,24 +1,5 @@
 // eslint-disable-next-line import/no-unresolved
 import { toClassName } from '../../scripts/aem.js';
-import { loadFragment } from '../../scripts/scripts.js';
-
-export async function decorateFragments(panel) {
-  const links = panel.querySelectorAll('a');
-  await Promise.all([...links].map(async (link) => {
-    const up = link.parentElement;
-    if (up.textContent && up.textContent.includes('((fragment))')) {
-      const path = link ? link.getAttribute('href') : panel.textContent.trim();
-      const fragment = await loadFragment(path);
-      if (fragment) {
-        const fragmentSection = fragment.querySelector(':scope .section');
-        if (fragmentSection) {
-          up.parentElement.append(...fragment.childNodes);
-          up.remove();
-        }
-      }
-    }
-  }));
-}
 
 export default async function decorate(block) {
   // build tablist
@@ -33,9 +14,6 @@ export default async function decorate(block) {
 
     // decorate tabpanel
     const tabpanel = block.children[i];
-
-    decorateFragments(tabpanel);
-
     tabpanel.className = 'tabs-panel';
     tabpanel.id = `tabpanel-${id}`;
     tabpanel.setAttribute('aria-hidden', !!i);

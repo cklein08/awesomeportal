@@ -1,7 +1,5 @@
-import { getMetadata } from '../../scripts/aem.js';
-import { loadFragment } from '../../scripts/scripts.js';
-import decorateassetsDashboardSearch from '../assetsDashboard-search/assetsDashboard-search.js';
-import showProfileModal from './profile.js';
+import { fetchPlaceholders, getMetadata } from '../../scripts/aem.js';
+import { loadFragment } from '../fragment/fragment.js';
 
 // media query match that indicates mobile/tablet width
 const isDesktop = window.matchMedia('(min-width: 900px)');
@@ -105,13 +103,83 @@ function toggleMenu(nav, navSections, forceExpanded = null) {
   }
 }
 
-async function createNavBar() {
+function getDirectTextContent(menuItem) {
+  const menuLink = menuItem.querySelector(':scope > a');
+  if (menuLink) {
+    return menuLink.textContent.trim();
+  }
+  return Array.from(menuItem.childNodes)
+    .filter((n) => n.nodeType === Node.TEXT_NODE)
+    .map((n) => n.textContent)
+    .join(' ');
+}
+
+async function buildBreadcrumbsFromNavTree(nav, currentUrl) {
+  const crumbs = [];
+
+  const homeUrl = document.querySelector('.nav-brand a[href]').href;
+
+  let menuItem = Array.from(nav.querySelectorAll('a')).find((a) => a.href === currentUrl);
+  if (menuItem) {
+    do {
+      const link = menuItem.querySelector(':scope > a');
+      crumbs.unshift({ title: getDirectTextContent(menuItem), url: link ? link.href : null });
+      menuItem = menuItem.closest('ul')?.closest('li');
+    } while (menuItem);
+  } else if (currentUrl !== homeUrl) {
+    crumbs.unshift({ title: getMetadata('og:title'), url: currentUrl });
+  }
+
+  const placeholders = await fetchPlaceholders();
+  const homePlaceholder = placeholders.breadcrumbsHomeLabel || 'Home';
+
+  crumbs.unshift({ title: homePlaceholder, url: homeUrl });
+
+  // last link is current page and should not be linked
+  if (crumbs.length > 1) {
+    crumbs[crumbs.length - 1].url = null;
+  }
+  crumbs[crumbs.length - 1]['aria-current'] = 'page';
+  return crumbs;
+}
+
+async function buildBreadcrumbs() {
+  const breadcrumbs = document.createElement('nav');
+  breadcrumbs.className = 'breadcrumbs';
+
+  const crumbs = await buildBreadcrumbsFromNavTree(document.querySelector('.nav-sections'), document.location.href);
+
+  const ol = document.createElement('ol');
+  ol.append(...crumbs.map((item) => {
+    const li = document.createElement('li');
+    if (item['aria-current']) li.setAttribute('aria-current', item['aria-current']);
+    if (item.url) {
+      const a = document.createElement('a');
+      a.href = item.url;
+      a.textContent = item.title;
+      li.append(a);
+    } else {
+      li.textContent = item.title;
+    }
+    return li;
+  }));
+
+  breadcrumbs.append(ol);
+  return breadcrumbs;
+}
+
+/**
+ * loads and decorates the header, mainly the nav
+ * @param {Element} block The header block element
+ */
+export default async function decorate(block) {
   // load nav as fragment
   const navMeta = getMetadata('nav');
   const navPath = navMeta ? new URL(navMeta, window.location).pathname : '/nav';
   const fragment = await loadFragment(navPath);
 
   // decorate nav DOM
+  block.textContent = '';
   const nav = document.createElement('nav');
   nav.id = 'nav';
   while (fragment.firstElementChild) nav.append(fragment.firstElementChild);
@@ -143,50 +211,11 @@ async function createNavBar() {
     });
   }
 
-  const tools = nav.querySelector('.nav-tools');
-
-  // add shopping cart icon to nav-tools
-  if (tools) {
-    const cartIcon = document.createElement('div');
-    cartIcon.classList.add('nav-cart-icon');
-    cartIcon.innerHTML = `
-      <button type="button" aria-label="Shopping Cart">
-        <img src="/icons/shopping-cart-icon.svg" alt="Shopping Cart" />
-        <span class="cart-badge" style="display: none;"></span>
-      </button>
-    `;
-
-    // Add click handler for cart icon
-    cartIcon.addEventListener('click', () => {
-      if (window.openCart && typeof window.openCart === 'function') {
-        window.openCart();
-      } else {
-        console.log('Cart panel functionality not available');
-      }
-    });
-
-    tools.appendChild(cartIcon);
-
-    // Expose function to update cart badge
-    window.updateCartBadge = function (numCartItems) {
-      const badge = cartIcon.querySelector('.cart-badge');
-      if (badge) {
-        if (numCartItems && numCartItems > 0) {
-          badge.textContent = numCartItems;
-          badge.style.display = 'block';
-        } else {
-          badge.style.display = 'none';
-        }
-      }
-    };
-
-    // Update cart badge from localStorage
-    try {
-      const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
-      window.updateCartBadge(cartItems.length);
-    } catch (error) {
-      console.error('Error reading cart items from localStorage:', error);
-      window.updateCartBadge(0);
+  const navTools = nav.querySelector('.nav-tools');
+  if (navTools) {
+    const search = navTools.querySelector('a[href*="search"]');
+    if (search && search.textContent === '') {
+      search.setAttribute('aria-label', 'Search');
     }
   }
 
@@ -206,136 +235,9 @@ async function createNavBar() {
   const navWrapper = document.createElement('div');
   navWrapper.className = 'nav-wrapper';
   navWrapper.append(nav);
-  return navWrapper;
-}
+  block.append(navWrapper);
 
-function getUserInitials() {
-  if (!window.user || !window.user.name) {
-    return '';
+  if (getMetadata('breadcrumbs').toLowerCase() === 'true') {
+    navWrapper.append(await buildBreadcrumbs());
   }
-  return window.user.name.split(' ').map((name) => name.charAt(0)).join('').toUpperCase();
-}
-
-function createHeaderBar() {
-  // Create TCCC primary header bar
-  const headerBar = document.createElement('div');
-  headerBar.className = 'header-bar';
-
-  // Create language section
-  const languageSection = document.createElement('div');
-  languageSection.className = 'language-selector';
-
-  const languageButton = document.createElement('div');
-  languageButton.className = 'language-selector-button';
-  languageButton.innerHTML = `
-    <span class="language-icon country-flag-usa"></span>
-    <span class="country-name">EN-US</span>
-    <span class="down-arrow-icon"></span>
-  `;
-  languageSection.appendChild(languageButton);
-
-  // Create upload button
-  const uploadButton = document.createElement('div');
-  uploadButton.className = 'header-upload-button';
-  uploadButton.innerHTML = `
-    <a class="upload-icon">Upload</a>
-  `;
-
-  // Create help section
-  const helpSection = document.createElement('div');
-  helpSection.className = 'help-section';
-
-  const helpButton = document.createElement('div');
-  helpButton.className = 'help-section-button';
-  helpButton.innerHTML = `
-    Help
-    <span class="down-arrow-icon"></span>
-  `;
-  helpSection.appendChild(helpButton);
-
-  headerBar.append(languageSection, uploadButton, helpSection);
-
-  // Create user button (user dropdown)
-  // Note: window.user not defined aka logged out should normally not happen
-  //       as the user agent should be redirected to the login page before
-  if (window.user) {
-    const myAccount = document.createElement('div');
-    myAccount.className = 'my-account';
-    const myAccountButton = document.createElement('div');
-    myAccountButton.className = 'my-account-button';
-    myAccountButton.innerHTML = `
-      <div class="avatar">${getUserInitials()}</div>
-      My Account
-      <span class="down-arrow-icon"></span>
-    `;
-
-    const myAccountMenu = document.createElement('div');
-    myAccountMenu.className = 'my-account-menu';
-    myAccountMenu.innerHTML = `
-      <ul>
-        <li><a href="#" id="my-profile-link">My Profile</a></li>
-        <li><a href="#">My Rights Requests</a></li>
-        <li><a href="#">My Saved Templates</a></li>
-        <li><a href="#">My Print Jobs</a></li>
-        <li><a href="/my-collections">My Collections</a></li>
-        <li><a href="/my-saved-search">My Saved Searches</a></li>
-        <li><a href="/auth/logout">Log Out</a></li>
-      </ul>
-    `;
-    myAccountButton.addEventListener('click', () => {
-      // toggle display
-      myAccountMenu.style.display = myAccountMenu.style.display === 'block' ? 'none' : 'block';
-      myAccountButton.classList.toggle('active');
-    });
-    myAccount.appendChild(myAccountButton);
-    myAccount.appendChild(myAccountMenu);
-
-    // Add event listener for My Profile link
-    const profileLink = myAccountMenu.querySelector('#my-profile-link');
-    profileLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      showProfileModal();
-      // Close the account menu
-      myAccountMenu.style.display = 'none';
-      myAccountButton.classList.remove('active');
-    });
-
-    headerBar.append(myAccount);
-  }
-
-  return headerBar;
-}
-
-/**
- * loads and decorates the header, mainly the nav
- * @param {Element} block The header block element
- */
-export default async function decorate(block) {
-  block.textContent = '';
-
-  if (getMetadata('header') === 'no') {
-    // quick hack for welcome page
-    block.parentElement.style.height = '60px';
-    return;
-  }
-
-  block.append(createHeaderBar());
-  block.append(await createNavBar());
-
-  // Create and render assetsDashboard-search block
-  const searchBlock = document.createElement('div');
-  searchBlock.className = 'assetsDashboard-search-hidden';
-
-  // Set empty HTML - assetsDashboard-search.js now handles optional configuration
-  searchBlock.innerHTML = '';
-
-  // Decorate the search block
-  try {
-    await decorateassetsDashboardSearch(searchBlock);
-  } catch (error) {
-    console.error('Error decorating searchBlock:', error);
-  }
-
-  // Append the search block to the header (always hidden)
-  block.append(searchBlock);
 }

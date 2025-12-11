@@ -4,7 +4,7 @@
 
 # Run full local development stack
 
-AEM_PAGES_URL=${AEM_PAGES_URL:-https://main--assetsDashboard--aemsites.aem.page}
+AEM_PAGES_URL=${AEM_PAGES_URL:-https://main--awesomeportal--aemsites.aem.page}
 DM_ORIGIN=${DM_ORIGIN:-https://delivery-p64403-e544653.adobeaemcloud.com}
 
 # https://www.aem.live/developer/cli-reference#general-options
@@ -50,9 +50,9 @@ function run_aem() {
 }
 
 function run_react_build() {
-  cd assetsDashboard-react
+  cd awesomeportal-react
 
-  echo "[Vite Build] Watching for React code changes in assetsDashboard-react/* ..."
+  echo "[Vite Build] Watching for React code changes in awesomeportal-react/* ..."
   npm run auto-build
 }
 
@@ -111,7 +111,7 @@ echo "               |       ${AEM_PAGES_URL}"
 echo "               |"
 echo "               | React build in /tools/assets-browser/index.(js|css)"
 echo "               ↓"
-echo    "${BG_BLUE}[vte]$NC  Vite auto-rebuild on file changes inside assetsDashboard-react/*"
+echo    "${BG_BLUE}[vte]$NC  Vite auto-rebuild on file changes inside awesomeportal-react/*"
 echo
 echo "Running at http://localhost:8787"
 echo

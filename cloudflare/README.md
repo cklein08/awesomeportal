@@ -2,11 +2,11 @@
 
 A Cloudflare Worker that acts as outermost CDN for the KO Assets project with some additional features. It provides authentication, authorization, edge caching, and request routing to the various AEM backends (Helix/EDS, Dynamic Media OpenAPI and more).
 
-- [Worker in Cloudflare Dashboard](https://dash.cloudflare.com/852dfa4ae1b0d579df29be65b986c101/workers/services/view/assetsDashboard/production/metrics)
-- Live: https://assetsDashboard.adobeaem.workers.dev
-- Branch Live: <https://{branch}-assetsDashboard.adobeaem.workers.dev>
-- Preview: https://preview-assetsDashboard.adobeaem.workers.dev
-- Branch Preview: <https://{branch}-preview-assetsDashboard.adobeaem.workers.dev>
+- [Worker in Cloudflare Dashboard](https://dash.cloudflare.com/852dfa4ae1b0d579df29be65b986c101/workers/services/view/awesomeportal/production/metrics)
+- Live: https://awesomeportal.adobeaem.workers.dev
+- Branch Live: <https://{branch}-awesomeportal.adobeaem.workers.dev>
+- Preview: https://preview-awesomeportal.adobeaem.workers.dev
+- Branch Preview: <https://{branch}-preview-awesomeportal.adobeaem.workers.dev>
 
 ## URL Paths
 
@@ -92,8 +92,8 @@ On each branch/PR push, the Github Actions CI will automatically deploy brancher
 
 | URL | Helix origin |
 |-----|--------------|
-| `https://{branch}-assetsDashboard.adobeaem.workers.dev` | `https://{branch}--assetsDashboard--aemsites.aem.live` |
-| `https://{branch}-preview-assetsDashboard.adobeaem.workers.dev` | `https://{branch}--assetsDashboard--aemsites.aem.page` |
+| `https://{branch}-awesomeportal.adobeaem.workers.dev` | `https://{branch}--awesomeportal--aemsites.aem.live` |
+| `https://{branch}-preview-awesomeportal.adobeaem.workers.dev` | `https://{branch}--awesomeportal--aemsites.aem.page` |
 
 
 ### CI main
@@ -103,8 +103,8 @@ On each `main` branch push, the Github ActionsCI will do the same as above and a
 
 | URL | Helix origin |
 |-----|--------------|
-| https://assetsDashboard.adobeaem.workers.dev | https://main--assetsDashboard--aemsites.aem.live |
-| https://preview-assetsDashboard.adobeaem.workers.dev | https://main--assetsDashboard--aemsites.aem.page |
+| https://awesomeportal.adobeaem.workers.dev | https://main--awesomeportal--aemsites.aem.live |
+| https://preview-awesomeportal.adobeaem.workers.dev | https://main--awesomeportal--aemsites.aem.page |
 
 ### Manual deploy
 
@@ -120,10 +120,10 @@ npm run deploy
 This will deploy the worker to the preview URL using the `user` id (git email address without the domain) and `branch` name:
 
 ```bash
-https://{user}-{branch}-assetsDashboard.adobeaem.workers.dev
+https://{user}-{branch}-awesomeportal.adobeaem.workers.dev
 ```
 
-This will use the same `branch` for the Helix origin: `{branch}--assetsDashboard--aemsites.aem.live`
+This will use the same `branch` for the Helix origin: `{branch}--awesomeportal--aemsites.aem.live`
 
 Options:
 
@@ -161,17 +161,17 @@ To configure these secrets locally (for use with `npm run dev`), create a `.secr
 Secret Store ID: `5d64b0d295964846b36569f507fb7b13`
 
 * As options are limited in the Secret Store beta, we are using the _default secret store_ in the Franklin (Dev) account.
-* And use a common prefix `assetsDashboard_` for individual secrets, to avoid conflicts with other workers.
-* Ideally this should be a dedicated secret store just for `assetsDashboard`. In which case we would not need the prefix.
+* And use a common prefix `awesomeportal_` for individual secrets, to avoid conflicts with other workers.
+* Ideally this should be a dedicated secret store just for `awesomeportal`. In which case we would not need the prefix.
 
 | Name in Secret Store | Variable Name in Code | Description | Rotation |
 |----------------------|-----------------------|-------------|----------|
-| `assetsDashboard_COOKIE_SECRET` | `COOKIE_SECRET` | Secret used to sign the session cookie. Must be a cryptographically secure random string of characters, base64 encoded, 32 bytes or more. | TODO: weekly? need to implement 2 secrets for rotation.<br><br>Manually rotate by generating new secretvalue using `openssl rand -base64 32` and updating secret store. Note: will currently immediately end all existing sessions. |
-| `assetsDashboard_DM_CLIENT_ID` | `DM_CLIENT_ID` | Client ID for the DM IMS technical account used to access `DM_ORIGIN`. From [Adobe developer console](http://developer.adobe.com/console) project with access to the right delivery environment and DM API access. | Only changed if the DM IMS technical account is changed, e.g. new developer console project. |
-| `assetsDashboard_DM_CLIENT_SECRET` | `DM_CLIENT_SECRET` | Client secret for the DM IMS technical account used to access `DM_ORIGIN`. From [Adobe developer console](http://developer.adobe.com/console) project with access to the right delivery environment and DM API access. | Manually rotate in [Adobe developer console](http://developer.adobe.com/console) and then update in secret store. |
-| `assetsDashboard_HELIX_ORIGIN_AUTHENTICATION` | `HELIX_ORIGIN_AUTHENTICATION` | AEM EDS authentication token. **NOT ENABLED YET.** | TODO: possible using Helix admin APIs? |
-| `assetsDashboard_FADEL_USER` | `FADEL_USER` | Fadel API username/email. | Only if user is changed in Fadel. |
-| `assetsDashboard_FADEL_PASSWORD` | `FADEL_PASSWORD` | Fadel API password. | Manually rotate in Fadel and then update in secret store. |
+| `awesomeportal_COOKIE_SECRET` | `COOKIE_SECRET` | Secret used to sign the session cookie. Must be a cryptographically secure random string of characters, base64 encoded, 32 bytes or more. | TODO: weekly? need to implement 2 secrets for rotation.<br><br>Manually rotate by generating new secretvalue using `openssl rand -base64 32` and updating secret store. Note: will currently immediately end all existing sessions. |
+| `awesomeportal_DM_CLIENT_ID` | `DM_CLIENT_ID` | Client ID for the DM IMS technical account used to access `DM_ORIGIN`. From [Adobe developer console](http://developer.adobe.com/console) project with access to the right delivery environment and DM API access. | Only changed if the DM IMS technical account is changed, e.g. new developer console project. |
+| `awesomeportal_DM_CLIENT_SECRET` | `DM_CLIENT_SECRET` | Client secret for the DM IMS technical account used to access `DM_ORIGIN`. From [Adobe developer console](http://developer.adobe.com/console) project with access to the right delivery environment and DM API access. | Manually rotate in [Adobe developer console](http://developer.adobe.com/console) and then update in secret store. |
+| `awesomeportal_HELIX_ORIGIN_AUTHENTICATION` | `HELIX_ORIGIN_AUTHENTICATION` | AEM EDS authentication token. **NOT ENABLED YET.** | TODO: possible using Helix admin APIs? |
+| `awesomeportal_FADEL_USER` | `FADEL_USER` | Fadel API username/email. | Only if user is changed in Fadel. |
+| `awesomeportal_FADEL_PASSWORD` | `FADEL_PASSWORD` | Fadel API password. | Manually rotate in Fadel and then update in secret store. |
 
 
 ### CI secrets
@@ -199,4 +199,4 @@ This worker uses the following [Cloudflare KV](https://developers.cloudflare.com
 
 | Namespace Name | Namespace ID | Binding | Description |
 |----------------|--------------|---------|-------------|
-| `assetsDashboard-auth-tokens` | `975809e56a7a425aa006e156671bbecf` | `env.AUTH_TOKENS` | Stores authentication tokens for various origins. |
+| `awesomeportal-auth-tokens` | `975809e56a7a425aa006e156671bbecf` | `env.AUTH_TOKENS` | Stores authentication tokens for various origins. |

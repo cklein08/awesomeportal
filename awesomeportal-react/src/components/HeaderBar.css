@@ -26,10 +26,11 @@
 }
 
 .app-logo {
-    width: 180px;
-    height: 28px;
+    width: auto;
+    height: 35px;
     cursor: pointer;
     padding-left: 0;
+    object-fit: contain;
 }
 
 /* Header controls */

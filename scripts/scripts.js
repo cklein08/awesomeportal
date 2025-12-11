@@ -1,35 +1,21 @@
 import {
   buildBlock,
-  decorateBlocks,
+  loadHeader,
+  loadFooter,
   decorateButtons,
   decorateIcons,
-  decorateSections,
+  decorateBlocks,
   decorateTemplateAndTheme,
-  loadCSS,
-  loadFooter,
-  loadHeader,
+  getMetadata,
+  waitForFirstImage,
   loadSection,
   loadSections,
-  waitForFirstImage,
+  loadCSS,
+  sampleRUM,
+  readBlockConfig,
+  toClassName,
+  toCamelCase,
 } from './aem.js';
-
-/**
- * Loads the logged inuser data.
- */
-async function loadUser() {
-  // TODO: run this every 5 minutes and warn when expiry is less than 30 minutes
-  //       with option to re-authenticate
-
-  window.user = undefined;
-  try {
-    const user = await fetch(`${window.location.origin}/auth/user`);
-    if (user.ok) {
-      window.user = await user.json();
-    }
-  } catch (_ignore) {
-    // do nothing
-  }
-}
 
 /**
  * Builds hero block and prepends to main in a new section.
@@ -58,17 +44,80 @@ async function loadFonts() {
   }
 }
 
+function autolinkModals(doc) {
+  doc.addEventListener('click', async (e) => {
+    const origin = e.target.closest('a');
+    if (origin && origin.href && origin.href.includes('/modals/')) {
+      e.preventDefault();
+      const { openModal } = await import(`${window.hlx.codeBasePath}/blocks/modal/modal.js`);
+      openModal(origin.href);
+    }
+  });
+}
+
 /**
  * Builds all synthetic blocks in a container element.
  * @param {Element} main The container element
  */
 function buildAutoBlocks(main) {
   try {
-    buildHeroBlock(main);
+    if (!main.querySelector('.hero')) buildHeroBlock(main);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Auto Blocking failed', error);
   }
+}
+
+/**
+ * Decorates all sections in a container element.
+ * @param {Element} main The container element
+ */
+function decorateSections(main) {
+  main.querySelectorAll(':scope > div').forEach((section) => {
+    const wrappers = [];
+    let defaultContent = false;
+    [...section.children].forEach((e) => {
+      if (e.classList.contains('richtext')) {
+        e.removeAttribute('class');
+        if (!defaultContent) {
+          const wrapper = document.createElement('div');
+          wrapper.classList.add('default-content-wrapper');
+          wrappers.push(wrapper);
+          defaultContent = true;
+        }
+      } else if (e.tagName === 'DIV' || !defaultContent) {
+        const wrapper = document.createElement('div');
+        wrappers.push(wrapper);
+        defaultContent = e.tagName !== 'DIV';
+        if (defaultContent) wrapper.classList.add('default-content-wrapper');
+      }
+      wrappers[wrappers.length - 1].append(e);
+    });
+
+    // Add wrapped content back
+    wrappers.forEach((wrapper) => section.append(wrapper));
+    section.classList.add('section');
+    section.dataset.sectionStatus = 'initialized';
+    section.style.display = 'none';
+
+    // Process section metadata
+    const sectionMeta = section.querySelector('div.section-metadata');
+    if (sectionMeta) {
+      const meta = readBlockConfig(sectionMeta);
+      Object.keys(meta).forEach((key) => {
+        if (key === 'style') {
+          const styles = meta.style
+            .split(',')
+            .filter((style) => style)
+            .map((style) => toClassName(style.trim()));
+          styles.forEach((style) => section.classList.add(style));
+        } else {
+          section.dataset[toCamelCase(key)] = meta[key];
+        }
+      });
+      sectionMeta.parentNode.remove();
+    }
+  });
 }
 
 /**
@@ -90,14 +139,19 @@ export function decorateMain(main) {
  * @param {Element} doc The container element
  */
 async function loadEager(doc) {
-  document.documentElement.lang = 'en';
+  doc.documentElement.lang = 'en';
   decorateTemplateAndTheme();
+  if (getMetadata('breadcrumbs').toLowerCase() === 'true') {
+    doc.body.dataset.breadcrumbs = true;
+  }
   const main = doc.querySelector('main');
   if (main) {
     decorateMain(main);
-    document.body.classList.add('appear');
+    doc.body.classList.add('appear');
     await loadSection(main.querySelector('.section'), waitForFirstImage);
   }
+
+  sampleRUM.enhance();
 
   try {
     /* if desktop (proxy for fast connection) or fonts already loaded, load fonts.css */
@@ -114,7 +168,7 @@ async function loadEager(doc) {
  * @param {Element} doc The container element
  */
 async function loadLazy(doc) {
-  await loadUser();
+  autolinkModals(doc);
 
   const main = doc.querySelector('main');
   await loadSections(main);
@@ -127,16 +181,7 @@ async function loadLazy(doc) {
   loadFooter(doc.querySelector('footer'));
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
-  loadCSS(`${window.hlx.codeBasePath}/styles/add-to-collection-modal.css`);
   loadFonts();
-
-  // Initialize add to collection modal functionality
-  import('./add-to-collection-modal.js').then(({ initAddToCollectionModal }) => {
-    initAddToCollectionModal();
-  }).catch(() => {
-    // Fallback for environments where the module might not be available
-    console.log('Add to collection modal not available');
-  });
 }
 
 /**
@@ -144,159 +189,48 @@ async function loadLazy(doc) {
  * without impacting the user experience.
  */
 function loadDelayed() {
-  // eslint-disable-next-line import/no-cycle
   window.setTimeout(() => import('./delayed.js'), 3000);
   // load anything that can be postponed to the latest here
+}
+
+async function loadSidekick() {
+  if (document.querySelector('aem-sidekick')) {
+    import('./sidekick.js');
+    return;
+  }
+
+  document.addEventListener('sidekick-ready', () => {
+    import('./sidekick.js');
+  });
 }
 
 async function loadPage() {
   await loadEager(document);
   await loadLazy(document);
   loadDelayed();
+  loadSidekick();
 }
 
-/**
- * Strips HTML tags and newlines from text
- * @param {string} text - The text to clean
- * @returns {string} Cleaned text without HTML tags or newlines
- */
-export function stripHtmlAndNewlines(text) {
-  if (!text) return text;
-
-  // Create a temporary div to strip HTML tags
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = text;
-
-  // Get text content and remove newlines
-  return tempDiv.textContent.trim().replace(/\n/g, '');
-}
-
-/**
- * Converts HTML list elements to a nested array structure
- * @param {string} htmlString - HTML string containing ul or ol elements
- * @returns {Array} Array of list items with nested structure preserved
- */
-export function convertHtmlListToArray(htmlString) {
-  if (!htmlString?.trim()) return [];
-
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlString.trim();
-
-  function processListItems(listElement) {
-    return Array.from(listElement.children, (li) => {
-      if (li.tagName !== 'LI') return null;
-
-      // Extract direct text content efficiently
-      const textContent = Array.from(li.childNodes)
-        .filter((node) => node.nodeType === Node.TEXT_NODE
-          || (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'UL' && node.tagName !== 'OL'))
-        .map((node) => node.textContent)
-        .join('')
-        .trim();
-
-      // Get direct child lists only
-      const nestedLists = Array.from(li.children).filter((child) => child.tagName === 'UL' || child.tagName === 'OL');
-
-      if (nestedLists.length === 0) {
-        return textContent || null;
-      }
-
-      return {
-        text: textContent,
-        items: nestedLists.flatMap(processListItems),
-      };
-    }).filter(Boolean);
-  }
-
-  return Array.from(tempDiv.querySelectorAll('ul, ol'))
-    .flatMap(processListItems);
-}
-
-/**
- * Extracts all key-value pairs from a block.
- * If the first line of a value contains "{{html}}",
- * it returns the HTML content with the marker removed.
- * Otherwise, it returns plain text content (no HTML tags, no newlines).
- * @param {Element} block The block element containing rows
- * @returns {Object} An object containing all key-value pairs from the block
- */
-export function getBlockKeyValues(block) {
-  const result = {};
-
-  [...block.children].forEach((row) => {
-    const divs = row.children;
-    if (divs.length >= 2) {
-      const keyDiv = divs[0];
-      const valueDiv = divs[1];
-
-      const keyP = keyDiv.querySelector('p');
-
-      if (keyP) {
-        const rowKey = keyP.textContent.trim();
-        result[rowKey] = valueDiv.innerHTML.trim();
-      }
-    }
-  });
-
-  return result;
-}
-
-/**
-* Fetches spreadsheet data from EDS.
-* @param {string} sheetPath Path to the spreadsheet JSON endpoint
-                            (e.g., 'data/products', 'content/pricing')
-* @returns {Promise<Object>} Object representing spreadsheet data
-*/
-export async function fetchSpreadsheetData(sheetPath, sheetName = '') {
-  return fetch(`${window.location.origin}/${sheetPath}.json${sheetName ? `?sheet=${sheetName}` : ''}`)
-    .then((resp) => {
-      if (resp.ok) {
-        return resp.json();
-      }
-      throw new Error(`Failed to fetch spreadsheet: ${resp.status} ${resp.statusText}`);
-    })
-    .then((json) => json)
-    .catch((error) => {
-      // eslint-disable-next-line no-console
-      console.warn(`Failed to load spreadsheet from ${sheetPath}:`, error);
-      return [];
-    });
-}
-
-/**
- * Loads a fragment.
- * @param {string} path The path to the fragment
- * @returns {HTMLElement} The root element of the fragment
- */
-export async function loadFragment(path) {
-  if (path && path.startsWith('/')) {
-    const resp = await fetch(`${path}.plain.html`);
-    if (resp.ok) {
-      const main = document.createElement('main');
-      main.innerHTML = await resp.text();
-
-      // reset base path for media to fragment base
-      const resetAttributeBase = (tag, attr) => {
-        main.querySelectorAll(`${tag}[${attr}^="./media_"]`).forEach((elem) => {
-          elem[attr] = new URL(elem.getAttribute(attr), new URL(path, window.location)).href;
-        });
-      };
-      resetAttributeBase('img', 'src');
-      resetAttributeBase('source', 'srcset');
-
-      decorateMain(main);
-      await loadSections(main);
-      return main;
-    }
-  }
-  return null;
+// UE Editor support before page load
+if (window.location.hostname.includes('ue.da.live')) {
+  // eslint-disable-next-line import/no-unresolved
+  await import(`${window.hlx.codeBasePath}/ue/scripts/ue.js`).then(({ default: ue }) => ue());
 }
 
 loadPage();
 
-// enable live preview in da.live
+const { searchParams, origin } = new URL(window.location.href);
+const branch = searchParams.get('nx') || 'main';
+
+export const NX_ORIGIN = branch === 'local' || origin.includes('localhost') ? 'http://localhost:6456/nx' : 'https://da.live/nx';
+
 (async function loadDa() {
-  if (!new URL(window.location.href).searchParams.get('dapreview')) return;
-  // eslint-disable-next-line import/no-unresolved
-  import('https://da.live/scripts/dapreview.js').then(({ default: daPreview }) => daPreview(loadPage));
+  /* eslint-disable import/no-unresolved */
+  if (searchParams.get('dapreview')) {
+    import('https://da.live/scripts/dapreview.js')
+      .then(({ default: daPreview }) => daPreview(loadPage));
+  }
+  if (searchParams.get('daexperiment')) {
+    import(`${NX_ORIGIN}/public/plugins/exp/exp.js`);
+  }
 }());

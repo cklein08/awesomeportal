@@ -1,5 +1,5 @@
 # configure worker name and Cloudflare account
-name = "assetsDashboard"
+name = "awesomeportal"
 account_id = "852dfa4ae1b0d579df29be65b986c101"
 
 # TODO: when hosting the domain on cloudflare:
@@ -25,7 +25,7 @@ enabled = true
 
 [vars]
 # Configure origins here
-HELIX_ORIGIN = "https://main--assetsDashboard--aemsites.aem.live"
+HELIX_ORIGIN = "https://main--awesomeportal--aemsites.aem.live"
 DM_ORIGIN = "https://delivery-p64403-e544653.adobeaemcloud.com"
 FADEL_ORIGIN = "https://test.fadelarc.net"
 
@@ -44,27 +44,27 @@ LOGIN_PAGE = "/public/welcome"
 [[secrets_store_secrets]]
 store_id = "5d64b0d295964846b36569f507fb7b13"
 binding = "COOKIE_SECRET"
-secret_name = "assetsDashboard_COOKIE_SECRET"
+secret_name = "awesomeportal_COOKIE_SECRET"
 
 [[secrets_store_secrets]]
 store_id = "5d64b0d295964846b36569f507fb7b13"
 binding = "DM_CLIENT_ID"
-secret_name = "assetsDashboard_DM_CLIENT_ID"
+secret_name = "awesomeportal_DM_CLIENT_ID"
 
 [[secrets_store_secrets]]
 store_id = "5d64b0d295964846b36569f507fb7b13"
 binding = "DM_CLIENT_SECRET"
-secret_name = "assetsDashboard_DM_CLIENT_SECRET"
+secret_name = "awesomeportal_DM_CLIENT_SECRET"
 
 [[secrets_store_secrets]]
 store_id = "5d64b0d295964846b36569f507fb7b13"
 binding = "FADEL_USER"
-secret_name = "assetsDashboard_FADEL_USER"
+secret_name = "awesomeportal_FADEL_USER"
 
 [[secrets_store_secrets]]
 store_id = "5d64b0d295964846b36569f507fb7b13"
 binding = "FADEL_PASSWORD"
-secret_name = "assetsDashboard_FADEL_PASSWORD"
+secret_name = "awesomeportal_FADEL_PASSWORD"
 
 [[kv_namespaces]]
 binding = "AUTH_TOKENS"

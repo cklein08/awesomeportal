@@ -19,10 +19,10 @@
 
 # Configuration
 # Helix github
-REPO=assetsDashboard
+REPO=awesomeportal
 ORG=aemsites
 # cloudflare worker
-WORKER=assetsDashboard
+WORKER=awesomeportal
 WORKER_DOMAIN=adobeaem
 
 # Usage: upload_version <tag> <message>

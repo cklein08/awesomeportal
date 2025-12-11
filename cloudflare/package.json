@@ -1,5 +1,5 @@
 {
-  "name": "@assetsDashboard/cloudflare-worker",
+  "name": "@awesomeportal/cloudflare-worker",
   "version": "1.0.0",
   "private": true,
   "description": "Cloudflare Worker for KO Assets",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
+    "@types/react-dom": "^19.2.2",
     "wrangler": "^4.38.0"
   },
   "dependencies": {
