@@ -58,6 +58,13 @@
     color: var(--primary-color, #f40000);
 }
 
+.profile-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
 .header-controls>* {
     flex-shrink: 0;
     flex-grow: 0;

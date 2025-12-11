@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { AdobeSignInButtonProps } from '../types';
 import { getAdobeClientId } from '../utils/config';
 
@@ -130,6 +131,8 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
         }
     }, [performSilentRefresh]);
 
+    const navigate = useNavigate();
+
     // Handle sign in with implicit flow
     const handleSignIn = (): void => {
         setError(null);
@@ -137,7 +140,12 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
 
         try {
             if (!imsConfig.clientId) {
-                throw new Error('Adobe Client ID not configured. Please set VITE_ADOBE_CLIENT_ID environment variable.');
+                // Don't throw during development; surface an inline error and disable sign-in
+                const msg = 'Adobe Client ID not configured. Please set VITE_ADOBE_CLIENT_ID environment variable.';
+                console.warn(msg);
+                setError(`Sign in failed: ${msg}`);
+                setLoading(false);
+                return;
             }
 
             const params = new URLSearchParams({
@@ -149,7 +157,13 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
 
             const authUrl = `https://ims-na1.adobelogin.com/ims/authorize/v2?${params.toString()}`;
 
-
+            // Persist the current location so we can navigate back after the full-page
+            // IMS redirect returns to our app. Use sessionStorage (short-lived).
+            try {
+                sessionStorage.setItem('postSignInRedirect', window.location.href);
+            } catch (e) {
+                // ignore session storage errors
+            }
 
             // Direct redirect to Adobe IMS
             window.location.href = authUrl;
@@ -177,11 +191,18 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
     // On mount, check for token in URL hash or localStorage
     useEffect(() => {
 
+        console.debug('[AdobeSignInButton] mount: url=', window.location.href);
+        console.debug('[AdobeSignInButton] hash=', window.location.hash);
+        console.debug('[AdobeSignInButton] search=', window.location.search);
+        console.debug('[AdobeSignInButton] pathname=', window.location.pathname);
+
+
 
         // Check for access token in URL hash (from Adobe IMS redirect)
         if (window.location.hash) {
 
             try {
+                console.debug('[AdobeSignInButton] detected hash, attempting parse');
                 const params = new URLSearchParams(window.location.hash.substring(1));
                 const accessToken = params.get('access_token');
                 const expiresIn = params.get('expires_in');
@@ -222,11 +243,90 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                     // Setup auto-refresh
                     setupTokenRefresh();
                     setLoading(false);
+
+                    console.debug('[AdobeSignInButton] parsed token from hash, navigating to stored redirect or /');
+                    try {
+                        const redirect = sessionStorage.getItem('postSignInRedirect');
+                        if (redirect) {
+                            const url = new URL(redirect, window.location.origin);
+                            sessionStorage.removeItem('postSignInRedirect');
+                            navigate(url.pathname + url.search, { replace: true });
+                            return;
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+
+                    navigate('/', { replace: true });
                     return;
                 }
             } catch (error) {
                 console.error('Error parsing hash:', error);
                 setError('Error parsing authentication response');
+                setLoading(false);
+            }
+        }
+
+        // Fallback: some providers may return token in query string
+        if (window.location.search && window.location.search.includes('access_token=')) {
+            try {
+                console.debug('[AdobeSignInButton] detected access_token in search, attempting parse');
+                const params = new URLSearchParams(window.location.search.substring(1));
+                const accessToken = params.get('access_token');
+                const expiresIn = params.get('expires_in');
+                const error = params.get('error');
+                const errorDescription = params.get('error_description');
+
+                if (error) {
+                    setError(`OAuth error: ${error} - ${errorDescription || 'No description'}`);
+                    setLoading(false);
+                }
+
+                if (accessToken) {
+                    const token = `Bearer ${accessToken}`;
+
+                    setIsAuthenticated(true);
+                    localStorage.setItem('accessToken', token);
+
+                    // Handle token expiration
+                    if (expiresIn) {
+                        const expiresAt = Date.now() + (parseInt(expiresIn) * 1000);
+                        localStorage.setItem('tokenExpiresAt', expiresAt.toString());
+                    } else {
+                        const expiresAt = Date.now() + (60 * 60 * 1000);
+                        localStorage.setItem('tokenExpiresAt', expiresAt.toString());
+                    }
+
+                    if (onAuthenticated) {
+                        onAuthenticated(token);
+                    }
+
+                    // Clean up URL
+                    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+
+                    // Setup auto-refresh
+                    setupTokenRefresh();
+                    setLoading(false);
+
+                    console.debug('[AdobeSignInButton] parsed token from search, navigating to stored redirect or /');
+                    try {
+                        const redirect = sessionStorage.getItem('postSignInRedirect');
+                        if (redirect) {
+                            const url = new URL(redirect, window.location.origin);
+                            sessionStorage.removeItem('postSignInRedirect');
+                            navigate(url.pathname + url.search, { replace: true });
+                            return;
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+
+                    navigate('/', { replace: true });
+                    return;
+                }
+            } catch (error) {
+                console.error('Error parsing access_token from search:', error);
+                setError('Error parsing authentication response from URL');
                 setLoading(false);
             }
         }
@@ -287,6 +387,21 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                         // Setup auto-refresh
                         setupTokenRefresh();
                         setLoading(false);
+
+                        // Navigate to stored redirect if present, otherwise home
+                        try {
+                            const redirect = sessionStorage.getItem('postSignInRedirect');
+                            if (redirect) {
+                                const url = new URL(redirect, window.location.origin);
+                                sessionStorage.removeItem('postSignInRedirect');
+                                navigate(url.pathname + url.search, { replace: true });
+                                return;
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+
+                        navigate('/', { replace: true });
                         return;
                     }
                 }
@@ -341,7 +456,7 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                     opacity: loading ? 0.7 : 1
                 }}
                 onClick={isAuthenticated ? handleSignOut : handleSignIn}
-                disabled={loading}
+                disabled={loading || !imsConfig.clientId}
             >
                 {loading
                     ? (isAuthenticated ? 'Signing out...' : 'Signing in...')

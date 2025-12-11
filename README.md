@@ -22,3 +22,18 @@ This specific repo has been _slightly_ modified to be compatible with DA's live 
 1. Start the AEM CLI: `aem up`.
 1. Open the `{repo}` folder in your favorite code editor and buil something.
 1. **Recommended:** Install common npm packages like linting and testing: `npm i`.
+
+
+### How to use
+
+Runtime toggle (recommended during local dev)
+Open the Dashboard page and flip the "Use sample data (dev)" switch to load sample data without the backend.
+Environment toggle (set before starting dev server)
+In Vite, set VITE_FORCE_SAMPLE_DATA to true:
+macOS/zsh:
+
+export VITE_FORCE_SAMPLE_DATA=truenpm run dev
+Or add to .env in awesomeportal-react:
+
+VITE_FORCE_SAMPLE_DATA=true
+Then start the Vite dev server.

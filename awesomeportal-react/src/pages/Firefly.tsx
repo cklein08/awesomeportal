@@ -80,7 +80,7 @@ const Firefly: React.FC<FireflyProps> = ({ onBack }) => {
         <div className="firefly-container">
             {onBack && (
                 <button className="firefly-back-btn" onClick={onBack}>
-                    ← Back to Grid
+                    ← Back to Application
                 </button>
             )}
             <div className="firefly-header">

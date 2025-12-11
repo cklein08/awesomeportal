@@ -129,7 +129,7 @@ const ExperienceHub: React.FC<ExperienceHubProps> = ({ onBack }) => {
         <div className="experience-hub-container">
             {onBack && (
                 <button className="experience-hub-back-btn" onClick={onBack}>
-                    ← Back to Grid
+                    ← Back to Application
                 </button>
             )}
             

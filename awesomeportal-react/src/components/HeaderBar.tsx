@@ -18,6 +18,7 @@ interface HeaderBarPropsSimplified {
     cartItems: CartItem[];
     handleAuthenticated: (token: string) => void;
     handleSignOut: () => void;
+    profile?: any;
 }
 
 const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
@@ -29,7 +30,8 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     // handleApproveAssets, // Removed - cart moved to MainApp
     // handleDownloadAssets, // Removed - cart moved to MainApp
     handleAuthenticated,
-    handleSignOut
+    handleSignOut,
+    profile
 }) => {
     // Get external params from context
     const { externalParams } = useAppConfig();
@@ -50,8 +52,18 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     };
 
     const handleProfileClick = () => {
-        // TODO: Implement profile menu/dropdown
-        console.log('Profile clicked');
+        // If we have a profile, open Adobe account; otherwise fallback to a console log
+        if (profile) {
+            try {
+                window.open('https://account.adobe.com', '_blank', 'noopener');
+                return;
+            } catch (err) {
+                console.warn('Failed to open Adobe account URL', err);
+            }
+        }
+
+        // no profile available — placeholder for sign-in behavior
+        console.log('Profile clicked (no profile)');
     };
 
     return (
@@ -72,7 +84,7 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
                 <img
                     className="app-logo"
                     src={`${import.meta.env.BASE_URL}android-chrome-192x192.png`}
-                    alt="KO Assets Logo"
+                    alt="AWESOME Portal Logo"
                     onClick={handleLogoClick}
                 />
             )}
@@ -86,16 +98,29 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
                     />
                 </div>
                 {/* Profile icon */}
-                <button 
-                    className="profile-icon-btn" 
-                    onClick={handleProfileClick}
-                    aria-label="Profile"
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                </button>
+                {(() => {
+                    const pictureUrl = profile?.picture || profile?.profile?.picture || profile?.avatar || profile?.profile?.avatar || null;
+                    if (pictureUrl) {
+                        return (
+                            <button className="profile-icon-btn" onClick={handleProfileClick} aria-label="Profile">
+                                <img src={pictureUrl} alt="Profile" className="profile-avatar" />
+                            </button>
+                        );
+                    }
+
+                    return (
+                        <button 
+                            className="profile-icon-btn" 
+                            onClick={handleProfileClick}
+                            aria-label="Profile"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </button>
+                    );
+                })()}
             </div>
         </div>
     );

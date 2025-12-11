@@ -1,6 +1,6 @@
-# KO Assets Cloudflare Worker
+# AWESOME Portal Cloudflare Worker
 
-A Cloudflare Worker that acts as outermost CDN for the KO Assets project with some additional features. It provides authentication, authorization, edge caching, and request routing to the various AEM backends (Helix/EDS, Dynamic Media OpenAPI and more).
+A Cloudflare Worker that acts as outermost CDN for the AWESOME Portal project with some additional features. It provides authentication, authorization, edge caching, and request routing to the various AEM backends (Helix/EDS, Dynamic Media OpenAPI and more).
 
 - [Worker in Cloudflare Dashboard](https://dash.cloudflare.com/852dfa4ae1b0d579df29be65b986c101/workers/services/view/awesomeportal/production/metrics)
 - Live: https://awesomeportal.adobeaem.workers.dev

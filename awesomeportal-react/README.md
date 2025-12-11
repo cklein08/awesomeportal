@@ -337,6 +337,30 @@ The app uses HTTP for local development and configures Adobe IMS accordingly:
 
 - **Development Mode**: Uses `http://localhost:5173` as redirect URI
 
+#### Sample data for local development
+
+If you want the Dashboard to use built-in sample data instead of calling the
+backend API (handy when the API or private registries are unreachable), use
+the `VITE_FORCE_SAMPLE_DATA` environment variable.
+
+- Set it in your environment before starting the dev server:
+
+```bash
+# macOS / zsh
+export VITE_FORCE_SAMPLE_DATA=true
+npm run dev
+```
+
+- Or add it to your local env file (copy `.env.example` → `.env.development`):
+
+```
+VITE_FORCE_SAMPLE_DATA=true
+```
+
+The Dashboard also exposes a runtime switch (`Use sample data (dev)`) on the
+Dashboard page so you can toggle sample data on and off without restarting the
+server.
+
 ### Code Style
 
 - **ESLint**: Configured with React-specific rules

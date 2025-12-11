@@ -204,7 +204,7 @@ const CartRequestDownload: React.FC<CartRequestDownloadProps> = ({
                                 <span className="gallery-title-icon" title="Select media channels"></span>
                             </label>
                             <div className="media-channels-warning">
-                                Please refer to the TCCC media terms and definitions found on KO Assets to determine. Choosing other media types disables 'Internal Use'. Select either 'Internal Use' or others, not both.
+                                Please refer to the TCCC media terms and definitions found on AWESOME Portal to determine. Choosing other media types disables 'Internal Use'. Select either 'Internal Use' or others, not both.
                             </div>
 
                             <MediaChannels

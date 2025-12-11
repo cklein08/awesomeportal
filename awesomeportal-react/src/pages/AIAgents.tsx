@@ -171,7 +171,7 @@ const AIAgents: React.FC<AIAgentsProps> = ({ onBack }) => {
         <div className="ai-agents-container">
             {onBack && (
                 <button className="ai-agents-back-btn" onClick={onBack}>
-                    ← Back to Grid
+                    ← Back to Application
                 </button>
             )}
 

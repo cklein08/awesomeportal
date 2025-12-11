@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ToastQueue } from '@react-spectrum/toast';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DateValue } from 'react-aria-components';
 import '../MainApp.css';
 
@@ -49,6 +51,9 @@ import Firefly from '../pages/Firefly';
 import ExperienceHub from '../pages/ExperienceHub';
 import AIAgents from '../pages/AIAgents';
 import Dashboard from '../pages/dashboard';
+import ProfileModal from './ProfileModal';
+import { Extensible } from '@adobe/uix-host-react';
+import ErrorBoundary from './ErrorBoundary';
 
 const HITS_PER_PAGE = 24;
 
@@ -92,6 +97,76 @@ function MainApp(): React.JSX.Element {
         return params;
     });
 
+    // Compute Firefly extension entries. Supports (and normalizes to an array of {id,url}):
+    // - VITE_FIREFLY_EXTENSIONS env var (JSON array/object or comma-separated URLs)
+    // - externalParams.fireflyExtensions (array or JSON string)
+    // - externalParams.fireflyExtensionUrl (single URL)
+    // - fallback placeholder URL
+    const fireflyExtensions = useMemo(() => {
+        const fallbackUrl = externalParams?.fireflyExtensionUrl || 'https://example.com/firefly-extension.js';
+
+        // Helper to normalize to {id,url}
+        const normalizeEntry = (entry: never, idx: number) => {
+            if (!entry) return null;
+            if (typeof entry === 'string') return { id: `firefly-ext-${idx}`, url: entry };
+            if (typeof entry === 'object' && entry.url) return { id: entry.id || `firefly-ext-${idx}`, url: entry.url };
+            return null;
+        };
+
+        // 1) Check env var first
+        try {
+            const envVal = (import.meta as any).env?.VITE_FIREFLY_EXTENSIONS;
+            if (envVal) {
+                try {
+                    const parsed = JSON.parse(envVal);
+                    if (Array.isArray(parsed)) return parsed.map((p, i) => normalizeEntry(p, i)).filter(Boolean);
+                    if (parsed && parsed.url) return [normalizeEntry(parsed, 0)].filter(Boolean);
+                } catch (e) {
+                    const urls = String(envVal).split(',').map(s => s.trim()).filter(Boolean);
+                    if (urls.length > 0) return urls.map((u, i) => normalizeEntry(u, i)).filter(Boolean);
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        // 2) externalParams
+        const raw = externalParams?.fireflyExtensions ?? externalParams?.fireflyExtensionUrl ?? null;
+        if (!raw) {
+            return [{ id: 'firefly-extension', url: fallbackUrl }];
+        }
+
+        if (Array.isArray(raw)) return raw.map((r, i) => normalizeEntry(r, i)).filter(Boolean);
+
+        if (typeof raw === 'string') {
+            try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed.map((p, i) => normalizeEntry(p, i)).filter(Boolean);
+                if (parsed && parsed.url) return [normalizeEntry(parsed, 0)].filter(Boolean);
+            } catch (e) {
+                // treat as single URL string
+                return [{ id: 'firefly-extension', url: raw }];
+            }
+        }
+
+        if (raw && raw.url) return [normalizeEntry(raw, 0)].filter(Boolean);
+
+        return [{ id: 'firefly-extension', url: fallbackUrl }];
+    }, [externalParams]);
+
+    // Validate entries at runtime and inform user if none are valid
+    useEffect(() => {
+        try {
+            console.debug('[MainApp] fireflyExtensions =', fireflyExtensions);
+            const valid = (fireflyExtensions || []).filter((e: any) => e && typeof e.url === 'string' && e.url.length > 0);
+            if (!valid || valid.length === 0) {
+                ToastQueue.negative('No valid UIX extensions found for Firefly', { timeout: 4000 });
+            }
+        } catch (e) {
+            // ignore validation errors
+        }
+    }, [fireflyExtensions]);
+
     // Local state
     const [accessToken, setAccessToken] = useState<string>(() => {
         try {
@@ -115,6 +190,7 @@ function MainApp(): React.JSX.Element {
     });
 
     const [dynamicMediaClient, setDynamicMediaClient] = useState<DynamicMediaClient | null>(null);
+    const [profile, setProfile] = useState<any | null>(null);
 
     const [query, setQuery] = useState<string>('');
     const [dmImages, setDmImages] = useState<Asset[]>([]);
@@ -186,6 +262,7 @@ function MainApp(): React.JSX.Element {
     const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
     // Mobile filter panel state
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
+    const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
 
     // Application navigation state
     const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
@@ -515,6 +592,42 @@ function MainApp(): React.JSX.Element {
         }
     }, [authenticated, externalParams.excFacets, externalParams.presetFilters]);
 
+    // Fetch IMS profile when authenticated via IMS (accessToken present)
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const token = localStorage.getItem('accessToken');
+                if (!token) return;
+
+                // Use the dev proxy mapping `/api/ims` to the IMS endpoint in development
+                const resp = await fetch('/api/ims/ims/userinfo/v2', {
+                    headers: {
+                        'Authorization': token
+                    }
+                });
+
+                if (!resp.ok) {
+                    console.warn('Failed to fetch IMS profile', resp.status);
+                    return;
+                }
+
+                const data = await resp.json();
+                setProfile(data);
+                // Also set global window.user for existing codepaths
+                try { window.user = data; } catch (e) { /* ignore */ }
+            } catch (error) {
+                console.error('Error fetching IMS profile:', error);
+            }
+        };
+
+        if (authenticated) {
+            fetchProfile();
+        } else {
+            setProfile(null);
+            try { delete (window as never).user; } catch (e) { /* ignore */ }
+        }
+    }, [authenticated]);
+
     // Rights data fetching moved to individual Markets and MediaChannels components
 
 
@@ -726,6 +839,23 @@ function MainApp(): React.JSX.Element {
 
     // Handle app selection
     const handleAppSelect = (appId: string): void => {
+        // If user selected Settings, only allow when authenticated
+        if (appId === 'settings') {
+            if (authenticated) {
+                // Open external Adobe profile/settings in a new tab
+                // This points to Adobe account management; change if a different URL is desired
+                try {
+                    window.open('https://account.adobe.com', '_blank', 'noopener');
+                } catch (error) {
+                    console.warn('Failed to open Adobe profile/settings URL', error);
+                }
+            } else {
+                // Inform the user they must sign in to use Adobe products
+                ToastQueue.negative('Please sign in to use an Adobe Product', { timeout: 4000 });
+            }
+            return;
+        }
+
         setSelectedAppId(appId);
         setSelectedTileId(null); // Reset tile selection when switching apps
         // TODO: Load app-specific tiles/content based on selected app
@@ -737,8 +867,12 @@ function MainApp(): React.JSX.Element {
     };
 
     const handleProfileClick = (): void => {
-        // TODO: Implement profile menu/dropdown
-        console.log('Profile clicked');
+        // Open Adobe account management in a new tab for both profile icon and Settings
+        try {
+            window.open('https://account.adobe.com', '_blank', 'noopener');
+        } catch (error) {
+            console.warn('Failed to open Adobe account URL', error);
+        }
     };
 
     // Add breadcrumbs for navigation when inside a collection
@@ -808,6 +942,7 @@ function MainApp(): React.JSX.Element {
                     cartItems={cartItems}
                     handleAuthenticated={handleIMSAccessToken}
                     handleSignOut={handleSignOut}
+                    profile={profile}
                 />
 
                 {/* Cart Container - moved from HeaderBar, now uses Portal */}
@@ -824,6 +959,17 @@ function MainApp(): React.JSX.Element {
                     document.body
                 )}
 
+                {createPortal(
+                    <ProfileModal
+                        isOpen={showProfileModal}
+                        onClose={() => setShowProfileModal(false)}
+                        onSignOut={handleSignOut}
+                        isAuthenticated={authenticated}
+                        onSignIn={handleIMSAccessToken}
+                    />,
+                    document.body
+                )}
+
                 {/* Search bar with profile icon */}
                 {window.location.pathname.includes('/tools/assets-browser/index.html') && (
                     <div className="search-bar-container">
@@ -835,16 +981,33 @@ function MainApp(): React.JSX.Element {
                             setSelectedQueryType={handleSetSelectedQueryType}
                             inputRef={searchBarRef}
                         />
-                        <button 
-                            className="profile-icon-btn-search" 
-                            onClick={handleProfileClick}
-                            aria-label="Profile"
-                        >
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </button>
+                        {authenticated ? (
+                            <a
+                                className="profile-icon-btn-search"
+                                href="https://account.adobe.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Profile"
+                                title="Open Adobe Account"
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </a>
+                        ) : (
+                            <button
+                                className="profile-icon-btn-search"
+                                onClick={() => setShowProfileModal(true)}
+                                aria-label="Profile"
+                                title="Sign in"
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </button>
+                        )}
                     </div>
                 )}
                 
@@ -895,7 +1058,16 @@ function MainApp(): React.JSX.Element {
                         ) : selectedAppId === 'dashboard' ? (
                             <Dashboard />
                         ) : selectedTileId === 'firefly' ? (
-                            <Firefly onBack={() => setSelectedTileId(null)} />
+                            // Wrap Firefly in Extensible so UI Extensions can be loaded into that subtree.
+                            <ErrorBoundary fallback={<Firefly onBack={() => setSelectedTileId(null)} />}> 
+                                <Extensible
+                                    // Provide both shapes to be compatible with different library versions
+                                    extensions={fireflyExtensions}
+                                    extensionsProvider={async () => fireflyExtensions}
+                                >
+                                    <Firefly onBack={() => setSelectedTileId(null)} />
+                                </Extensible>
+                            </ErrorBoundary>
                         ) : selectedTileId === 'experience-hub' ? (
                             <ExperienceHub onBack={() => setSelectedTileId(null)} />
                         ) : selectedTileId === 'ai-agents' ? (
