@@ -46,6 +46,9 @@ import SearchBar from './SearchBar';
 import LeftNav, { type AppItem } from './LeftNav';
 import AppGrid, { type AppTile } from './AppGrid';
 import Firefly from '../pages/Firefly';
+import ExperienceHub from '../pages/ExperienceHub';
+import AIAgents from '../pages/AIAgents';
+import Dashboard from '../pages/dashboard';
 
 const HITS_PER_PAGE = 24;
 
@@ -206,6 +209,34 @@ function MainApp(): React.JSX.Element {
                 </svg>
             ),
             onClick: () => setSelectedTileId('firefly'),
+        },
+        {
+            id: 'experience-hub',
+            title: 'Experience Hub',
+            description: 'Manage content experiences',
+            icon: (
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                    <path d="M7 13h10"></path>
+                    <path d="M7 17h10"></path>
+                </svg>
+            ),
+            onClick: () => setSelectedTileId('experience-hub'),
+        },
+        {
+            id: 'ai-agents',
+            title: 'AI Agents',
+            description: 'Interact with intelligent agents',
+            icon: (
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+            ),
+            onClick: () => setSelectedTileId('ai-agents'),
         },
     ]);
 
@@ -861,8 +892,14 @@ function MainApp(): React.JSX.Element {
                                     {/* <Footer /> */}
                                 </div>
                             </div>
+                        ) : selectedAppId === 'dashboard' ? (
+                            <Dashboard />
                         ) : selectedTileId === 'firefly' ? (
                             <Firefly onBack={() => setSelectedTileId(null)} />
+                        ) : selectedTileId === 'experience-hub' ? (
+                            <ExperienceHub onBack={() => setSelectedTileId(null)} />
+                        ) : selectedTileId === 'ai-agents' ? (
+                            <AIAgents onBack={() => setSelectedTileId(null)} />
                         ) : (
                             <AppGrid tiles={appTiles} onTileClick={handleTileClick} />
                         )}
