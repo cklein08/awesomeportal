@@ -90,6 +90,27 @@
   background: var(--highlight-hover, rgba(0, 0, 0, 0.05));
 }
 
+.da-content-in-frame {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.da-content-in-frame-bar {
+  flex-shrink: 0;
+  padding: 8px 20px 0;
+  margin-bottom: 4px;
+}
+
+.da-content-in-frame-iframe {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: none;
+}
+
 /* Global button styling */
 button {
   border: none;

@@ -139,6 +139,19 @@
     font-size: 0.9rem;
 }
 
+.grid-edit-add-slot-choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.grid-edit-add-slot-choice-label {
+    font-size: 0.9rem;
+    color: #555;
+}
+
 .grid-edit-slots {
     display: flex;
     flex-direction: column;
@@ -161,6 +174,14 @@
     align-items: center;
     gap: 12px;
     margin-bottom: 4px;
+}
+
+.grid-edit-slot-type-badge {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #e8e8e8;
+    color: #555;
 }
 
 .grid-edit-slot-num {

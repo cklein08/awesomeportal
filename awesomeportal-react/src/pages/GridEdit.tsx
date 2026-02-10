@@ -24,6 +24,7 @@ const GridEdit: React.FC = () => {
     const navigate = useNavigate();
     const [saved, setSaved] = useState(false);
     const [bannerFileError, setBannerFileError] = useState<string | null>(null);
+    const [showAddSlotChoice, setShowAddSlotChoice] = useState(false);
     const [config, setConfig] = useState<GridEditConfig>(() => {
         const savedConfig = getGridEditConfig();
         const base = getExternalParams();
@@ -65,11 +66,14 @@ const GridEdit: React.FC = () => {
         updateConfig({ slotBlocks: blocks });
     }, [updateConfig]);
 
-    const addSlot = useCallback(() => {
-        setSlotBlocks([
-            ...(config.slotBlocks ?? []),
-            { id: `slot-${Date.now()}`, title: 'New Slot', description: '' },
-        ]);
+    const addSlotAs = useCallback((slotType: 'application' | 'da-content') => {
+        const base = { id: `slot-${Date.now()}`, title: 'New Slot', description: '' };
+        if (slotType === 'da-content') {
+            setSlotBlocks([...(config.slotBlocks ?? []), { ...base, slotType: 'da-content', daContentUrl: '' }]);
+        } else {
+            setSlotBlocks([...(config.slotBlocks ?? []), { ...base, slotType: 'application', appId: '', href: '' }]);
+        }
+        setShowAddSlotChoice(false);
     }, [config.slotBlocks, setSlotBlocks]);
 
     const updateSlot = useCallback((index: number, patch: Partial<SlotBlockDescriptor>) => {
@@ -245,12 +249,13 @@ const GridEdit: React.FC = () => {
 
             <section className="grid-edit-section">
                 <h2>Slots (grid tiles)</h2>
-                <p className="grid-edit-hint">Order = display order. Use appId for built-in apps: firefly, experience-hub, ai-agents. Otherwise use Link URL.</p>
+                <p className="grid-edit-hint">Order = display order. Use appId for built-in apps: firefly, experience-hub, ai-agents. Otherwise use Link URL. For DA content blocks use DA Content URL.</p>
                 <div className="grid-edit-slots">
                     {slotBlocks.map((block, i) => (
                         <div key={block.id} className="grid-edit-slot-card">
                             <div className="grid-edit-slot-head">
                                 <span className="grid-edit-slot-num">#{i + 1}</span>
+                                <span className="grid-edit-slot-type-badge">{block.slotType === 'da-content' ? 'DA Content' : 'Application'}</span>
                                 <div className="grid-edit-slot-move">
                                     <button type="button" className="grid-edit-btn small" onClick={() => moveSlot(i, 'up')} disabled={i === 0}>
                                         ↑
@@ -299,33 +304,62 @@ const GridEdit: React.FC = () => {
                                     placeholder="Optional image URL"
                                 />
                             </label>
-                            <label>
-                                App ID
-                                <select
-                                    value={block.appId ?? ''}
-                                    onChange={(e) => updateSlot(i, { appId: e.target.value || undefined })}
-                                >
-                                    <option value="">— None (use link) —</option>
-                                    {KNOWN_APP_IDS.map((aid) => (
-                                        <option key={aid} value={aid}>{aid}</option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label>
-                                Link URL
-                                <input
-                                    type="url"
-                                    value={block.href ?? ''}
-                                    onChange={(e) => updateSlot(i, { href: e.target.value || undefined })}
-                                    placeholder="If no App ID, open this URL"
-                                />
-                            </label>
+                            {block.slotType === 'da-content' ? (
+                                <label>
+                                    DA Content URL
+                                    <input
+                                        type="url"
+                                        value={block.daContentUrl ?? ''}
+                                        onChange={(e) => updateSlot(i, { daContentUrl: e.target.value || undefined })}
+                                        placeholder="e.g. https://da.live/..."
+                                    />
+                                </label>
+                            ) : (
+                                <>
+                                    <label>
+                                        App ID
+                                        <select
+                                            value={block.appId ?? ''}
+                                            onChange={(e) => updateSlot(i, { appId: e.target.value || undefined })}
+                                        >
+                                            <option value="">— None (use link) —</option>
+                                            {KNOWN_APP_IDS.map((aid) => (
+                                                <option key={aid} value={aid}>{aid}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label>
+                                        Link URL
+                                        <input
+                                            type="url"
+                                            value={block.href ?? ''}
+                                            onChange={(e) => updateSlot(i, { href: e.target.value || undefined })}
+                                            placeholder="If no App ID, open this URL"
+                                        />
+                                    </label>
+                                </>
+                            )}
                         </div>
                     ))}
                 </div>
-                <button type="button" className="grid-edit-btn secondary" onClick={addSlot}>
-                    + Add slot
-                </button>
+                {showAddSlotChoice ? (
+                    <div className="grid-edit-add-slot-choice">
+                        <span className="grid-edit-add-slot-choice-label">Add as:</span>
+                        <button type="button" className="grid-edit-btn secondary" onClick={() => addSlotAs('application')}>
+                            Application
+                        </button>
+                        <button type="button" className="grid-edit-btn secondary" onClick={() => addSlotAs('da-content')}>
+                            Content block (DA)
+                        </button>
+                        <button type="button" className="grid-edit-btn small" onClick={() => setShowAddSlotChoice(false)}>
+                            Cancel
+                        </button>
+                    </div>
+                ) : (
+                    <button type="button" className="grid-edit-btn secondary" onClick={() => setShowAddSlotChoice(true)}>
+                        + Add slot
+                    </button>
+                )}
             </section>
 
             <div className="grid-edit-footer">

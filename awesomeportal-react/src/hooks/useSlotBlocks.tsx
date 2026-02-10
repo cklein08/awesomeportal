@@ -57,7 +57,8 @@ const APP_ICONS: Record<string, React.ReactNode> = {
 /** Map a slot block descriptor to AppTile (icon from iconUrl, app icon for known appId, or default placeholder). */
 function slotBlockToAppTile(
     block: SlotBlockDescriptor,
-    onSelectTileId: (tileId: string) => void
+    onSelectTileId: (tileId: string) => void,
+    onSelectDaContentUrl?: (url: string) => void
 ): AppTile {
     let icon: React.ReactNode;
     if (block.iconUrl) {
@@ -69,7 +70,15 @@ function slotBlockToAppTile(
     }
 
     let onClick: (() => void) | undefined;
-    if (block.appId) {
+    if (block.daContentUrl) {
+        onClick = () => {
+            if (onSelectDaContentUrl) {
+                onSelectDaContentUrl(block.daContentUrl!);
+            } else {
+                window.location.href = block.daContentUrl!;
+            }
+        };
+    } else if (block.appId) {
         onClick = () => onSelectTileId(block.appId!);
     } else if (block.href) {
         onClick = () => {
@@ -105,7 +114,10 @@ function getDefaultTiles(onSelectTileId: (tileId: string) => void): AppTile[] {
  * Precedence: __AWESOMEPORTAL_DA_BLOCKS__ > externalParams.slotBlocks > default tiles.
  * When embedded in DA, the host can set window.__AWESOMEPORTAL_DA_BLOCKS__ after SDK context is ready.
  */
-export function useSlotBlocks(onSelectTileId: (tileId: string) => void): AppTile[] {
+export function useSlotBlocks(
+    onSelectTileId: (tileId: string) => void,
+    onSelectDaContentUrl?: (url: string) => void
+): AppTile[] {
     return useMemo(() => {
         const daBlocks = typeof window !== 'undefined' ? window.__AWESOMEPORTAL_DA_BLOCKS__ : undefined;
         const externalParams = getExternalParams();
@@ -122,7 +134,7 @@ export function useSlotBlocks(onSelectTileId: (tileId: string) => void): AppTile
 
         const tiles: AppTile[] = descriptors
             .slice(0, GRID_SLOT_COUNT)
-            .map((block) => slotBlockToAppTile(block, onSelectTileId));
+            .map((block) => slotBlockToAppTile(block, onSelectTileId, onSelectDaContentUrl));
         return tiles;
-    }, [onSelectTileId]);
+    }, [onSelectTileId, onSelectDaContentUrl]);
 }

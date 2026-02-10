@@ -271,14 +271,19 @@ function MainApp(): React.JSX.Element {
     // Application navigation state
     const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
     const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+    const [selectedDaContentUrl, setSelectedDaContentUrl] = useState<string | null>(null);
     const [apps] = useState<AppItem[]>([
         { id: 'assets-browser', name: 'Assets Browser' },
         { id: 'dashboard', name: 'Dashboard' },
         { id: 'analytics', name: 'Analytics' },
         { id: 'settings', name: 'Settings' },
     ]);
+    const handleSelectDaContentUrl = useCallback((url: string) => {
+        setSelectedDaContentUrl(url);
+        setSelectedTileId(null);
+    }, []);
     // Slots from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__), externalParams.slotBlocks, or default tiles
-    const appTiles = useSlotBlocks(setSelectedTileId);
+    const appTiles = useSlotBlocks(setSelectedTileId, handleSelectDaContentUrl);
     const navigate = useNavigate();
 
     // Expose cart functions to window for EDS header integration
@@ -821,13 +826,15 @@ function MainApp(): React.JSX.Element {
         }
 
         setSelectedAppId(appId);
-        setSelectedTileId(null); // Reset tile selection when switching apps
+        setSelectedTileId(null);
+        setSelectedDaContentUrl(null);
         // TODO: Load app-specific tiles/content based on selected app
     };
 
     // Handle tile click
     const handleTileClick = (tileId: string): void => {
         setSelectedTileId(tileId);
+        setSelectedDaContentUrl(null);
     };
 
     const handleProfileClick = (): void => {
@@ -1026,6 +1033,23 @@ function MainApp(): React.JSX.Element {
                             </div>
                         ) : selectedAppId === 'dashboard' ? (
                             <Dashboard />
+                        ) : selectedDaContentUrl ? (
+                            <div className="da-content-in-frame">
+                                <div className="da-content-in-frame-bar">
+                                    <button
+                                        type="button"
+                                        className="app-grid-customize-btn"
+                                        onClick={() => setSelectedDaContentUrl(null)}
+                                    >
+                                        Back to grid
+                                    </button>
+                                </div>
+                                <iframe
+                                    title="DA Content"
+                                    src={selectedDaContentUrl}
+                                    className="da-content-in-frame-iframe"
+                                />
+                            </div>
                         ) : selectedTileId === 'firefly' ? (
                             // Wrap Firefly in Extensible so UI Extensions can be loaded into that subtree.
                             <ErrorBoundary fallback={<Firefly onBack={() => setSelectedTileId(null)} />}> 

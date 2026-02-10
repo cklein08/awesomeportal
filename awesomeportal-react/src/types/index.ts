@@ -380,6 +380,10 @@ export interface SlotBlockDescriptor {
     href?: string;
     /** If set and matches a known app (e.g. firefly, experience-hub, ai-agents), tile uses that app's onClick behavior. */
     appId?: string;
+    /** When 'da-content', slot uses daContentUrl and form shows DA Content URL instead of App ID/Link URL. */
+    slotType?: 'application' | 'da-content';
+    /** URL for DA content block; tile click opens this when set (e.g. da.live content page). */
+    daContentUrl?: string;
 }
 
 /** Banner/image shown above the grid (admin-configured). */
