@@ -12,18 +12,21 @@ import type {
     CartItem,
     Collection,
     CurrentView,
+    EntitlementPayload,
     ExternalParams,
     LoadingState,
     Rendition,
     RightsData,
     SearchResult,
-    SearchResults
+    SearchResults,
+    SlotBlockDescriptor
 } from '../types';
 import { CURRENT_VIEW, LOADING, QUERY_TYPES } from '../types';
 import { populateAssetFromHit } from '../utils/assetTransformers';
 import { fetchOptimizedDeliveryBlob, removeBlobFromCache } from '../utils/blobCache';
 import { useSlotBlocks } from '../hooks/useSlotBlocks';
-import { getBucket, getExternalParams } from '../utils/config';
+import { getAdobeClientId, getBucket, getExternalParams, getGridEditConfig, getSelectedAemProgram, setGridEditConfig, setSelectedAemProgram, type AemProgramOption } from '../utils/config';
+import { getProfilePictureUrl } from '../utils/profileImage';
 import { AppConfigProvider } from './AppConfigProvider';
 
 // Extend window interface for cart functions and user authentication
@@ -48,7 +51,8 @@ import HeaderBar from './HeaderBar';
 import ImageGallery from './ImageGallery';
 import SearchBar from './SearchBar';
 import LeftNav, { type AppItem } from './LeftNav';
-import AppGrid from './AppGrid';
+import AppGrid, { DRAG_TYPE_ENTITLEMENT } from './AppGrid';
+import { ADOBE_ENTITLEMENTS } from '../constants/adobeEntitlements';
 import Firefly from '../pages/Firefly';
 import ExperienceHub from '../pages/ExperienceHub';
 import AIAgents from '../pages/AIAgents';
@@ -194,6 +198,9 @@ function MainApp(): React.JSX.Element {
 
     const [dynamicMediaClient, setDynamicMediaClient] = useState<DynamicMediaClient | null>(null);
     const [profile, setProfile] = useState<any | null>(null);
+    const [profileImageError, setProfileImageError] = useState<boolean>(false);
+
+    const profilePictureUrl = getProfilePictureUrl(profile);
 
     const [query, setQuery] = useState<string>('');
     const [dmImages, setDmImages] = useState<Asset[]>([]);
@@ -282,9 +289,41 @@ function MainApp(): React.JSX.Element {
         setSelectedDaContentUrl(url);
         setSelectedTileId(null);
     }, []);
-    // Slots from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__), externalParams.slotBlocks, or default tiles
-    const appTiles = useSlotBlocks(setSelectedTileId, handleSelectDaContentUrl);
+    // Slots from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__), externalParams.slotBlocks, or default tiles.
+    // gridConfigVersion is bumped when we save grid config so useSlotBlocks recomputes and shows new tiles.
+    const [gridConfigVersion, setGridConfigVersion] = useState(0);
+    const appTiles = useSlotBlocks(setSelectedTileId, handleSelectDaContentUrl, gridConfigVersion);
     const navigate = useNavigate();
+    const [viewMode, setViewMode] = useState<'admin' | 'creator'>('admin');
+
+    // AEM instance selector (Assets Browser, admin view)
+    const [aemPrograms, setAemPrograms] = useState<AemProgramOption[] | null>(null);
+    const [selectedAemProgram, setSelectedAemProgramState] = useState<AemProgramOption | null>(() => getSelectedAemProgram());
+    const [aemProgramsLoading, setAemProgramsLoading] = useState<boolean>(false);
+    const [aemProgramsError, setAemProgramsError] = useState<string | null>(null);
+    const isAssetsBrowser = selectedAppId === 'assets-browser' || (!selectedAppId && window.location.pathname.includes('/tools/assets-browser/index.html'));
+    const showAemSelector = isAssetsBrowser && authenticated && viewMode === 'admin';
+
+    const isGridContentView =
+        !isAssetsBrowser &&
+        selectedAppId !== 'dashboard' &&
+        !selectedDaContentUrl &&
+        selectedTileId !== 'firefly' &&
+        selectedTileId !== 'experience-hub' &&
+        selectedTileId !== 'ai-agents';
+    const showEntitlementsPanel = authenticated && viewMode === 'admin' && isGridContentView;
+
+    // Hide host-provided top-app-bar-content-container when admin entitlements panel is shown
+    useEffect(() => {
+        if (!showEntitlementsPanel) return;
+        const el = document.querySelector('.top-app-bar-content-container');
+        if (!el || !(el instanceof HTMLElement)) return;
+        const prevDisplay = el.style.display;
+        el.style.display = 'none';
+        return () => {
+            el.style.display = prevDisplay;
+        };
+    }, [showEntitlementsPanel]);
 
     // Expose cart functions to window for EDS header integration
     useEffect(() => {
@@ -364,6 +403,72 @@ function MainApp(): React.JSX.Element {
             console.warn('Failed to save access token to localStorage:', error);
         }
     }, [accessToken]);
+
+    // Fetch AEM programs when selector is shown (assets browser, authenticated, admin)
+    // Use user's token and IMS org (from profile) so backend can load entitlements for their org
+    useEffect(() => {
+        if (!showAemSelector) return;
+        let cancelled = false;
+        setAemProgramsLoading(true);
+        setAemProgramsError(null);
+        const token = localStorage.getItem('accessToken');
+        const userOrg = (profile as { imsOrg?: string; org?: string })?.imsOrg ?? (profile as { imsOrg?: string; org?: string })?.org ?? '';
+        const apiKey = getAdobeClientId();
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = token;
+        if (userOrg) headers['x-user-ims-org'] = userOrg;
+        if (apiKey) headers['x-api-key'] = apiKey;
+        fetch('/api/aem-programs', { credentials: 'include', headers })
+            .then((res) => {
+                if (cancelled) return;
+                if (res.status === 401 || res.status === 403) {
+                    setAemProgramsError('Sign in to load environments.');
+                    return res.json().catch(() => ({}));
+                }
+                if (!res.ok) {
+                    setAemProgramsError('Cannot load environments.');
+                    return res.json().catch(() => ({}));
+                }
+                return res.json();
+            })
+            .then((data: { programs?: AemProgramOption[]; error?: string }) => {
+                if (cancelled) return;
+                if (data?.programs && Array.isArray(data.programs)) {
+                    setAemPrograms(data.programs);
+                } else {
+                    setAemPrograms([]);
+                    if (data?.error) setAemProgramsError('Cannot load environments.');
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setAemProgramsError('Cannot load environments.');
+                    setAemPrograms([]);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) setAemProgramsLoading(false);
+            });
+        return () => { cancelled = true; };
+    }, [showAemSelector, profile]);
+
+    const handleAemProgramSelect = useCallback((program: AemProgramOption | null) => {
+        setSelectedAemProgramState(program);
+        setSelectedAemProgram(program);
+    }, []);
+
+    // After OAuth redirect, restore Assets Browser (or other app) so user lands in right-content-area
+    useEffect(() => {
+        try {
+            const savedApp = sessionStorage.getItem('postSignInRedirectApp');
+            if (savedApp) {
+                setSelectedAppId(savedApp);
+                sessionStorage.removeItem('postSignInRedirectApp');
+            }
+        } catch {
+            // ignore
+        }
+    }, []);
 
     // Process and display Adobe Dynamic Media images
     const processDMImages = useCallback(async (content: unknown, isLoadingMore: boolean = false): Promise<void> => {
@@ -582,6 +687,7 @@ function MainApp(): React.JSX.Element {
 
                 const data = await resp.json();
                 setProfile(data);
+                setProfileImageError(false);
                 // Also set global window.user for existing codepaths
                 try { window.user = data; } catch (e) { /* ignore */ }
             } catch (error) {
@@ -593,6 +699,7 @@ function MainApp(): React.JSX.Element {
             fetchProfile();
         } else {
             setProfile(null);
+            setProfileImageError(false);
             try { delete (window as never).user; } catch (e) { /* ignore */ }
         }
     }, [authenticated]);
@@ -837,6 +944,88 @@ function MainApp(): React.JSX.Element {
         setSelectedDaContentUrl(null);
     };
 
+    // Delete mode: slots shake and show X; user can remove one to make room
+    const [deleteMode, setDeleteMode] = useState(false);
+    const [slotToDelete, setSlotToDelete] = useState<number | null>(null);
+    const [removeSlotDialogOpen, setRemoveSlotDialogOpen] = useState(false);
+    const [pendingDropPayload, setPendingDropPayload] = useState<EntitlementPayload | null>(null);
+
+    // Handle drop from entitlements panel: only add to empty slot (append), never overwrite. If all full, ask to remove a slot.
+    const handleDropSlot = useCallback((index: number, payload: EntitlementPayload) => {
+        const config = getGridEditConfig();
+        const base = getExternalParams();
+        const currentBlocks: SlotBlockDescriptor[] = config?.slotBlocks ?? base.slotBlocks ?? [];
+        if (currentBlocks.length >= 24) {
+            setPendingDropPayload(payload);
+            setRemoveSlotDialogOpen(true);
+            return;
+        }
+        const newBlock: SlotBlockDescriptor = {
+            id: payload.id,
+            title: payload.title,
+            description: payload.description,
+            href: payload.href,
+            iconUrl: payload.iconUrl,
+            slotType: 'application',
+        };
+        const nextBlocks = [...currentBlocks, newBlock].slice(0, 24);
+        setGridEditConfig({
+            slotBlocks: nextBlocks,
+            gridTopContent: config?.gridTopContent ?? base.gridTopContent ?? '',
+            gridTopBanners: config?.gridTopBanners ?? base.gridTopBanners ?? [],
+            slotHeight: config?.slotHeight ?? base.slotHeight ?? 120,
+            slotWidth: config?.slotWidth ?? base.slotWidth ?? 140,
+        });
+        setGridConfigVersion((v) => v + 1);
+    }, []);
+
+    const handleRemoveSlotDialogConfirm = useCallback(() => {
+        setRemoveSlotDialogOpen(false);
+        setDeleteMode(true);
+        setPendingDropPayload(null);
+    }, []);
+
+    const handleRemoveSlotDialogCancel = useCallback(() => {
+        setRemoveSlotDialogOpen(false);
+        setPendingDropPayload(null);
+    }, []);
+
+    const handleRequestDeleteSlot = useCallback((index: number) => {
+        setSlotToDelete(index);
+    }, []);
+
+    const handleConfirmDeleteSlot = useCallback(() => {
+        if (slotToDelete === null) return;
+        const config = getGridEditConfig();
+        const base = getExternalParams();
+        const currentBlocks: SlotBlockDescriptor[] = config?.slotBlocks ?? base.slotBlocks ?? [];
+        const nextBlocks = currentBlocks.filter((_, i) => i !== slotToDelete);
+        setGridEditConfig({
+            slotBlocks: nextBlocks,
+            gridTopContent: config?.gridTopContent ?? base.gridTopContent ?? '',
+            gridTopBanners: config?.gridTopBanners ?? base.gridTopBanners ?? [],
+            slotHeight: config?.slotHeight ?? base.slotHeight ?? 120,
+            slotWidth: config?.slotWidth ?? base.slotWidth ?? 140,
+        });
+        setSlotToDelete(null);
+        setDeleteMode(false);
+        setGridConfigVersion((v) => v + 1);
+    }, [slotToDelete]);
+
+    const handleCancelDeleteSlot = useCallback(() => {
+        setSlotToDelete(null);
+    }, []);
+
+    const handleExitDeleteMode = useCallback(() => {
+        setDeleteMode(false);
+        setSlotToDelete(null);
+    }, []);
+
+    const handleEntitlementDragStart = useCallback((e: React.DragEvent, payload: EntitlementPayload) => {
+        e.dataTransfer.setData(DRAG_TYPE_ENTITLEMENT, JSON.stringify(payload));
+        e.dataTransfer.effectAllowed = 'copy';
+    }, []);
+
     const handleProfileClick = (): void => {
         // Open Adobe account management in a new tab for both profile icon and Settings
         try {
@@ -946,47 +1135,42 @@ function MainApp(): React.JSX.Element {
                     onClose={() => setShowSkinEditor(false)}
                 />
 
-                {/* Search bar with profile icon */}
-                {window.location.pathname.includes('/tools/assets-browser/index.html') && (
-                    <div className="search-bar-container">
-                        <SearchBar
-                            query={query}
-                            setQuery={setQuery}
-                            sendQuery={search}
-                            selectedQueryType={selectedQueryType}
-                            setSelectedQueryType={handleSetSelectedQueryType}
-                            inputRef={searchBarRef}
-                        />
-                        {authenticated ? (
-                            <a
-                                className="profile-icon-btn-search"
-                                href="https://account.adobe.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="Profile"
-                                title="Open Adobe Account"
-                            >
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                            </a>
-                        ) : (
-                            <button
-                                className="profile-icon-btn-search"
-                                onClick={() => setShowProfileModal(true)}
-                                aria-label="Profile"
-                                title="Sign in"
-                            >
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                            </button>
-                        )}
-                    </div>
+                {removeSlotDialogOpen && createPortal(
+                    <div className="grid-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="remove-slot-dialog-title">
+                        <div className="grid-dialog">
+                            <h2 id="remove-slot-dialog-title">All slots are full</h2>
+                            <p>Remove a slot to add this app?</p>
+                            <div className="grid-dialog-actions">
+                                <button type="button" className="app-grid-customize-btn" onClick={handleRemoveSlotDialogConfirm}>
+                                    Remove a slot
+                                </button>
+                                <button type="button" className="app-grid-customize-btn secondary" onClick={handleRemoveSlotDialogCancel}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
                 )}
-                
+
+                {slotToDelete !== null && createPortal(
+                    <div className="grid-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-slot-dialog-title">
+                        <div className="grid-dialog">
+                            <h2 id="delete-slot-dialog-title">Delete this slot?</h2>
+                            <p>The app in this slot will be removed from the grid.</p>
+                            <div className="grid-dialog-actions">
+                                <button type="button" className="app-grid-customize-btn" onClick={handleConfirmDeleteSlot}>
+                                    Delete
+                                </button>
+                                <button type="button" className="app-grid-customize-btn secondary" onClick={handleCancelDeleteSlot}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
+
                 {/* Main content area with left nav and right content */}
                 <div className="main-content-layout">
                     <LeftNav
@@ -995,8 +1179,103 @@ function MainApp(): React.JSX.Element {
                         onAppSelect={handleAppSelect}
                     />
                     <div className="right-content-area">
-                        {selectedAppId === 'assets-browser' || (!selectedAppId && window.location.pathname.includes('/tools/assets-browser/index.html')) ? (
-                            <div className="images-container">
+                        {isAssetsBrowser && !authenticated ? (
+                            <div className="aem-signin-in-content">
+                                <p className="aem-signin-in-content-text">
+                                    Sign in with Adobe to select an AEM instance and browse assets.
+                                </p>
+                            </div>
+                        ) : selectedAppId === 'assets-browser' || (!selectedAppId && window.location.pathname.includes('/tools/assets-browser/index.html')) ? (
+                            <>
+                                {showAemSelector && (
+                                    <div className="aem-instance-selector-bar">
+                                        <label htmlFor="aem-instance-select" className="aem-instance-selector-label">
+                                            AEM instance
+                                        </label>
+                                        <select
+                                            id="aem-instance-select"
+                                            className="aem-instance-select"
+                                            value={selectedAemProgram?.id ?? ''}
+                                            onChange={(e) => {
+                                                const id = e.target.value;
+                                                const program = id ? (aemPrograms?.find((p) => p.id === id) ?? null) : null;
+                                                handleAemProgramSelect(program);
+                                            }}
+                                            disabled={aemProgramsLoading}
+                                            aria-label="Select AEM instance"
+                                        >
+                                            <option value="">Select environment…</option>
+                                            {aemPrograms?.map((p) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <label htmlFor="aem-program-name-field" className="aem-instance-selector-label">
+                                            Program name
+                                        </label>
+                                        <input
+                                            id="aem-program-name-field"
+                                            type="text"
+                                            className="aem-program-name-field"
+                                            readOnly
+                                            value={selectedAemProgram?.name ?? ''}
+                                            placeholder="Select an environment above"
+                                            aria-label="Program name"
+                                        />
+                                        {aemProgramsLoading && <span className="aem-instance-selector-loading">Loading…</span>}
+                                        {aemProgramsError && <span className="aem-instance-selector-error">{aemProgramsError}</span>}
+                                    </div>
+                                )}
+                                <div className="search-bar-container search-bar-in-content">
+                                    <SearchBar
+                                        query={query}
+                                        setQuery={setQuery}
+                                        sendQuery={search}
+                                        selectedQueryType={selectedQueryType}
+                                        setSelectedQueryType={handleSetSelectedQueryType}
+                                        inputRef={searchBarRef}
+                                    />
+                                    {authenticated ? (
+                                        <a
+                                            className="profile-icon-btn-search profile-avatar-link"
+                                            href="https://account.adobe.com"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            aria-label="Profile"
+                                            title="Open Adobe Account"
+                                        >
+                                            {profilePictureUrl && !profileImageError ? (
+                                                <img
+                                                    src={profilePictureUrl}
+                                                    alt=""
+                                                    className="profile-avatar-img account-profile-image"
+                                                    width={24}
+                                                    height={24}
+                                                    onError={() => setProfileImageError(true)}
+                                                />
+                                            ) : (
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                    <circle cx="12" cy="7" r="4"></circle>
+                                                </svg>
+                                            )}
+                                        </a>
+                                    ) : (
+                                        <button
+                                            className="profile-icon-btn-search"
+                                            onClick={() => setShowProfileModal(true)}
+                                            aria-label="Profile"
+                                            title="Sign in"
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="12" cy="7" r="4"></circle>
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="images-container">
                                 <div className="images-content-wrapper">
                                     <div className="images-content-row">
                                         <div className="images-main">
@@ -1031,6 +1310,7 @@ function MainApp(): React.JSX.Element {
                                     {/* <Footer /> */}
                                 </div>
                             </div>
+                            </>
                         ) : selectedAppId === 'dashboard' ? (
                             <Dashboard />
                         ) : selectedDaContentUrl ? (
@@ -1067,22 +1347,49 @@ function MainApp(): React.JSX.Element {
                             <AIAgents onBack={() => setSelectedTileId(null)} />
                         ) : (
                             <>
-                                <div className="app-grid-edit-bar">
+                                <div className="app-grid-view-toggle">
                                     <button
                                         type="button"
-                                        className="app-grid-customize-btn"
-                                        onClick={() => navigate('/admin/grid-edit')}
+                                        className={`app-grid-customize-btn ${viewMode === 'admin' ? 'active' : ''}`}
+                                        onClick={() => setViewMode('admin')}
                                     >
-                                        Edit grid
+                                        Admin
                                     </button>
                                     <button
                                         type="button"
-                                        className="app-grid-customize-btn"
-                                        onClick={() => setShowSkinEditor(true)}
+                                        className={`app-grid-customize-btn ${viewMode === 'creator' ? 'active' : ''}`}
+                                        onClick={() => setViewMode('creator')}
                                     >
-                                        Customize
+                                        Creator
                                     </button>
                                 </div>
+                                {viewMode === 'admin' && (
+                                    <div className="app-grid-edit-bar">
+                                        <button
+                                            type="button"
+                                            className="app-grid-customize-btn"
+                                            onClick={() => navigate('/admin/grid-edit')}
+                                        >
+                                            Edit grid
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="app-grid-customize-btn"
+                                            onClick={() => setShowSkinEditor(true)}
+                                        >
+                                            Customize
+                                        </button>
+                                        {deleteMode && (
+                                            <button
+                                                type="button"
+                                                className="app-grid-customize-btn"
+                                                onClick={handleExitDeleteMode}
+                                            >
+                                                Done
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                                 <AppGrid
                                     tiles={appTiles}
                                     onTileClick={handleTileClick}
@@ -1090,10 +1397,55 @@ function MainApp(): React.JSX.Element {
                                     topBanners={getExternalParams().gridTopBanners}
                                     slotHeight={getExternalParams().slotHeight}
                                     slotWidth={getExternalParams().slotWidth}
+                                    hideEmptySlots={viewMode === 'creator'}
+                                    onDropSlot={viewMode === 'admin' && authenticated && !deleteMode ? handleDropSlot : undefined}
+                                    deleteMode={deleteMode}
+                                    onRequestDeleteSlot={deleteMode ? handleRequestDeleteSlot : undefined}
                                 />
                             </>
                         )}
                     </div>
+                    {showEntitlementsPanel && (() => {
+                        const addedIds = new Set((getExternalParams().slotBlocks ?? []).map((b) => b.id));
+                        const availableEntitlements = ADOBE_ENTITLEMENTS.filter((ent) => !addedIds.has(ent.id));
+                        return (
+                        <div className="entitlements-panel">
+                            <h3 className="entitlements-panel-title">Adobe apps</h3>
+                            <p className="entitlements-panel-hint">Drag to a grid slot to add</p>
+                            <div className="entitlements-panel-tiles">
+                                {availableEntitlements.length === 0 ? (
+                                    <p className="entitlements-panel-empty">All listed apps are already on the grid. Remove one from the grid to add it again here.</p>
+                                ) : null}
+                                {availableEntitlements.map((ent) => (
+                                    <div
+                                        key={ent.id}
+                                        className="app-grid-tile filled entitlement-tile"
+                                        draggable
+                                        onDragStart={(e) => handleEntitlementDragStart(e, ent)}
+                                    >
+                                        <div className="app-tile-icon">
+                                            {ent.iconUrl ? (
+                                                <img src={ent.iconUrl} alt="" width={48} height={48} className="app-tile-icon-img" />
+                                            ) : (
+                                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                                    <polyline points="15 3 21 3 21 9" />
+                                                    <line x1="10" y1="14" x2="21" y2="3" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <div className="app-tile-content">
+                                            <h3 className="app-tile-title">{ent.title}</h3>
+                                            {ent.description && (
+                                                <p className="app-tile-description">{ent.description}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        );
+                    })()}
                 </div>
             </div>
         </AppConfigProvider>

@@ -58,7 +58,8 @@
     color: var(--primary-color, #f40000);
 }
 
-.profile-avatar {
+.profile-avatar,
+.account-profile-image {
     width: 28px;
     height: 28px;
     border-radius: 50%;

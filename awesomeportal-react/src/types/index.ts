@@ -386,6 +386,15 @@ export interface SlotBlockDescriptor {
     daContentUrl?: string;
 }
 
+/** Payload for drag-and-drop from entitlements panel to grid slot. */
+export interface EntitlementPayload {
+    id: string;
+    title: string;
+    description?: string;
+    href: string;
+    iconUrl?: string;
+}
+
 /** Banner/image shown above the grid (admin-configured). */
 export interface GridTopBanner {
     url: string;

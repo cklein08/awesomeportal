@@ -5,6 +5,16 @@ import type { ExternalParams, GridEditConfig, PortalSkinConfig } from '../types'
 
 const GRID_EDIT_STORAGE_KEY = 'awesomeportal_gridEditConfig';
 export const SKIN_STORAGE_KEY = 'awesomeportal_skinConfig';
+export const AEM_PROGRAM_STORAGE_KEY = 'awesomeportal_selectedAemProgram';
+
+export interface AemProgramOption {
+    id: string;
+    name: string;
+    tenantId?: string;
+    imsOrgId?: string;
+    status?: string;
+    type?: string;
+}
 
 declare global {
     interface Window {
@@ -98,5 +108,29 @@ export const clearSkinConfig = (): void => {
         localStorage.removeItem(SKIN_STORAGE_KEY);
     } catch (e) {
         console.warn('Failed to clear skin config', e);
+    }
+};
+
+/** Load selected AEM program from localStorage (for Assets Browser instance selector). */
+export const getSelectedAemProgram = (): AemProgramOption | null => {
+    try {
+        const raw = localStorage.getItem(AEM_PROGRAM_STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw) as AemProgramOption;
+    } catch {
+        return null;
+    }
+};
+
+/** Save selected AEM program to localStorage. */
+export const setSelectedAemProgram = (program: AemProgramOption | null): void => {
+    try {
+        if (program == null) {
+            localStorage.removeItem(AEM_PROGRAM_STORAGE_KEY);
+        } else {
+            localStorage.setItem(AEM_PROGRAM_STORAGE_KEY, JSON.stringify(program));
+        }
+    } catch (e) {
+        console.warn('Failed to save selected AEM program', e);
     }
 }; 

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useAppConfig } from '../hooks/useAppConfig.js';
 import type { CartItem } from '../types/index.js';
 // import type { HeaderBarProps } from '../types'; // COMMENTED OUT
+import { getProfilePictureUrl } from '../utils/profileImage.js';
 import AdobeSignInButton from './AdobeSignInButton.js';
 // import CartPanel from './CartPanel'; // REMOVED - moved to MainApp
 import './HeaderBar.css';
@@ -98,13 +99,13 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
                         onSignOut={handleSignOut}
                     />
                 </div>
-                {/* Profile icon */}
+                {/* Profile icon — same source as account.adobe.com (IMS picture or Gravatar) */}
                 {(() => {
-                    const pictureUrl = profile?.picture || profile?.profile?.picture || profile?.avatar || profile?.profile?.avatar || null;
+                    const pictureUrl = getProfilePictureUrl(profile);
                     if (pictureUrl) {
                         return (
                             <button className="profile-icon-btn" onClick={handleProfileClick} aria-label="Profile">
-                                <img src={pictureUrl} alt="Profile" className="profile-avatar" />
+                                <img src={pictureUrl} alt="Profile" className="profile-avatar account-profile-image" />
                             </button>
                         );
                     }

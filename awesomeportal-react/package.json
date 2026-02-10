@@ -27,8 +27,6 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-  "chart.js": "^4.4.0",
-  "react-chartjs-2": "^5.2.0",
     "@adobe/react-spectrum": "^3.43.0",
     "@adobe/uix-guest": "^0.8.4-nightly.20230922",
     "@adobe/uix-host-react": "^0.8.4-nightly.20230922",
@@ -43,13 +41,17 @@
     "@react-spectrum/toast": "^3.1.0",
     "@types/node": "^24.2.1",
     "axios": "^1.11.0",
+    "chart.js": "^4.4.0",
+    "md5": "^2.3.0",
     "react": "^19.1.0",
     "react-aria-components": "^1.11.0",
+    "react-chartjs-2": "^5.2.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@types/md5": "^2.3.6",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@typescript-eslint/eslint-plugin": "^7.2.0",

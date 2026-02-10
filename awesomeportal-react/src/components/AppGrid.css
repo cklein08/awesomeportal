@@ -64,6 +64,12 @@
     min-height: 600px;
 }
 
+.app-grid.hide-empty-slots {
+    grid-template-rows: none;
+    grid-auto-rows: minmax(var(--app-tile-min-height, 120px), auto);
+    min-height: 0;
+}
+
 .app-grid-tile {
     background-color: white;
     border: 2px solid #e0e0e0;
@@ -76,7 +82,8 @@
     cursor: pointer;
     transition: all 0.2s;
     min-height: var(--app-tile-min-height, 120px);
-    min-width: var(--app-tile-min-width, 0);
+    min-width: 0;
+    overflow: hidden;
 }
 
 .app-grid-tile.filled {
@@ -94,6 +101,47 @@
     border-color: #ccc;
     background-color: #fafafa;
     cursor: default;
+}
+
+.app-grid-tile.drag-over {
+    border-color: var(--primary-color, #f40000);
+    background-color: rgba(244, 0, 0, 0.06);
+    border-style: solid;
+}
+
+@keyframes slot-shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.app-grid-tile.shake {
+    animation: slot-shake 0.5s ease-in-out infinite;
+    position: relative;
+}
+
+.slot-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-color, #f40000);
+    background: white;
+    color: var(--primary-color, #f40000);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    z-index: 1;
+    transition: background 0.2s, color 0.2s;
+}
+
+.slot-delete-btn:hover {
+    background: var(--primary-color, #f40000);
+    color: white;
 }
 
 .app-tile-icon {
@@ -114,6 +162,8 @@
 .app-tile-content {
     text-align: center;
     width: 100%;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .app-tile-title {
@@ -121,6 +171,9 @@
     font-size: 1rem;
     font-weight: 600;
     color: #333;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    overflow: hidden;
 }
 
 .app-tile-description {
@@ -128,6 +181,9 @@
     font-size: 0.85rem;
     color: #666;
     line-height: 1.4;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    overflow: hidden;
 }
 
 .app-tile-placeholder {
@@ -141,12 +197,18 @@
         grid-template-columns: repeat(3, 1fr);
         grid-template-rows: repeat(8, 1fr);
     }
+    .app-grid.hide-empty-slots {
+        grid-template-rows: none;
+    }
 }
 
 @media (max-width: 768px) {
     .app-grid {
         grid-template-columns: repeat(2, 1fr);
         grid-template-rows: repeat(12, 1fr);
+    }
+    .app-grid.hide-empty-slots {
+        grid-template-rows: none;
     }
 }
 

@@ -15,6 +15,7 @@ import { authRouter, withAuthentication } from './auth';
 import { originDynamicMedia } from './origin/dm';
 import { originHelix } from './origin/helix';
 import { originFadel } from './origin/fadel';
+import { listAemPrograms } from './origin/cloudmanager.js';
 import { cors } from './util/itty';
 
 const { preflight, corsify } = cors({
@@ -66,6 +67,9 @@ router
 
   // fadel
   .all('/api/fadel/*', originFadel)
+
+  // AEM instance selector: list Cloud Manager programs (requires auth)
+  .get('/api/aem-programs', listAemPrograms)
 
   // future API routes
   .all('/api/*', () => error(404))

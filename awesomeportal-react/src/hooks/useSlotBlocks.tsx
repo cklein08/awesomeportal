@@ -82,10 +82,14 @@ function slotBlockToAppTile(
         onClick = () => onSelectTileId(block.appId!);
     } else if (block.href) {
         onClick = () => {
-            try {
-                window.open(block.href!, '_blank', 'noopener');
-            } catch {
-                window.location.href = block.href!;
+            if (onSelectDaContentUrl) {
+                onSelectDaContentUrl(block.href!);
+            } else {
+                try {
+                    window.open(block.href!, '_blank', 'noopener');
+                } catch {
+                    window.location.href = block.href!;
+                }
             }
         };
     }
@@ -113,10 +117,12 @@ function getDefaultTiles(onSelectTileId: (tileId: string) => void): AppTile[] {
  * externalParams.slotBlocks, or default tiles.
  * Precedence: __AWESOMEPORTAL_DA_BLOCKS__ > externalParams.slotBlocks > default tiles.
  * When embedded in DA, the host can set window.__AWESOMEPORTAL_DA_BLOCKS__ after SDK context is ready.
+ * Pass configVersion and bump it when grid config is saved so the hook recomputes and shows new tiles.
  */
 export function useSlotBlocks(
     onSelectTileId: (tileId: string) => void,
-    onSelectDaContentUrl?: (url: string) => void
+    onSelectDaContentUrl?: (url: string) => void,
+    configVersion?: number
 ): AppTile[] {
     return useMemo(() => {
         const daBlocks = typeof window !== 'undefined' ? window.__AWESOMEPORTAL_DA_BLOCKS__ : undefined;
@@ -136,5 +142,5 @@ export function useSlotBlocks(
             .slice(0, GRID_SLOT_COUNT)
             .map((block) => slotBlockToAppTile(block, onSelectTileId, onSelectDaContentUrl));
         return tiles;
-    }, [onSelectTileId, onSelectDaContentUrl]);
+    }, [onSelectTileId, onSelectDaContentUrl, configVersion]);
 }

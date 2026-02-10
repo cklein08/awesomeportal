@@ -66,6 +66,23 @@ store_id = "5d64b0d295964846b36569f507fb7b13"
 binding = "FADEL_PASSWORD"
 secret_name = "awesomeportal_FADEL_PASSWORD"
 
+# Cloud Manager API (for AEM instance selector - GET /api/aem-programs)
+# Create OAuth Server-to-Server credentials for Cloud Manager API in Adobe Developer Console.
+[[secrets_store_secrets]]
+store_id = "5d64b0d295964846b36569f507fb7b13"
+binding = "CLOUDMANAGER_CLIENT_ID"
+secret_name = "awesomeportal_CLOUDMANAGER_CLIENT_ID"
+
+[[secrets_store_secrets]]
+store_id = "5d64b0d295964846b36569f507fb7b13"
+binding = "CLOUDMANAGER_CLIENT_SECRET"
+secret_name = "awesomeportal_CLOUDMANAGER_CLIENT_SECRET"
+
+[[secrets_store_secrets]]
+store_id = "5d64b0d295964846b36569f507fb7b13"
+binding = "CLOUDMANAGER_IMS_ORG_ID"
+secret_name = "awesomeportal_CLOUDMANAGER_IMS_ORG_ID"
+
 [[kv_namespaces]]
 binding = "AUTH_TOKENS"
 id = "975809e56a7a425aa006e156671bbecf"
