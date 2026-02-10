@@ -29,6 +29,7 @@
   "dependencies": {
   "chart.js": "^4.4.0",
   "react-chartjs-2": "^5.2.0",
+    "@adobe/react-spectrum": "^3.43.0",
     "@adobe/uix-guest": "^0.8.4-nightly.20230922",
     "@adobe/uix-host-react": "^0.8.4-nightly.20230922",
     "@babel/runtime": "^7.28.3",

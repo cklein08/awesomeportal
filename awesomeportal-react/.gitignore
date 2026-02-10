@@ -58,3 +58,6 @@ debug.log
 
 # Local development config (never commit)
 public/config.local.js
+
+# Cloned vendor repos (WEP source was copied from here)
+vendor/
