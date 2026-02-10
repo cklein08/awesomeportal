@@ -367,6 +367,58 @@ export interface RestrictedBrand {
     value: string;
 }
 
+/**
+ * Slot block descriptor for grid tiles from DA live or external config.
+ * Used when slots are populated from context.slotBlocks (DA App SDK) or
+ * externalParams.slotBlocks. Order of the array = order of slots (index 0 = first tile).
+ */
+export interface SlotBlockDescriptor {
+    id: string;
+    title: string;
+    description?: string;
+    iconUrl?: string;
+    href?: string;
+    /** If set and matches a known app (e.g. firefly, experience-hub, ai-agents), tile uses that app's onClick behavior. */
+    appId?: string;
+}
+
+/** Banner/image shown above the grid (admin-configured). */
+export interface GridTopBanner {
+    url: string;
+    alt?: string;
+    href?: string;
+}
+
+/** Admin-editable grid config (slots, top content, banners, slot dimensions). Persisted e.g. in localStorage. */
+export interface GridEditConfig {
+    slotBlocks?: SlotBlockDescriptor[];
+    gridTopContent?: string;
+    gridTopBanners?: GridTopBanner[];
+    slotHeight?: number;
+    slotWidth?: number;
+}
+
+/** Portal skin/branding config (logo, colors, fonts, images). Persisted in localStorage. All optional; absent = defaults. */
+export interface PortalSkinConfig {
+    logoUrl?: string;
+    primaryColor?: string;
+    backgroundColor?: string;
+    accentColor?: string;
+    fontFamilyBody?: string;
+    fontFamilyHeading?: string;
+    /** URL of a CSS file that loads fonts (injected as link). Body/heading names from fontFamilyBody/Heading. */
+    fontStylesheetUrl?: string;
+    /** URL of a font file (.ttf, .woff2, .woff) for body. Injected as @font-face with stable family name. */
+    fontFileUrlBody?: string;
+    /** URL of a font file for heading. */
+    fontFileUrlHeading?: string;
+    /** Data URL from uploaded body font (e.g. data:font/ttf;base64,...). */
+    fontBodyDataUrl?: string;
+    /** Data URL from uploaded heading font. */
+    fontHeadingDataUrl?: string;
+    heroImageUrl?: string;
+}
+
 // External Parameters interface
 export interface ExternalParams {
     accordionTitle?: string;
@@ -381,6 +433,16 @@ export interface ExternalParams {
         username?: string;
         password?: string;
     }];
+    /** Block descriptors for grid slots when embedded (e.g. from DA live). Replaces default tiles when non-empty. */
+    slotBlocks?: SlotBlockDescriptor[];
+    /** Optional HTML or plain text content shown above the grid. */
+    gridTopContent?: string;
+    /** Optional images/banners shown above the grid. */
+    gridTopBanners?: GridTopBanner[];
+    /** Optional slot tile height in pixels. */
+    slotHeight?: number;
+    /** Optional slot tile width (min-width in px); grid columns use 1fr so this is a hint. */
+    slotWidth?: number;
 }
 
 // Image Gallery types

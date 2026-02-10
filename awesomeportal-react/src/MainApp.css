@@ -12,7 +12,7 @@
 
 .container,
 .container * {
-  font-family: "TCCC UnityText Regular", "Helvetica Neue", Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
 }
 
 .main-content {
@@ -68,6 +68,28 @@
   overflow: hidden;
 }
 
+.app-grid-edit-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 20px 0;
+  margin-bottom: 4px;
+}
+
+.app-grid-customize-btn {
+  font-size: 0.875rem;
+  color: var(--primary-color, #f40000);
+  background: none;
+  border: 1px solid var(--primary-color, #f40000);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.app-grid-customize-btn:hover {
+  background: var(--highlight-hover, rgba(0, 0, 0, 0.05));
+}
+
 /* Global button styling */
 button {
   border: none;
@@ -97,7 +119,7 @@ button {
 }
 
 .tccc-metadata-value {
-  font-family: "TCCC UnityHeadline", sans-serif;
+  font-family: var(--font-heading), sans-serif;
   text-transform: uppercase;
   color: #0e202e;
   font-size: 12px;
@@ -108,7 +130,7 @@ button {
 .tccc-tag {
   background: rgba(247, 153, 0, .3);
   color: #1e1e1e;
-  font-family: "TCCC UnityHeadline", sans-serif;
+  font-family: var(--font-heading), sans-serif;
   font-size: 10px;
   font-weight: 600;
   display: inline-block;
@@ -126,8 +148,7 @@ button {
 }
 
 .container h3 a {
-  /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
-  font-family: "TCCC UnityHeadline";
+  font-family: var(--font-heading), sans-serif;
   font-size: 14px;
   font-style: normal;
   font-weight: 600;
@@ -360,8 +381,7 @@ button:disabled:hover {
 }
 
 .portal-modal h3 a {
-  /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
-  font-family: "TCCC UnityHeadline";
+  font-family: var(--font-heading), sans-serif;
   font-size: 14px;
   font-style: normal;
   font-weight: 600;

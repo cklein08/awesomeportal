@@ -3,11 +3,61 @@
     padding: 20px;
     overflow-y: auto;
     height: 100%;
+    --app-tile-min-height: 120px;
+    --app-tile-min-width: 140px;
+}
+
+.app-grid-top {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.app-grid-hero {
+    width: 100%;
+    min-height: 120px;
+    max-height: 240px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.app-grid-top-banners {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.app-grid-top-banner-link,
+.app-grid-top-banner-wrap {
+    display: block;
+    max-width: 100%;
+}
+
+.app-grid-top-banner-img {
+    max-width: 100%;
+    max-height: 120px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.app-grid-top-content {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #333;
+}
+
+.app-grid-top-content p {
+    margin: 0 0 0.5em 0;
 }
 
 .app-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(var(--app-tile-min-width, 140px), 1fr));
     grid-template-rows: repeat(6, 1fr);
     gap: 16px;
     height: 100%;
@@ -25,7 +75,8 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    min-height: 120px;
+    min-height: var(--app-tile-min-height, 120px);
+    min-width: var(--app-tile-min-width, 0);
 }
 
 .app-grid-tile.filled {
@@ -52,6 +103,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.app-tile-icon-img {
+    object-fit: contain;
+    width: 48px;
+    height: 48px;
 }
 
 .app-tile-content {

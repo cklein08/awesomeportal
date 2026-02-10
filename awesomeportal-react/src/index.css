@@ -1,5 +1,11 @@
+:root {
+  --font-body: "TCCC UnityText Regular", "Helvetica Neue", Arial, Helvetica, sans-serif;
+  --font-heading: var(--font-body);
+}
+
 body {
   margin: 0;
+  font-family: var(--font-body);
 }
 
 code {
@@ -13,4 +19,8 @@ code {
   --primary-color-active: #bd1500;
   --primary-color-disabled: #ff8c80;
   --secondary-color: #1e1e1e;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
 }

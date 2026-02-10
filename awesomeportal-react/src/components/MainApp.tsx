@@ -22,6 +22,7 @@ import type {
 import { CURRENT_VIEW, LOADING, QUERY_TYPES } from '../types';
 import { populateAssetFromHit } from '../utils/assetTransformers';
 import { fetchOptimizedDeliveryBlob, removeBlobFromCache } from '../utils/blobCache';
+import { useSlotBlocks } from '../hooks/useSlotBlocks';
 import { getBucket, getExternalParams } from '../utils/config';
 import { AppConfigProvider } from './AppConfigProvider';
 
@@ -38,6 +39,7 @@ declare global {
 // Components
 import { CalendarDate } from '@internationalized/date';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { AuthorizationStatus, CheckRightsRequest, FadelClient } from '../clients/fadel-client';
 import { calendarDateToEpoch } from '../utils/formatters';
 import CartPanel from './CartPanel';
@@ -46,12 +48,13 @@ import HeaderBar from './HeaderBar';
 import ImageGallery from './ImageGallery';
 import SearchBar from './SearchBar';
 import LeftNav, { type AppItem } from './LeftNav';
-import AppGrid, { type AppTile } from './AppGrid';
+import AppGrid from './AppGrid';
 import Firefly from '../pages/Firefly';
 import ExperienceHub from '../pages/ExperienceHub';
 import AIAgents from '../pages/AIAgents';
 import Dashboard from '../pages/dashboard';
 import ProfileModal from './ProfileModal';
+import SkinEditorModal from './SkinEditorModal';
 import { Extensible } from '@adobe/uix-host-react';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -263,6 +266,7 @@ function MainApp(): React.JSX.Element {
     // Mobile filter panel state
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
     const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+    const [showSkinEditor, setShowSkinEditor] = useState<boolean>(false);
 
     // Application navigation state
     const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
@@ -273,49 +277,9 @@ function MainApp(): React.JSX.Element {
         { id: 'analytics', name: 'Analytics' },
         { id: 'settings', name: 'Settings' },
     ]);
-    const [appTiles] = useState<AppTile[]>([
-        {
-            id: 'firefly',
-            title: 'Adobe Firefly',
-            description: 'Generate images using AI',
-            icon: (
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                </svg>
-            ),
-            onClick: () => setSelectedTileId('firefly'),
-        },
-        {
-            id: 'experience-hub',
-            title: 'Experience Hub',
-            description: 'Manage content experiences',
-            icon: (
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="3" y1="9" x2="21" y2="9"></line>
-                    <line x1="9" y1="21" x2="9" y2="9"></line>
-                    <path d="M7 13h10"></path>
-                    <path d="M7 17h10"></path>
-                </svg>
-            ),
-            onClick: () => setSelectedTileId('experience-hub'),
-        },
-        {
-            id: 'ai-agents',
-            title: 'AI Agents',
-            description: 'Interact with intelligent agents',
-            icon: (
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                    <path d="M2 17l10 5 10-5"></path>
-                    <path d="M2 12l10 5 10-5"></path>
-                </svg>
-            ),
-            onClick: () => setSelectedTileId('ai-agents'),
-        },
-    ]);
+    // Slots from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__), externalParams.slotBlocks, or default tiles
+    const appTiles = useSlotBlocks(setSelectedTileId);
+    const navigate = useNavigate();
 
     // Expose cart functions to window for EDS header integration
     useEffect(() => {
@@ -970,6 +934,11 @@ function MainApp(): React.JSX.Element {
                     document.body
                 )}
 
+                <SkinEditorModal
+                    isOpen={showSkinEditor}
+                    onClose={() => setShowSkinEditor(false)}
+                />
+
                 {/* Search bar with profile icon */}
                 {window.location.pathname.includes('/tools/assets-browser/index.html') && (
                     <div className="search-bar-container">
@@ -1073,7 +1042,32 @@ function MainApp(): React.JSX.Element {
                         ) : selectedTileId === 'ai-agents' ? (
                             <AIAgents onBack={() => setSelectedTileId(null)} />
                         ) : (
-                            <AppGrid tiles={appTiles} onTileClick={handleTileClick} />
+                            <>
+                                <div className="app-grid-edit-bar">
+                                    <button
+                                        type="button"
+                                        className="app-grid-customize-btn"
+                                        onClick={() => navigate('/admin/grid-edit')}
+                                    >
+                                        Edit grid
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="app-grid-customize-btn"
+                                        onClick={() => setShowSkinEditor(true)}
+                                    >
+                                        Customize
+                                    </button>
+                                </div>
+                                <AppGrid
+                                    tiles={appTiles}
+                                    onTileClick={handleTileClick}
+                                    topContent={getExternalParams().gridTopContent}
+                                    topBanners={getExternalParams().gridTopBanners}
+                                    slotHeight={getExternalParams().slotHeight}
+                                    slotWidth={getExternalParams().slotWidth}
+                                />
+                            </>
                         )}
                     </div>
                 </div>

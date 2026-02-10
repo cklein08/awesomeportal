@@ -33,9 +33,10 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     handleSignOut,
     profile
 }) => {
-    // Get external params from context
-    const { externalParams } = useAppConfig();
+    // Get external params and skin from context
+    const { externalParams, skinConfig } = useAppConfig();
     const isBlockIntegration = externalParams?.isBlockIntegration;
+    const logoUrl = skinConfig?.logoUrl || `${import.meta.env.BASE_URL}android-chrome-192x192.png`;
 
     useEffect(() => {
         if (window.updateCartBadge && typeof window.updateCartBadge === 'function') {
@@ -83,8 +84,8 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
             {!isBlockIntegration && (
                 <img
                     className="app-logo"
-                    src={`${import.meta.env.BASE_URL}android-chrome-192x192.png`}
-                    alt="AWESOME Portal Logo"
+                    src={logoUrl}
+                    alt="Portal Logo"
                     onClick={handleLogoClick}
                 />
             )}

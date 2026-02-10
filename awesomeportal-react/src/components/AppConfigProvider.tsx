@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DynamicMediaClient } from '../clients/dynamicmedia-client';
 import { AppConfigContext } from '../contexts/AppConfigContext';
-import type { Asset, ExternalParams, Rendition } from '../types';
+import type { Asset, ExternalParams, PortalSkinConfig, Rendition } from '../types';
+import { applySkin } from '../utils/applySkin';
+import { clearSkinConfig, getSkinConfig, setSkinConfig as persistSkinConfig } from '../utils/config';
 
 interface AppConfigProviderProps {
     children: React.ReactNode;
@@ -13,7 +15,6 @@ interface AppConfigProviderProps {
         items?: Rendition[];
         'repo:name'?: string;
     };
-    // Add more config parameters here as needed
 }
 
 export const AppConfigProvider: React.FC<AppConfigProviderProps> = ({
@@ -23,14 +24,36 @@ export const AppConfigProvider: React.FC<AppConfigProviderProps> = ({
     fetchAssetRenditions,
     imagePresets
 }) => {
-    return (
-        <AppConfigContext.Provider value={{
+    const [skinConfig, setSkinConfigState] = useState<PortalSkinConfig | null>(() => getSkinConfig());
+
+    useEffect(() => {
+        applySkin(skinConfig);
+    }, [skinConfig]);
+
+    const setSkinConfig = useCallback((config: PortalSkinConfig | null) => {
+        if (config === null) {
+            clearSkinConfig();
+            setSkinConfigState(null);
+        } else {
+            persistSkinConfig(config);
+            setSkinConfigState(config);
+        }
+    }, []);
+
+    const value = useMemo(
+        () => ({
             externalParams,
             dynamicMediaClient,
             fetchAssetRenditions,
-            imagePresets
-            // Add more config values here as needed
-        }}>
+            imagePresets,
+            skinConfig,
+            setSkinConfig
+        }),
+        [externalParams, dynamicMediaClient, fetchAssetRenditions, imagePresets, skinConfig, setSkinConfig]
+    );
+
+    return (
+        <AppConfigContext.Provider value={value}>
             {children}
         </AppConfigContext.Provider>
     );

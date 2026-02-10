@@ -12,6 +12,12 @@ window.awesomeportalConfig = {
     },
     accordionTitle: 'My Custom Title',
     accordionContent: 'My custom accordion content',
-    isBlockIntegration: false
+    isBlockIntegration: false,
+    // Optional: grid slot blocks from DA live or any embedder. When non-empty, replaces default tiles.
+    // Each item: { id, title, description?, iconUrl?, href?, appId? }. appId 'firefly'|'experience-hub'|'ai-agents' uses built-in app.
+    // slotBlocks: [
+    //   { id: 'firefly', title: 'Adobe Firefly', description: 'Generate images using AI', appId: 'firefly' },
+    //   { id: 'custom', title: 'Custom Link', description: 'Open external site', href: 'https://example.com', iconUrl: 'https://example.com/icon.png' }
+    // ]
   }
 };

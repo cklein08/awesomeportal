@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 import type { DynamicMediaClient } from '../clients/dynamicmedia-client';
-import type { Asset, ExternalParams, Rendition } from '../types';
+import type { Asset, ExternalParams, PortalSkinConfig, Rendition } from '../types';
 
 export interface AppConfigContextType {
     externalParams: ExternalParams;
@@ -11,8 +11,8 @@ export interface AppConfigContextType {
         items?: Rendition[];
         'repo:name'?: string;
     };
-    // Add more config parameters here as needed
-    // otherConfig?: SomeType[];
+    skinConfig: PortalSkinConfig | null;
+    setSkinConfig: (config: PortalSkinConfig | null) => void;
 }
 
 export const AppConfigContext = createContext<AppConfigContextType | undefined>(undefined);
