@@ -24,7 +24,7 @@ import type {
 import { CURRENT_VIEW, LOADING, QUERY_TYPES } from '../types';
 import { populateAssetFromHit } from '../utils/assetTransformers';
 import { fetchOptimizedDeliveryBlob, removeBlobFromCache } from '../utils/blobCache';
-import { useSlotBlocks } from '../hooks/useSlotBlocks';
+import { getDefaultSlotBlocks, useSlotBlocks } from '../hooks/useSlotBlocks';
 import { getAdobeClientId, getBucket, getExternalParams, getGridEditConfig, getSelectedAemProgram, setGridEditConfig, setSelectedAemProgram, type AemProgramOption } from '../utils/config';
 import { getProfilePictureUrl } from '../utils/profileImage';
 import { AppConfigProvider } from './AppConfigProvider';
@@ -279,6 +279,7 @@ function MainApp(): React.JSX.Element {
     const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
     const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
     const [selectedDaContentUrl, setSelectedDaContentUrl] = useState<string | null>(null);
+    const [iframeCannotDisplay, setIframeCannotDisplay] = useState(false);
     const [apps] = useState<AppItem[]>([
         { id: 'assets-browser', name: 'Assets Browser' },
         { id: 'dashboard', name: 'Dashboard' },
@@ -288,7 +289,16 @@ function MainApp(): React.JSX.Element {
     const handleSelectDaContentUrl = useCallback((url: string) => {
         setSelectedDaContentUrl(url);
         setSelectedTileId(null);
+        setIframeCannotDisplay(false);
     }, []);
+
+    // After showing an iframe, offer fallback message in case the app cannot be displayed (e.g. X-Frame-Options)
+    useEffect(() => {
+        if (!selectedDaContentUrl) return;
+        setIframeCannotDisplay(false);
+        const t = setTimeout(() => setIframeCannotDisplay(true), 5000);
+        return () => clearTimeout(t);
+    }, [selectedDaContentUrl]);
     // Slots from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__), externalParams.slotBlocks, or default tiles.
     // gridConfigVersion is bumped when we save grid config so useSlotBlocks recomputes and shows new tiles.
     const [gridConfigVersion, setGridConfigVersion] = useState(0);
@@ -950,12 +960,17 @@ function MainApp(): React.JSX.Element {
     const [removeSlotDialogOpen, setRemoveSlotDialogOpen] = useState(false);
     const [pendingDropPayload, setPendingDropPayload] = useState<EntitlementPayload | null>(null);
 
-    // Handle drop from entitlements panel: only add to empty slot (append), never overwrite. If all full, ask to remove a slot.
+    // Handle drop from entitlements panel: only into empty slots (AppGrid enforces); never overwrite existing slot content.
     const handleDropSlot = useCallback((index: number, payload: EntitlementPayload) => {
         const config = getGridEditConfig();
         const base = getExternalParams();
-        const currentBlocks: SlotBlockDescriptor[] = config?.slotBlocks ?? base.slotBlocks ?? [];
-        if (currentBlocks.length >= 24) {
+        const raw = config?.slotBlocks ?? base.slotBlocks ?? getDefaultSlotBlocks();
+        const currentBlocks: (SlotBlockDescriptor | null)[] = Array.from({ length: 24 }, (_, i) => {
+            const b = raw[i];
+            return b != null && typeof b === 'object' ? (b as SlotBlockDescriptor) : null;
+        });
+        if (currentBlocks[index] != null) return;
+        if (currentBlocks.every((b) => b != null)) {
             setPendingDropPayload(payload);
             setRemoveSlotDialogOpen(true);
             return;
@@ -968,7 +983,8 @@ function MainApp(): React.JSX.Element {
             iconUrl: payload.iconUrl,
             slotType: 'application',
         };
-        const nextBlocks = [...currentBlocks, newBlock].slice(0, 24);
+        const nextBlocks = [...currentBlocks];
+        nextBlocks[index] = newBlock;
         setGridEditConfig({
             slotBlocks: nextBlocks,
             gridTopContent: config?.gridTopContent ?? base.gridTopContent ?? '',
@@ -998,8 +1014,13 @@ function MainApp(): React.JSX.Element {
         if (slotToDelete === null) return;
         const config = getGridEditConfig();
         const base = getExternalParams();
-        const currentBlocks: SlotBlockDescriptor[] = config?.slotBlocks ?? base.slotBlocks ?? [];
-        const nextBlocks = currentBlocks.filter((_, i) => i !== slotToDelete);
+        const raw = config?.slotBlocks ?? base.slotBlocks ?? getDefaultSlotBlocks();
+        const currentBlocks: (SlotBlockDescriptor | null)[] = Array.from({ length: 24 }, (_, i) => {
+            const b = raw[i];
+            return b != null && typeof b === 'object' ? (b as SlotBlockDescriptor) : null;
+        });
+        const nextBlocks = [...currentBlocks];
+        nextBlocks[slotToDelete] = null;
         setGridEditConfig({
             slotBlocks: nextBlocks,
             gridTopContent: config?.gridTopContent ?? base.gridTopContent ?? '',
@@ -1185,7 +1206,7 @@ function MainApp(): React.JSX.Element {
                                     Sign in with Adobe to select an AEM instance and browse assets.
                                 </p>
                             </div>
-                        ) : selectedAppId === 'assets-browser' || (!selectedAppId && window.location.pathname.includes('/tools/assets-browser/index.html')) ? (
+                        ) : isAssetsBrowser ? (
                             <>
                                 {showAemSelector && (
                                     <div className="aem-instance-selector-bar">
@@ -1329,6 +1350,21 @@ function MainApp(): React.JSX.Element {
                                     src={selectedDaContentUrl}
                                     className="da-content-in-frame-iframe"
                                 />
+                                {iframeCannotDisplay && (
+                                    <div className="da-content-in-frame-error" role="alert">
+                                        <p className="da-content-in-frame-error-text">
+                                            This application could not be displayed in this frame. It may not allow embedding (for example, firefly.adobe.com).
+                                        </p>
+                                        <a
+                                            href={selectedDaContentUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="app-grid-customize-btn da-content-in-frame-error-link"
+                                        >
+                                            Open in new tab
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         ) : selectedTileId === 'firefly' ? (
                             // Wrap Firefly in Extensible so UI Extensions can be loaded into that subtree.
@@ -1406,7 +1442,11 @@ function MainApp(): React.JSX.Element {
                         )}
                     </div>
                     {showEntitlementsPanel && (() => {
-                        const addedIds = new Set((getExternalParams().slotBlocks ?? []).map((b) => b.id));
+                        const addedIds = new Set(
+                            (getExternalParams().slotBlocks ?? [])
+                                .filter((b): b is SlotBlockDescriptor => b != null && typeof b === 'object')
+                                .map((b) => b.id)
+                        );
                         const availableEntitlements = ADOBE_ENTITLEMENTS.filter((ent) => !addedIds.has(ent.id));
                         return (
                         <div className="entitlements-panel">

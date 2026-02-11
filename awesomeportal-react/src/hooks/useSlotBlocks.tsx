@@ -112,35 +112,57 @@ function getDefaultTiles(onSelectTileId: (tileId: string) => void): AppTile[] {
     ];
 }
 
+/** Default slot blocks (same 3 as default tiles). Used so first drop from sidebar preserves existing slots. */
+export function getDefaultSlotBlocks(): SlotBlockDescriptor[] {
+    return [
+        { id: 'firefly', title: 'Adobe Firefly', description: 'Generate images using AI', slotType: 'application', appId: 'firefly' },
+        { id: 'experience-hub', title: 'Experience Hub', description: 'Manage content experiences', slotType: 'application', appId: 'experience-hub' },
+        { id: 'ai-agents', title: 'AI Agents', description: 'Interact with intelligent agents', slotType: 'application', appId: 'ai-agents' },
+    ];
+}
+
+/** Normalize raw slot blocks to 24 slots; null = empty. Handles dense arrays (no nulls) from legacy config. */
+function normalizeTo24Slots(raw: SlotBlockDescriptor[] | (SlotBlockDescriptor | null)[] | undefined): (SlotBlockDescriptor | null)[] {
+    if (!raw || !Array.isArray(raw)) return Array.from({ length: GRID_SLOT_COUNT }, () => null);
+    return Array.from({ length: GRID_SLOT_COUNT }, (_, i) => {
+        const b = raw[i];
+        return b != null && typeof b === 'object' ? (b as SlotBlockDescriptor) : null;
+    });
+}
+
 /**
  * Resolves grid slot tiles from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__),
  * externalParams.slotBlocks, or default tiles.
- * Precedence: __AWESOMEPORTAL_DA_BLOCKS__ > externalParams.slotBlocks > default tiles.
- * When embedded in DA, the host can set window.__AWESOMEPORTAL_DA_BLOCKS__ after SDK context is ready.
- * Pass configVersion and bump it when grid config is saved so the hook recomputes and shows new tiles.
+ * Always returns 24 slots (AppTile | null) so empty slots are honored and drag-and-drop only targets empty slots.
  */
 export function useSlotBlocks(
     onSelectTileId: (tileId: string) => void,
     onSelectDaContentUrl?: (url: string) => void,
     configVersion?: number
-): AppTile[] {
+): (AppTile | null)[] {
     return useMemo(() => {
         const daBlocks = typeof window !== 'undefined' ? window.__AWESOMEPORTAL_DA_BLOCKS__ : undefined;
         const externalParams = getExternalParams();
         const externalBlocks = externalParams.slotBlocks;
 
-        let descriptors: SlotBlockDescriptor[];
+        let slots: (SlotBlockDescriptor | null)[];
         if (Array.isArray(daBlocks) && daBlocks.length > 0) {
-            descriptors = daBlocks;
+            slots = normalizeTo24Slots(daBlocks);
         } else if (externalBlocks != null && externalBlocks.length > 0) {
-            descriptors = externalBlocks;
+            slots = normalizeTo24Slots(externalBlocks);
         } else {
-            return getDefaultTiles(onSelectTileId);
+            const defaultTiles = getDefaultTiles(onSelectTileId);
+            return Array.from({ length: GRID_SLOT_COUNT }, (_, i) => defaultTiles[i] ?? null);
         }
 
-        const tiles: AppTile[] = descriptors
-            .slice(0, GRID_SLOT_COUNT)
-            .map((block) => slotBlockToAppTile(block, onSelectTileId, onSelectDaContentUrl));
-        return tiles;
+        // If saved config has no blocks (all empty slots), show default apps so the grid is not blank
+        if (slots.every((s) => s == null)) {
+            const defaultTiles = getDefaultTiles(onSelectTileId);
+            return Array.from({ length: GRID_SLOT_COUNT }, (_, i) => defaultTiles[i] ?? null);
+        }
+
+        return slots.map((block) =>
+            block ? slotBlockToAppTile(block, onSelectTileId, onSelectDaContentUrl) : null
+        );
     }, [onSelectTileId, onSelectDaContentUrl, configVersion]);
 }

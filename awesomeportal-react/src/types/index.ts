@@ -404,7 +404,8 @@ export interface GridTopBanner {
 
 /** Admin-editable grid config (slots, top content, banners, slot dimensions). Persisted e.g. in localStorage. */
 export interface GridEditConfig {
-    slotBlocks?: SlotBlockDescriptor[];
+    /** Up to 24 slots; null = empty slot. Enables drop-only-into-empty and preserves existing slot positions. */
+    slotBlocks?: (SlotBlockDescriptor | null)[];
     gridTopContent?: string;
     gridTopBanners?: GridTopBanner[];
     slotHeight?: number;
@@ -446,8 +447,8 @@ export interface ExternalParams {
         username?: string;
         password?: string;
     }];
-    /** Block descriptors for grid slots when embedded (e.g. from DA live). Replaces default tiles when non-empty. */
-    slotBlocks?: SlotBlockDescriptor[];
+    /** Block descriptors for grid slots when embedded (e.g. from DA live). null = empty slot. Replaces default tiles when non-empty. */
+    slotBlocks?: (SlotBlockDescriptor | null)[];
     /** Optional HTML or plain text content shown above the grid. */
     gridTopContent?: string;
     /** Optional images/banners shown above the grid. */

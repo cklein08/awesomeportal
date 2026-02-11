@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { AdobeSignInButtonProps } from '../types';
 import { getAdobeClientId } from '../utils/config';
 
@@ -131,8 +130,6 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
         }
     }, [performSilentRefresh]);
 
-    const navigate = useNavigate();
-
     // Handle sign in with implicit flow
     const handleSignIn = (): void => {
         setError(null);
@@ -157,10 +154,12 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
 
             const authUrl = `https://ims-na1.adobelogin.com/ims/authorize/v2?${params.toString()}`;
 
-            // Persist the current location so we can navigate back after the full-page
-            // IMS redirect returns to our app. Use sessionStorage (short-lived).
+            // Persist the redirect URL so we land on the app root after login (e.g. /tools/assets-browser/).
+            // Do not set postSignInRedirectApp so the user lands on the main grid with the drag-and-drop panel visible.
             try {
-                sessionStorage.setItem('postSignInRedirect', window.location.href);
+                const basePath = (typeof import.meta !== 'undefined' && (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL) || '/tools/assets-browser/';
+                const appRoot = `${window.location.origin}${basePath.replace(/\/?$/, '/')}`;
+                sessionStorage.setItem('postSignInRedirect', appRoot);
             } catch (e) {
                 // ignore session storage errors
             }
@@ -237,27 +236,29 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                         onAuthenticated(token);
                     }
 
-                    // Clean up URL hash
-                    window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
-
                     // Setup auto-refresh
                     setupTokenRefresh();
                     setLoading(false);
 
-                    console.debug('[AdobeSignInButton] parsed token from hash, navigating to stored redirect or /');
-                    try {
-                        const redirect = sessionStorage.getItem('postSignInRedirect');
-                        if (redirect) {
-                            const url = new URL(redirect, window.location.origin);
+                    // Redirect to clean URL (no token in hash/query); prefer app root e.g. /tools/assets-browser/
+                    const cleanTarget = (() => {
+                        try {
+                            sessionStorage.removeItem('postSignInRedirectApp');
+                            const stored = sessionStorage.getItem('postSignInRedirect');
                             sessionStorage.removeItem('postSignInRedirect');
-                            navigate(url.pathname + url.search, { replace: true });
-                            return;
+                            if (stored) {
+                                const u = new URL(stored);
+                                u.hash = '';
+                                u.search = '';
+                                return u.toString();
+                            }
+                        } catch {
+                            // ignore
                         }
-                    } catch (e) {
-                        // ignore
-                    }
-
-                    navigate('/', { replace: true });
+                        const basePath = (typeof import.meta !== 'undefined' && (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL) || '/tools/assets-browser/';
+                        return `${window.location.origin}${basePath.replace(/\/?$/, '/')}`;
+                    })();
+                    window.location.replace(cleanTarget);
                     return;
                 }
             } catch (error) {
@@ -301,27 +302,29 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                         onAuthenticated(token);
                     }
 
-                    // Clean up URL
-                    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-
                     // Setup auto-refresh
                     setupTokenRefresh();
                     setLoading(false);
 
-                    console.debug('[AdobeSignInButton] parsed token from search, navigating to stored redirect or /');
-                    try {
-                        const redirect = sessionStorage.getItem('postSignInRedirect');
-                        if (redirect) {
-                            const url = new URL(redirect, window.location.origin);
+                    // Redirect to clean URL; prefer app root /tools/assets-browser/
+                    const cleanTarget = (() => {
+                        try {
+                            sessionStorage.removeItem('postSignInRedirectApp');
+                            const stored = sessionStorage.getItem('postSignInRedirect');
                             sessionStorage.removeItem('postSignInRedirect');
-                            navigate(url.pathname + url.search, { replace: true });
-                            return;
+                            if (stored) {
+                                const u = new URL(stored);
+                                u.hash = '';
+                                u.search = '';
+                                return u.toString();
+                            }
+                        } catch {
+                            // ignore
                         }
-                    } catch (e) {
-                        // ignore
-                    }
-
-                    navigate('/', { replace: true });
+                        const basePath = (typeof import.meta !== 'undefined' && (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL) || '/tools/assets-browser/';
+                        return `${window.location.origin}${basePath.replace(/\/?$/, '/')}`;
+                    })();
+                    window.location.replace(cleanTarget);
                     return;
                 }
             } catch (error) {
@@ -378,30 +381,29 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                             onAuthenticated(token);
                         }
 
-                        // Clean up URL by redirecting to clean path
-                        // Since pathname is '/access_token=...', we want to remove everything from '/access_token' onwards
-                        const cleanPath = tokenStartIndex === 1 ? '/' : window.location.pathname.substring(0, tokenStartIndex - 1);
-                        const cleanUrl = `${window.location.origin}${cleanPath}${window.location.search}`;
-                        window.history.replaceState({}, document.title, cleanUrl);
-
                         // Setup auto-refresh
                         setupTokenRefresh();
                         setLoading(false);
 
-                        // Navigate to stored redirect if present, otherwise home
-                        try {
-                            const redirect = sessionStorage.getItem('postSignInRedirect');
-                            if (redirect) {
-                                const url = new URL(redirect, window.location.origin);
+                        // Redirect to clean URL; prefer app root /tools/assets-browser/
+                        const cleanTarget = (() => {
+                            try {
+                                sessionStorage.removeItem('postSignInRedirectApp');
+                                const stored = sessionStorage.getItem('postSignInRedirect');
                                 sessionStorage.removeItem('postSignInRedirect');
-                                navigate(url.pathname + url.search, { replace: true });
-                                return;
+                                if (stored) {
+                                    const u = new URL(stored);
+                                    u.hash = '';
+                                    u.search = '';
+                                    return u.toString();
+                                }
+                            } catch {
+                                // ignore
                             }
-                        } catch (e) {
-                            // ignore
-                        }
-
-                        navigate('/', { replace: true });
+                            const basePath = (typeof import.meta !== 'undefined' && (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL) || '/tools/assets-browser/';
+                            return `${window.location.origin}${basePath.replace(/\/?$/, '/')}`;
+                        })();
+                        window.location.replace(cleanTarget);
                         return;
                     }
                 }

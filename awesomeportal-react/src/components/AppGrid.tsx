@@ -12,7 +12,8 @@ export interface AppTile {
 }
 
 interface AppGridProps {
-    tiles: AppTile[];
+    /** Grid tiles; null = empty slot. Length 24 when using slot-blocks; empty slots honor existing content. */
+    tiles: (AppTile | null)[];
     onTileClick?: (tileId: string) => void;
     /** Optional text/HTML content shown above the grid. */
     topContent?: string;
@@ -53,7 +54,7 @@ const AppGrid: React.FC<AppGridProps> = ({
 
     const gridTiles = hideEmptySlots
         ? tiles.filter((t): t is AppTile => t != null)
-        : Array.from({ length: 24 }, (_, index) => tiles[index] || null);
+        : Array.from({ length: 24 }, (_, index) => tiles[index] ?? null);
 
     const isEmptySlot = useCallback((index: number) => gridTiles[index] === null, [gridTiles]);
 

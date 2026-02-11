@@ -324,6 +324,31 @@
   border: none;
 }
 
+.da-content-in-frame-error {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  margin: 0;
+  background: #fff3cd;
+  border-top: 1px solid #e0c000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.da-content-in-frame-error-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #856404;
+  flex: 1;
+  min-width: 200px;
+}
+
+.da-content-in-frame-error-link {
+  display: inline-block;
+  text-decoration: none;
+}
+
 /* Global button styling */
 button {
   border: none;
