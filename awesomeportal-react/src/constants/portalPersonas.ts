@@ -9,6 +9,13 @@ export const PORTAL_PERSONA_LABELS: Record<PortalPersonaId, string> = {
 
 export const PORTAL_PERSONA_ORDER: PortalPersonaId[] = ['marketeer', 'developer', 'admin'];
 
+/** Single-letter mark in the Admin activities top bar (persona-colored tile). */
+export const PORTAL_PERSONA_TOPBAR_MARK: Record<PortalPersonaId, string> = {
+    marketeer: 'M',
+    developer: 'D',
+    admin: 'A',
+};
+
 /**
  * Left navigation entries per persona. IDs are handled in MainApp.handleAppSelect
  * (e.g. portal-activities → Admin activities, settings → Adobe account).

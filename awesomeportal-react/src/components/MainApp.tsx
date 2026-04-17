@@ -4,6 +4,8 @@ import { ToastQueue } from '@react-spectrum/toast';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DateValue } from 'react-aria-components';
 import '../MainApp.css';
+import '../pages/AdminActivities.css';
+import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
 
 import { DynamicMediaClient } from '../clients/dynamicmedia-client';
 import { DEFAULT_FACETS, type ExcFacets } from '../constants/facets';
@@ -13,7 +15,6 @@ import type {
     CartItem,
     Collection,
     CurrentView,
-    EntitlementPayload,
     ExternalParams,
     LoadingState,
     PortalPersonaId,
@@ -28,10 +29,8 @@ import { populateAssetFromHit } from '../utils/assetTransformers';
 import { fetchOptimizedDeliveryBlob, removeBlobFromCache } from '../utils/blobCache';
 import { getDefaultSlotBlocks, useSlotBlocks } from '../hooks/useSlotBlocks';
 import {
-    appBuilderDropInsToEntitlements,
     clearEphemeralLocalStorageOnSignOut,
     getAdobeClientId,
-    getAppBuilderDropIns,
     getBucket,
     getExternalParams,
     getGridEditConfig,
@@ -71,9 +70,8 @@ import PersonaImpersonateModal from './PersonaImpersonateModal';
 import { PersonaGlyph } from './PersonaGlyph';
 import ImageGallery from './ImageGallery';
 import SearchBar from './SearchBar';
-import LeftNav from './LeftNav';
-import AppGrid, { DRAG_TYPE_ENTITLEMENT } from './AppGrid';
-import { ADOBE_ENTITLEMENTS } from '../constants/adobeEntitlements';
+import { PortalAppRailIcon } from './PortalAppRailIcon';
+import AppGrid from './AppGrid';
 import Firefly from '../pages/Firefly';
 import ExperienceHub from '../pages/ExperienceHub';
 import AIAgents from '../pages/AIAgents';
@@ -316,7 +314,10 @@ function MainApp(): React.JSX.Element {
     const [iframeCannotDisplay, setIframeCannotDisplay] = useState(false);
     const [portalPersona, setPortalPersona] = useState<PortalPersonaId>(() => getSelectedPersona());
     const apps = useMemo(() => getLeftNavAppsForPersona(portalPersona), [portalPersona]);
+    /** Assets browser is reached via the Files rail control; omit duplicate entry below the divider. */
+    const portalRailApps = useMemo(() => apps.filter((a) => a.id !== 'assets-browser'), [apps]);
     const [personaImpersonateModalOpen, setPersonaImpersonateModalOpen] = useState(false);
+    const [portalWorkspacePrompt, setPortalWorkspacePrompt] = useState('');
 
     const applyPortalPersona = useCallback((p: PortalPersonaId) => {
         setSelectedPersona(p);
@@ -361,27 +362,6 @@ function MainApp(): React.JSX.Element {
     const [aemProgramsError, setAemProgramsError] = useState<string | null>(null);
     const isAssetsBrowser = selectedAppId === 'assets-browser' || (!selectedAppId && window.location.pathname.includes('/tools/assets-browser/index.html'));
     const showAemSelector = isAssetsBrowser && authenticated && viewMode === 'admin';
-
-    const isGridContentView =
-        !isAssetsBrowser &&
-        selectedAppId !== 'dashboard' &&
-        !selectedDaContentUrl &&
-        selectedTileId !== 'firefly' &&
-        selectedTileId !== 'experience-hub' &&
-        selectedTileId !== 'ai-agents';
-    const showEntitlementsPanel = authenticated && viewMode === 'admin' && isGridContentView;
-
-    // Hide host-provided top-app-bar-content-container when admin entitlements panel is shown
-    useEffect(() => {
-        if (!showEntitlementsPanel) return;
-        const el = document.querySelector('.top-app-bar-content-container');
-        if (!el || !(el instanceof HTMLElement)) return;
-        const prevDisplay = el.style.display;
-        el.style.display = 'none';
-        return () => {
-            el.style.display = prevDisplay;
-        };
-    }, [showEntitlementsPanel]);
 
     // Expose cart functions to window for EDS header integration
     useEffect(() => {
@@ -441,6 +421,13 @@ function MainApp(): React.JSX.Element {
         setPersonaImpersonateModalOpen(false);
         navigate(`/admin/activities?persona=${encodeURIComponent(imsDerivedPersona)}`);
     }, [imsDerivedPersona, applyPortalPersona, navigate]);
+
+    const goPortalHome = useCallback(() => {
+        navigate({ pathname: '/', search: '', hash: '' });
+        setSelectedAppId(null);
+        setSelectedTileId(null);
+        setSelectedDaContentUrl(null);
+    }, [navigate]);
 
     const prevAccessTokenRef = useRef('');
     useEffect(() => {
@@ -1084,56 +1071,6 @@ function MainApp(): React.JSX.Element {
     // Delete mode: slots shake and show X; user can remove one to make room
     const [deleteMode, setDeleteMode] = useState(false);
     const [slotToDelete, setSlotToDelete] = useState<number | null>(null);
-    const [removeSlotDialogOpen, setRemoveSlotDialogOpen] = useState(false);
-    const [pendingDropPayload, setPendingDropPayload] = useState<EntitlementPayload | null>(null);
-
-    // Handle drop from entitlements panel: only into empty slots (AppGrid enforces); never overwrite existing slot content.
-    const handleDropSlot = useCallback((index: number, payload: EntitlementPayload) => {
-        const config = getGridEditConfig();
-        const base = getExternalParams();
-        const raw = config?.slotBlocks ?? base.slotBlocks ?? getDefaultSlotBlocks();
-        const currentBlocks: (SlotBlockDescriptor | null)[] = Array.from({ length: 24 }, (_, i) => {
-            const b = raw[i];
-            return b != null && typeof b === 'object' ? (b as SlotBlockDescriptor) : null;
-        });
-        if (currentBlocks[index] != null) return;
-        if (currentBlocks.every((b) => b != null)) {
-            setPendingDropPayload(payload);
-            setRemoveSlotDialogOpen(true);
-            return;
-        }
-        const newBlock: SlotBlockDescriptor = {
-            id: payload.id,
-            title: payload.title,
-            description: payload.description,
-            href: payload.href,
-            iconUrl: payload.iconUrl,
-            openMode: payload.openMode,
-            slotType: 'application',
-        };
-        const nextBlocks = [...currentBlocks];
-        nextBlocks[index] = newBlock;
-        setGridEditConfig({
-            slotBlocks: nextBlocks,
-            gridTopContent: config?.gridTopContent ?? base.gridTopContent ?? '',
-            gridTopBanners: config?.gridTopBanners ?? base.gridTopBanners ?? [],
-            slotHeight: config?.slotHeight ?? base.slotHeight ?? 120,
-            slotWidth: config?.slotWidth ?? base.slotWidth ?? 140,
-        });
-        setGridConfigVersion((v) => v + 1);
-    }, []);
-
-    const handleRemoveSlotDialogConfirm = useCallback(() => {
-        setRemoveSlotDialogOpen(false);
-        setDeleteMode(true);
-        setPendingDropPayload(null);
-    }, []);
-
-    const handleRemoveSlotDialogCancel = useCallback(() => {
-        setRemoveSlotDialogOpen(false);
-        setPendingDropPayload(null);
-    }, []);
-
     const handleRequestDeleteSlot = useCallback((index: number) => {
         setSlotToDelete(index);
     }, []);
@@ -1168,11 +1105,6 @@ function MainApp(): React.JSX.Element {
     const handleExitDeleteMode = useCallback(() => {
         setDeleteMode(false);
         setSlotToDelete(null);
-    }, []);
-
-    const handleEntitlementDragStart = useCallback((e: React.DragEvent, payload: EntitlementPayload) => {
-        e.dataTransfer.setData(DRAG_TYPE_ENTITLEMENT, JSON.stringify(payload));
-        e.dataTransfer.effectAllowed = 'copy';
     }, []);
 
     const handleProfileClick = (): void => {
@@ -1238,6 +1170,12 @@ function MainApp(): React.JSX.Element {
             )}
         </>
     );
+
+    const showPortalWorkspaceAgent =
+        !selectedDaContentUrl &&
+        selectedTileId !== 'firefly' &&
+        selectedTileId !== 'experience-hub' &&
+        selectedTileId !== 'ai-agents';
 
     return (
         <AppConfigProvider
@@ -1311,24 +1249,6 @@ function MainApp(): React.JSX.Element {
                         document.body
                     )}
 
-                {removeSlotDialogOpen && createPortal(
-                    <div className="grid-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="remove-slot-dialog-title">
-                        <div className="grid-dialog">
-                            <h2 id="remove-slot-dialog-title">All slots are full</h2>
-                            <p>Remove a slot to add this app?</p>
-                            <div className="grid-dialog-actions">
-                                <button type="button" className="app-grid-customize-btn" onClick={handleRemoveSlotDialogConfirm}>
-                                    Remove a slot
-                                </button>
-                                <button type="button" className="app-grid-customize-btn secondary" onClick={handleRemoveSlotDialogCancel}>
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>,
-                    document.body
-                )}
-
                 {slotToDelete !== null && createPortal(
                     <div className="grid-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-slot-dialog-title">
                         <div className="grid-dialog">
@@ -1347,28 +1267,114 @@ function MainApp(): React.JSX.Element {
                     document.body
                 )}
 
-                {/* Main content area with left nav and right content */}
-                <div className="main-content-layout">
-                    <LeftNav
-                        apps={apps}
-                        selectedAppId={selectedAppId}
-                        onAppSelect={handleAppSelect}
-                        afterAppId="assets-browser"
-                        afterAppSlot={
-                            canImpersonatePortalPersona ? (
+                <div className="admin-shell portal-workspace-root">
+                    <div className="admin-shell-body">
+                        <aside className="admin-shell-rail" aria-label="Portal navigation">
+                            <button type="button" className="admin-shell-rail-item" onClick={goPortalHome} title="Home" aria-label="Home">
+                                <span className="admin-shell-rail-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                        <polyline points="9 22 9 12 15 12 15 22" />
+                                    </svg>
+                                </span>
+                                <span className="admin-shell-rail-label">Home</span>
+                            </button>
+                            <button type="button" className="admin-shell-rail-item" onClick={goPortalHome} title="Apps" aria-label="Apps">
+                                <span className="admin-shell-rail-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                                    </svg>
+                                </span>
+                                <span className="admin-shell-rail-label">Apps</span>
+                            </button>
+                            <div className="admin-shell-rail-files-stack">
                                 <button
                                     type="button"
-                                    className="left-nav-persona-btn"
-                                    onClick={() => setPersonaImpersonateModalOpen(true)}
-                                    aria-label="View portal as another persona"
-                                    title="View portal as another persona"
+                                    className={`admin-shell-rail-item ${isAssetsBrowser ? 'active' : ''}`}
+                                    onClick={() => handleAppSelect('assets-browser')}
+                                    title="Files — Assets browser"
+                                    aria-label="Files — Assets browser"
                                 >
-                                    <PersonaGlyph size={22} />
+                                    <span className="admin-shell-rail-icon">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                                        </svg>
+                                    </span>
+                                    <span className="admin-shell-rail-label">Files</span>
                                 </button>
-                            ) : undefined
-                        }
-                    />
-                    <div className="right-content-area">
+                                {canImpersonatePortalPersona ? (
+                                    <button
+                                        type="button"
+                                        className="admin-shell-rail-persona-btn"
+                                        onClick={() => setPersonaImpersonateModalOpen(true)}
+                                        title="View portal as a persona"
+                                        aria-label="View portal as a persona"
+                                    >
+                                        <PersonaGlyph size={20} />
+                                    </button>
+                                ) : null}
+                            </div>
+                            <div className="admin-shell-rail-divider" aria-hidden />
+                            {portalRailApps.map((app) => (
+                                <button
+                                    key={app.id}
+                                    type="button"
+                                    className={`admin-shell-rail-item ${selectedAppId === app.id ? 'active' : ''}`}
+                                    title={app.name}
+                                    aria-label={app.name}
+                                    onClick={() => handleAppSelect(app.id)}
+                                >
+                                    <span className="admin-shell-rail-icon">
+                                        <PortalAppRailIcon appId={app.id} />
+                                    </span>
+                                    <span className="admin-shell-rail-label">{app.name}</span>
+                                </button>
+                            ))}
+                        </aside>
+                        <main className="admin-shell-main portal-workspace-main">
+                            {showPortalWorkspaceAgent ? (
+                                <section className="admin-shell-agent" aria-label="Agent prompt (coming soon)">
+                                    <div className="admin-shell-agent-label">Prompt</div>
+                                    <textarea
+                                        className="admin-shell-agent-input"
+                                        placeholder="Describe what you want to change or generate for the portal. A top-level agent will run here later."
+                                        value={portalWorkspacePrompt}
+                                        onChange={(e) => setPortalWorkspacePrompt(e.target.value)}
+                                        rows={3}
+                                    />
+                                    <div className="admin-shell-agent-footer">
+                                        <span className="admin-shell-agent-chip">Portal</span>
+                                        <span className="admin-shell-agent-chip">Auto</span>
+                                        <button type="button" className="admin-shell-agent-generate" disabled>
+                                            Generate
+                                        </button>
+                                    </div>
+                                    <div className="admin-shell-agent-prompts" aria-label="Starter prompts (coming soon)">
+                                        <span className="admin-shell-agent-prompts-label">Starter prompts</span>
+                                        <div className="admin-shell-agent-prompts-row">
+                                            {PORTAL_AGENT_MODEL_PROMPTS.map((label) => (
+                                                <button
+                                                    key={label}
+                                                    type="button"
+                                                    className="admin-shell-agent-prompt-chip"
+                                                    disabled
+                                                    title="Coming soon: insert into prompt and run agent"
+                                                >
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="admin-shell-agent-prompts-hint">
+                                            Use <strong>Admin activities</strong> to edit the grid and navigation for each persona. Status messages from saves
+                                            appear when you return from the admin workspace.
+                                        </p>
+                                    </div>
+                                </section>
+                            ) : null}
+                            <div className="portal-workspace-main-scroll">
                         {isAssetsBrowser && !authenticated ? (
                             <div className="aem-signin-in-content">
                                 <p className="aem-signin-in-content-text">
@@ -1576,8 +1582,8 @@ function MainApp(): React.JSX.Element {
                                     </label>
                                     {canImpersonatePortalPersona ? (
                                         <p className="portal-persona-switcher-hint">
-                                            Impersonate Marketeer, Developer, or Org admin to see that persona&apos;s left nav and grid. Admin activities keeps
-                                            the same persona in sync when you change layout there.
+                                            Impersonate Marketeer, Developer, or Org admin to see that persona&apos;s rail and grid. Admin activities keeps the
+                                            same persona in sync when you change layout there.
                                         </p>
                                     ) : null}
                                     <button
@@ -1624,70 +1630,36 @@ function MainApp(): React.JSX.Element {
                                         )}
                                     </div>
                                 )}
-                                <AppGrid
-                                    tiles={appTiles}
-                                    onTileClick={handleTileClick}
-                                    topContent={getExternalParams().gridTopContent}
-                                    topBanners={getExternalParams().gridTopBanners}
-                                    slotHeight={getExternalParams().slotHeight}
-                                    slotWidth={getExternalParams().slotWidth}
-                                    hideEmptySlots={viewMode === 'creator'}
-                                    onDropSlot={viewMode === 'admin' && authenticated && !deleteMode ? handleDropSlot : undefined}
-                                    deleteMode={deleteMode}
-                                    onRequestDeleteSlot={deleteMode ? handleRequestDeleteSlot : undefined}
-                                />
+                                <div className="admin-shell-grid-wrap">
+                                    <div className="admin-shell-grid-persona" role="status">
+                                        <span className="admin-shell-grid-persona-label">Viewing as</span>
+                                        <span className="admin-shell-grid-persona-name">{PORTAL_PERSONA_LABELS[portalPersona]}</span>
+                                        <span className="admin-shell-grid-persona-hint">
+                                            Edit slots and navigation in <strong>Admin activities</strong>.
+                                        </span>
+                                    </div>
+                                    <AppGrid
+                                        tiles={appTiles}
+                                        onTileClick={handleTileClick}
+                                        topContent={getExternalParams().gridTopContent}
+                                        topBanners={getExternalParams().gridTopBanners}
+                                        slotHeight={getExternalParams().slotHeight}
+                                        slotWidth={getExternalParams().slotWidth}
+                                        hideEmptySlots={viewMode === 'creator'}
+                                        deleteMode={deleteMode}
+                                        onRequestDeleteSlot={deleteMode ? handleRequestDeleteSlot : undefined}
+                                    />
+                                </div>
+                                <section className="admin-shell-bottom-slot" aria-label="Reserved for future content">
+                                    <p className="admin-shell-bottom-placeholder">
+                                        Content area reserved for documentation, activity feed, or embeds.
+                                    </p>
+                                </section>
                             </>
                         )}
-                    </div>
-                    {showEntitlementsPanel && (() => {
-                        const addedIds = new Set(
-                            (getExternalParams().slotBlocks ?? [])
-                                .filter((b): b is SlotBlockDescriptor => b != null && typeof b === 'object')
-                                .map((b) => b.id)
-                        );
-                        const catalogEntitlements = [
-                            ...ADOBE_ENTITLEMENTS,
-                            ...appBuilderDropInsToEntitlements(getAppBuilderDropIns()),
-                        ];
-                        const availableEntitlements = catalogEntitlements.filter((ent) => !addedIds.has(ent.id));
-                        return (
-                        <div className="entitlements-panel">
-                            <h3 className="entitlements-panel-title">Adobe apps</h3>
-                            <p className="entitlements-panel-hint">Drag to a grid slot to add</p>
-                            <div className="entitlements-panel-tiles">
-                                {availableEntitlements.length === 0 ? (
-                                    <p className="entitlements-panel-empty">All listed apps are already on the grid. Remove one from the grid to add it again here.</p>
-                                ) : null}
-                                {availableEntitlements.map((ent) => (
-                                    <div
-                                        key={ent.id}
-                                        className="app-grid-tile filled entitlement-tile"
-                                        draggable
-                                        onDragStart={(e) => handleEntitlementDragStart(e, ent)}
-                                    >
-                                        <div className="app-tile-icon">
-                                            {ent.iconUrl ? (
-                                                <img src={ent.iconUrl} alt="" width={48} height={48} className="app-tile-icon-img" />
-                                            ) : (
-                                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                                                    <polyline points="15 3 21 3 21 9" />
-                                                    <line x1="10" y1="14" x2="21" y2="3" />
-                                                </svg>
-                                            )}
-                                        </div>
-                                        <div className="app-tile-content">
-                                            <h3 className="app-tile-title">{ent.title}</h3>
-                                            {ent.description && (
-                                                <p className="app-tile-description">{ent.description}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
                             </div>
-                        </div>
-                        );
-                    })()}
+                        </main>
+                    </div>
                 </div>
             </div>
         </AppConfigProvider>

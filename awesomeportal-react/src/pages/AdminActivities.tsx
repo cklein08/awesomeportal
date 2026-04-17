@@ -2,7 +2,13 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } fro
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ADOBE_ENTITLEMENTS } from '../constants/adobeEntitlements';
-import { getLeftNavAppsForPersona, PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
+import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
+import {
+    getLeftNavAppsForPersona,
+    PORTAL_PERSONA_LABELS,
+    PORTAL_PERSONA_ORDER,
+    PORTAL_PERSONA_TOPBAR_MARK,
+} from '../constants/portalPersonas';
 import type { EntitlementPayload, ExternalParams, PortalPersonaId, SlotBlockDescriptor } from '../types';
 import { AppConfigProvider } from '../components/AppConfigProvider';
 import AppGrid, { DRAG_TYPE_ENTITLEMENT } from '../components/AppGrid';
@@ -31,8 +37,6 @@ function readAccessToken(): string {
 
 type WorkspaceTabId = 'grid' | 'layout' | 'persona';
 
-const MODEL_PROMPTS = ['Summarize this layout', 'Suggest tiles for marketeers', 'List empty slots', 'Explain persona nav'];
-
 const AdminActivities: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -50,7 +54,14 @@ const AdminActivities: React.FC = () => {
         return getSelectedPersona();
     }, [searchParams]);
 
-    const editor = useGridEditor(initialPersona, { syncGlobalPersona: true });
+    /** When set, header shows "{Persona} Activities" and layout is scoped to that URL (does not follow the in-form picker). */
+    const personaFromUrl = useMemo((): PortalPersonaId | null => {
+        const q = searchParams.get('persona');
+        if (q && isPortalPersonaId(q)) return q;
+        return null;
+    }, [searchParams]);
+
+    const editor = useGridEditor(initialPersona, { syncGlobalPersona: false });
     const {
         persistSlotsFrom24,
         slotBlocks24,
@@ -65,6 +76,8 @@ const AdminActivities: React.FC = () => {
         const q = searchParams.get('persona');
         if (q && isPortalPersonaId(q)) {
             setEditingPersona(q);
+        } else {
+            setEditingPersona(getSelectedPersona());
         }
     }, [searchParams, setEditingPersona]);
 
@@ -168,9 +181,18 @@ const AdminActivities: React.FC = () => {
         <AppConfigProvider externalParams={externalParams} dynamicMediaClient={null}>
             <div className={`admin-shell${banner ? ' admin-shell--banner-visible' : ''}`}>
                 <header className="admin-shell-topbar">
-                    <div className="admin-shell-topbar-brand">
-                        <span className="admin-shell-logo-mark">A</span>
-                        <span className="admin-shell-brand-text">Admin activities</span>
+                    <div
+                        className={`admin-shell-topbar-brand${
+                            personaFromUrl ? ` admin-shell-topbar-brand--persona-${personaFromUrl}` : ' admin-shell-topbar-brand--persona-admin'
+                        }`}
+                        aria-label={personaFromUrl ? `${PORTAL_PERSONA_LABELS[personaFromUrl]} activities` : 'Admin activities'}
+                    >
+                        <span className="admin-shell-logo-mark" aria-hidden>
+                            {personaFromUrl ? PORTAL_PERSONA_TOPBAR_MARK[personaFromUrl] : 'A'}
+                        </span>
+                        <span className="admin-shell-brand-text">
+                            {personaFromUrl ? `${PORTAL_PERSONA_LABELS[personaFromUrl]} Activities` : 'Admin activities'}
+                        </span>
                     </div>
                     <div className="admin-shell-search" role="search">
                         <span className="admin-shell-search-icon" aria-hidden>
@@ -277,7 +299,7 @@ const AdminActivities: React.FC = () => {
                             <div className="admin-shell-agent-prompts" aria-label="Starter prompts (coming soon)">
                                 <span className="admin-shell-agent-prompts-label">Starter prompts</span>
                                 <div className="admin-shell-agent-prompts-row">
-                                    {MODEL_PROMPTS.map((label) => (
+                                    {PORTAL_AGENT_MODEL_PROMPTS.map((label) => (
                                         <button
                                             key={label}
                                             type="button"
