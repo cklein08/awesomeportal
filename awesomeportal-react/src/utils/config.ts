@@ -2,6 +2,53 @@
 // This checks window.APP_CONFIG first (runtime), then falls back to build-time env vars
 
 import type { AppBuilderDropIn, EntitlementPayload, ExternalParams, GridEditConfig, PortalPersonaId, PortalSkinConfig } from '../types';
+import { normalizePersistedImageUrl } from './pathUtils';
+
+function sanitizeGridEditConfig(config: GridEditConfig): GridEditConfig {
+    if (!config.gridTopBanners?.length) {
+        return { ...config };
+    }
+    return {
+        ...config,
+        gridTopBanners: config.gridTopBanners.map((b) => ({
+            ...b,
+            url: normalizePersistedImageUrl(b.url ?? ''),
+        })),
+    };
+}
+
+function sanitizePortalSkinConfig(config: PortalSkinConfig): PortalSkinConfig {
+    const next: PortalSkinConfig = { ...config };
+    const urlKeys: (keyof PortalSkinConfig)[] = [
+        'logoUrl',
+        'heroImageUrl',
+        'fontStylesheetUrl',
+        'fontFileUrlBody',
+        'fontFileUrlHeading',
+    ];
+    for (const key of urlKeys) {
+        const v = next[key];
+        if (typeof v === 'string' && v.length > 0) {
+            (next as Record<string, string>)[key as string] = normalizePersistedImageUrl(v);
+        }
+    }
+    return next;
+}
+
+function persistRoleGridsIfChanged(all: RoleGridsState): void {
+    localStorage.setItem(ROLE_GRIDS_STORAGE_KEY, JSON.stringify(all));
+}
+
+function maybeRewriteGridForPersona(all: RoleGridsState, persona: PortalPersonaId): GridEditConfig | null {
+    const raw = all[persona];
+    if (!raw || typeof raw !== 'object') return null;
+    const cleaned = sanitizeGridEditConfig(raw);
+    if (JSON.stringify(cleaned) !== JSON.stringify(raw)) {
+        all[persona] = cleaned;
+        persistRoleGridsIfChanged(all);
+    }
+    return cleaned;
+}
 
 const GRID_EDIT_STORAGE_KEY = 'awesomeportal_gridEditConfig';
 /** Per-persona grid layouts (marketeer / developer / admin). */
@@ -93,12 +140,17 @@ export const getGridLayout = (persona: PortalPersonaId): GridEditConfig | null =
         const raw = localStorage.getItem(ROLE_GRIDS_STORAGE_KEY);
         if (raw) {
             const all = JSON.parse(raw) as RoleGridsState;
-            const forPersona = all[persona];
-            if (forPersona && typeof forPersona === 'object') return forPersona;
+            const migrated = maybeRewriteGridForPersona(all, persona);
+            if (migrated) return migrated;
         }
         const legacyRaw = localStorage.getItem(GRID_EDIT_STORAGE_KEY);
         if (legacyRaw) {
-            return JSON.parse(legacyRaw) as GridEditConfig;
+            const legacy = JSON.parse(legacyRaw) as GridEditConfig;
+            const cleaned = sanitizeGridEditConfig(legacy);
+            if (JSON.stringify(cleaned) !== JSON.stringify(legacy)) {
+                localStorage.setItem(GRID_EDIT_STORAGE_KEY, JSON.stringify(cleaned));
+            }
+            return cleaned;
         }
     } catch {
         return null;
@@ -112,7 +164,7 @@ export const setGridLayout = (persona: PortalPersonaId, config: GridEditConfig):
     try {
         const raw = localStorage.getItem(ROLE_GRIDS_STORAGE_KEY);
         const all: RoleGridsState = raw ? (JSON.parse(raw) as RoleGridsState) : {};
-        all[persona] = config;
+        all[persona] = sanitizeGridEditConfig(config);
         localStorage.setItem(ROLE_GRIDS_STORAGE_KEY, JSON.stringify(all));
     } catch (e) {
         console.warn('Failed to save role grid config', e);
@@ -211,7 +263,12 @@ export const getSkinConfig = (): PortalSkinConfig | null => {
     try {
         const raw = localStorage.getItem(SKIN_STORAGE_KEY);
         if (!raw) return null;
-        return JSON.parse(raw) as PortalSkinConfig;
+        const parsed = JSON.parse(raw) as PortalSkinConfig;
+        const cleaned = sanitizePortalSkinConfig(parsed);
+        if (JSON.stringify(cleaned) !== JSON.stringify(parsed)) {
+            localStorage.setItem(SKIN_STORAGE_KEY, JSON.stringify(cleaned));
+        }
+        return cleaned;
     } catch {
         return null;
     }
@@ -220,7 +277,7 @@ export const getSkinConfig = (): PortalSkinConfig | null => {
 /** Save portal skin config to localStorage. */
 export const setSkinConfig = (config: PortalSkinConfig): void => {
     try {
-        localStorage.setItem(SKIN_STORAGE_KEY, JSON.stringify(config));
+        localStorage.setItem(SKIN_STORAGE_KEY, JSON.stringify(sanitizePortalSkinConfig(config)));
     } catch (e) {
         console.warn('Failed to save skin config', e);
     }

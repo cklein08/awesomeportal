@@ -9,19 +9,31 @@ export function withBase(absoluteFromSiteRoot: string): string {
     return `${base}${path}`;
 }
 
-/**
- * Fixes URLs saved with HTML entities (e.g. `&amp;` in query strings) and swaps a known-broken
- * legacy Heineken demo Unsplash URL for the bundled marketing banner asset.
- */
-export function normalizeImageSrcForDisplay(url: string | undefined | null): string {
-    if (url == null) return '';
-    let u = String(url).trim();
+function normalizeImageSrcCore(raw: string): string {
+    let u = String(raw).trim();
     if (!u) return '';
     u = u.replace(/&amp;/gi, '&');
     if (u.includes('images.unsplash.com/photo-1518176258769')) {
         return withBase('/brand-demos/heineken/coachella-banner.png');
     }
     return u;
+}
+
+/**
+ * Fixes URLs saved with HTML entities (e.g. `&amp;` in query strings) and swaps a known-broken
+ * legacy Heineken demo Unsplash URL for the bundled marketing banner asset.
+ */
+export function normalizeImageSrcForDisplay(url: string | undefined | null): string {
+    if (url == null) return '';
+    return normalizeImageSrcCore(String(url));
+}
+
+/**
+ * Same normalization as {@link normalizeImageSrcForDisplay}; use when persisting grid/skin URLs
+ * so localStorage stays free of HTML entities and broken legacy demo links.
+ */
+export function normalizePersistedImageUrl(url: string): string {
+    return normalizeImageSrcCore(url);
 }
 
 /**
