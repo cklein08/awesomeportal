@@ -10,6 +10,21 @@ export function withBase(absoluteFromSiteRoot: string): string {
 }
 
 /**
+ * Fixes URLs saved with HTML entities (e.g. `&amp;` in query strings) and swaps a known-broken
+ * legacy Heineken demo Unsplash URL for the bundled hero SVG.
+ */
+export function normalizeImageSrcForDisplay(url: string | undefined | null): string {
+    if (url == null) return '';
+    let u = String(url).trim();
+    if (!u) return '';
+    u = u.replace(/&amp;/gi, '&');
+    if (u.includes('images.unsplash.com/photo-1518176258769')) {
+        return withBase('/brand-demos/heineken/hero.svg');
+    }
+    return u;
+}
+
+/**
  * Resolves image paths based on the current URL location
  * Handles both root domain and subdirectory deployments
  *

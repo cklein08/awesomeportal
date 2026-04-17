@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useAppConfig } from '../hooks/useAppConfig';
 import type { EntitlementPayload, GridTopBanner } from '../types';
+import { normalizeImageSrcForDisplay } from '../utils/pathUtils';
 import './AppGrid.css';
 
 export interface AppTile {
@@ -49,7 +50,7 @@ const AppGrid: React.FC<AppGridProps> = ({
     onRequestDeleteSlot,
 }) => {
     const { skinConfig } = useAppConfig();
-    const heroImageUrl = skinConfig?.heroImageUrl;
+    const heroImageUrl = skinConfig?.heroImageUrl ? normalizeImageSrcForDisplay(skinConfig.heroImageUrl) : undefined;
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     const gridTiles = hideEmptySlots
@@ -129,8 +130,12 @@ const AppGrid: React.FC<AppGridProps> = ({
                     {topBanners && topBanners.length > 0 && (
                         <div className="app-grid-top-banners">
                             {topBanners.map((b, i) => {
-                                const key = b.url ? `top-banner-${i}-${b.url}` : `top-banner-${i}`;
-                                const img = <img src={b.url} alt={b.alt ?? ''} className="app-grid-top-banner-img" />;
+                                const bannerSrc = normalizeImageSrcForDisplay(b.url);
+                                const key = `top-banner-${i}`;
+                                if (!bannerSrc) {
+                                    return <span key={key} className="app-grid-top-banner-missing" aria-hidden />;
+                                }
+                                const img = <img src={bannerSrc} alt={b.alt ?? ''} className="app-grid-top-banner-img" />;
                                 return b.href ? (
                                     <a key={key} href={b.href} target="_blank" rel="noopener noreferrer" className="app-grid-top-banner-link">
                                         {img}

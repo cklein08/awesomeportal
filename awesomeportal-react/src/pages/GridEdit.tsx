@@ -10,6 +10,7 @@ import {
     setAppBuilderDropIns,
     setGridLayout,
 } from '../utils/config';
+import { normalizeImageSrcForDisplay } from '../utils/pathUtils';
 import './GridEdit.css';
 
 const KNOWN_APP_IDS = ['firefly', 'experience-hub', 'ai-agents'];
@@ -260,7 +261,7 @@ const GridEdit: React.FC = () => {
                         </div>
                         {b.url ? (
                             <div className="grid-edit-banner-preview-wrap">
-                                <img src={b.url} alt="" className="grid-edit-banner-preview" />
+                                <img src={normalizeImageSrcForDisplay(b.url)} alt="" className="grid-edit-banner-preview" />
                             </div>
                         ) : null}
                         <input
