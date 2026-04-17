@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
 import type { AppBuilderDropIn, GridEditConfig, GridTopBanner, PortalPersonaId, SlotBlockDescriptor } from '../types';
 import { normalizeImageSrcForDisplay } from '../utils/pathUtils';
 import '../pages/GridEdit.css';
 
 const KNOWN_APP_IDS = ['firefly', 'experience-hub', 'ai-agents'];
+
+/** Empty slot placeholder cards shown when filled-slot details are collapsed (max 3). */
+const EMPTY_SLOT_PREVIEW_COUNT = 3;
 
 export type GridEditorFormProps = {
     editingPersona: PortalPersonaId;
@@ -58,8 +61,25 @@ const GridEditForm: React.FC<GridEditorFormProps> = ({
     handleBannerFileSelect,
     slotBlocks24,
 }) => {
+    const [filledSlotsExpanded, setFilledSlotsExpanded] = useState(true);
+    /** Per filled slot: when true, detail fields are hidden (keyed by block id for stable state after reorder). */
+    const [slotFieldsCollapsed, setSlotFieldsCollapsed] = useState<Record<string, boolean>>({});
     const banners = config.gridTopBanners ?? [];
     const filledCount = slotBlocks24.filter(Boolean).length;
+    const emptyCount = slotBlocks24.length - filledCount;
+    const emptySlotIndices = useMemo(
+        () => slotBlocks24.map((b, i) => (b == null ? i : -1)).filter((i) => i >= 0),
+        [slotBlocks24]
+    );
+    const filledEntries = useMemo(
+        () =>
+            slotBlocks24
+                .map((block, i) => (block ? { i, block } : null))
+                .filter((x): x is { i: number; block: SlotBlockDescriptor } => x != null),
+        [slotBlocks24]
+    );
+    const emptyPreviewIndices = useMemo(() => emptySlotIndices.slice(0, EMPTY_SLOT_PREVIEW_COUNT), [emptySlotIndices]);
+    const emptyAfterPreviewIndices = useMemo(() => emptySlotIndices.slice(EMPTY_SLOT_PREVIEW_COUNT), [emptySlotIndices]);
 
     return (
         <div className="grid-edit-form-root">
@@ -242,117 +262,207 @@ const GridEditForm: React.FC<GridEditorFormProps> = ({
             <section className="grid-edit-section">
                 <h2>Slots (grid tiles)</h2>
                 <p className="grid-edit-hint">
-                    Fixed {slotBlocks24.length} positions (same as the portal grid). Filled slots can be reordered; use the preview on the right to drag entitled apps into empty positions. Use appId for built-in apps: firefly, experience-hub, ai-agents, or Link URL / DA content.
+                    Fixed {slotBlocks24.length} positions (same as the portal grid). Use <strong>Collapse filled slots</strong> for a shorter page; a few empty positions
+                    stay visible as placeholders. Each filled tile has <strong>Collapse</strong>/<strong>Expand</strong> for its fields. Edit tiles on the <strong>Grid</strong> tab (drag) or use{' '}
+                    <strong>+ Add slot</strong>. Built-in appIds: firefly,
+                    experience-hub, ai-agents, or Link URL / DA content.
                 </p>
-                <p className="grid-edit-hint grid-edit-hint--meta">{filledCount} filled · {slotBlocks24.length - filledCount} empty</p>
+                <p className="grid-edit-hint grid-edit-hint--meta">
+                    {filledCount} filled · {emptyCount} empty
+                </p>
+                <div className="grid-edit-slots-toolbar">
+                    <button
+                        type="button"
+                        className="grid-edit-btn small secondary"
+                        onClick={() => setFilledSlotsExpanded((v) => !v)}
+                        aria-expanded={filledSlotsExpanded}
+                    >
+                        {filledSlotsExpanded ? 'Collapse filled slots' : 'Expand filled slots'}
+                    </button>
+                    {!filledSlotsExpanded && filledCount > 0 ? (
+                        <span className="grid-edit-slots-toolbar-note">Reorder and edit fields when expanded.</span>
+                    ) : null}
+                </div>
                 <div className="grid-edit-slots">
-                    {slotBlocks24.map((block, i) =>
-                        block ? (
-                            <div key={block.id || `slot-${i}`} className="grid-edit-slot-card">
-                                <div className="grid-edit-slot-head">
-                                    <span className="grid-edit-slot-num">#{i + 1}</span>
-                                    <span className="grid-edit-slot-type-badge">{block.slotType === 'da-content' ? 'DA Content' : 'Application'}</span>
-                                    <div className="grid-edit-slot-move">
-                                        <button type="button" className="grid-edit-btn small" onClick={() => moveSlot(i, 'up')} disabled={i === 0}>
-                                            ↑
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="grid-edit-btn small"
-                                            onClick={() => moveSlot(i, 'down')}
-                                            disabled={i === slotBlocks24.length - 1}
-                                        >
-                                            ↓
-                                        </button>
-                                    </div>
-                                    <button type="button" className="grid-edit-btn small danger" onClick={() => removeSlot(i)}>
-                                        Clear
-                                    </button>
-                                </div>
-                                <label>
-                                    ID
-                                    <input
-                                        type="text"
-                                        value={block.id}
-                                        onChange={(e) => updateSlot(i, { id: e.target.value })}
-                                        placeholder="e.g. firefly"
-                                    />
-                                </label>
-                                <label>
-                                    Title
-                                    <input
-                                        type="text"
-                                        value={block.title}
-                                        onChange={(e) => updateSlot(i, { title: e.target.value })}
-                                        placeholder="Tile title"
-                                    />
-                                </label>
-                                <label>
-                                    Description
-                                    <input
-                                        type="text"
-                                        value={block.description ?? ''}
-                                        onChange={(e) => updateSlot(i, { description: e.target.value || undefined })}
-                                        placeholder="Optional"
-                                    />
-                                </label>
-                                <label>
-                                    Icon URL
-                                    <input
-                                        type="url"
-                                        value={block.iconUrl ?? ''}
-                                        onChange={(e) => updateSlot(i, { iconUrl: e.target.value || undefined })}
-                                        placeholder="Optional image URL"
-                                    />
-                                </label>
-                                {block.slotType === 'da-content' ? (
-                                    <label>
-                                        DA Content URL
-                                        <input
-                                            type="url"
-                                            value={block.daContentUrl ?? ''}
-                                            onChange={(e) => updateSlot(i, { daContentUrl: e.target.value || undefined })}
-                                            placeholder="e.g. https://da.live/..."
-                                        />
-                                    </label>
-                                ) : (
-                                    <>
-                                        <label>
-                                            App ID
-                                            <select
-                                                value={block.appId ?? ''}
-                                                onChange={(e) => updateSlot(i, { appId: e.target.value || undefined })}
-                                            >
-                                                <option value="">— None (use link) —</option>
-                                                {KNOWN_APP_IDS.map((aid) => (
-                                                    <option key={aid} value={aid}>
-                                                        {aid}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </label>
-                                        <label>
-                                            Link URL
-                                            <input
-                                                type="url"
-                                                value={block.href ?? ''}
-                                                onChange={(e) => updateSlot(i, { href: e.target.value || undefined })}
-                                                placeholder="If no App ID, open this URL"
-                                            />
-                                        </label>
-                                    </>
-                                )}
-                            </div>
-                        ) : (
-                            <div key={`empty-${i}`} className="grid-edit-slot-card grid-edit-slot-card--empty">
+                    {filledSlotsExpanded
+                        ? filledEntries.map(({ i, block }) => {
+                              const slotCollapseKey = block.id ? `id:${block.id}` : `idx:${i}`;
+                              const slotFieldsOpen = !slotFieldsCollapsed[slotCollapseKey];
+                              return (
+                                  <div
+                                      key={block.id || `slot-${i}`}
+                                      className={`grid-edit-slot-card${slotFieldsOpen ? '' : ' grid-edit-slot-card--fields-collapsed'}`}
+                                  >
+                                      <div className="grid-edit-slot-head">
+                                          <span className="grid-edit-slot-num">#{i + 1}</span>
+                                          <span className="grid-edit-slot-type-badge">{block.slotType === 'da-content' ? 'DA Content' : 'Application'}</span>
+                                          {!slotFieldsOpen ? (
+                                              <span className="grid-edit-slot-head-title" title={block.title || block.id}>
+                                                  {block.title?.trim() || block.id}
+                                              </span>
+                                          ) : null}
+                                          <div className="grid-edit-slot-move">
+                                              <button type="button" className="grid-edit-btn small" onClick={() => moveSlot(i, 'up')} disabled={i === 0}>
+                                                  ↑
+                                              </button>
+                                              <button
+                                                  type="button"
+                                                  className="grid-edit-btn small"
+                                                  onClick={() => moveSlot(i, 'down')}
+                                                  disabled={i === slotBlocks24.length - 1}
+                                              >
+                                                  ↓
+                                              </button>
+                                          </div>
+                                          <button type="button" className="grid-edit-btn small danger" onClick={() => removeSlot(i)}>
+                                              Clear
+                                          </button>
+                                          <button
+                                              type="button"
+                                              className="grid-edit-btn small secondary"
+                                              onClick={() =>
+                                                  setSlotFieldsCollapsed((p) => ({
+                                                      ...p,
+                                                      [slotCollapseKey]: !p[slotCollapseKey],
+                                                  }))
+                                              }
+                                              aria-expanded={slotFieldsOpen}
+                                          >
+                                              {slotFieldsOpen ? 'Collapse' : 'Expand'}
+                                          </button>
+                                      </div>
+                                      {slotFieldsOpen ? (
+                                          <>
+                                              <label>
+                                                  ID
+                                                  <input
+                                                      type="text"
+                                                      value={block.id}
+                                                      onChange={(e) => updateSlot(i, { id: e.target.value })}
+                                                      placeholder="e.g. firefly"
+                                                  />
+                                              </label>
+                                              <label>
+                                                  Title
+                                                  <input
+                                                      type="text"
+                                                      value={block.title}
+                                                      onChange={(e) => updateSlot(i, { title: e.target.value })}
+                                                      placeholder="Tile title"
+                                                  />
+                                              </label>
+                                              <label>
+                                                  Description
+                                                  <input
+                                                      type="text"
+                                                      value={block.description ?? ''}
+                                                      onChange={(e) => updateSlot(i, { description: e.target.value || undefined })}
+                                                      placeholder="Optional"
+                                                  />
+                                              </label>
+                                              <label>
+                                                  Icon URL
+                                                  <input
+                                                      type="url"
+                                                      value={block.iconUrl ?? ''}
+                                                      onChange={(e) => updateSlot(i, { iconUrl: e.target.value || undefined })}
+                                                      placeholder="Optional image URL"
+                                                  />
+                                              </label>
+                                              {block.slotType === 'da-content' ? (
+                                                  <label>
+                                                      DA Content URL
+                                                      <input
+                                                          type="url"
+                                                          value={block.daContentUrl ?? ''}
+                                                          onChange={(e) => updateSlot(i, { daContentUrl: e.target.value || undefined })}
+                                                          placeholder="e.g. https://da.live/..."
+                                                      />
+                                                  </label>
+                                              ) : (
+                                                  <>
+                                                      <label>
+                                                          App ID
+                                                          <select
+                                                              value={block.appId ?? ''}
+                                                              onChange={(e) => updateSlot(i, { appId: e.target.value || undefined })}
+                                                          >
+                                                              <option value="">— None (use link) —</option>
+                                                              {KNOWN_APP_IDS.map((aid) => (
+                                                                  <option key={aid} value={aid}>
+                                                                      {aid}
+                                                                  </option>
+                                                              ))}
+                                                          </select>
+                                                      </label>
+                                                      <label>
+                                                          Link URL
+                                                          <input
+                                                              type="url"
+                                                              value={block.href ?? ''}
+                                                              onChange={(e) => updateSlot(i, { href: e.target.value || undefined })}
+                                                              placeholder="If no App ID, open this URL"
+                                                          />
+                                                      </label>
+                                                  </>
+                                              )}
+                                          </>
+                                      ) : null}
+                                  </div>
+                              );
+                          })
+                        : (
+                              <div className="grid-edit-filled-compact">
+                                  {filledEntries.length === 0 ? (
+                                      <p className="grid-edit-hint grid-edit-filled-compact-empty">No filled slots yet.</p>
+                                  ) : (
+                                      <ul className="grid-edit-filled-compact-list" aria-label="Filled slots summary">
+                                          {filledEntries.map(({ i, block }) => (
+                                              <li key={block.id || `compact-${i}`} className="grid-edit-filled-compact-row">
+                                                  <span className="grid-edit-filled-compact-num">#{i + 1}</span>
+                                                  <span className="grid-edit-filled-compact-title">{block.title?.trim() || '(no title)'}</span>
+                                                  <span className="grid-edit-filled-compact-id">{block.id}</span>
+                                              </li>
+                                          ))}
+                                      </ul>
+                                  )}
+                              </div>
+                          )}
+
+                    {!filledSlotsExpanded &&
+                        emptyPreviewIndices.map((i) => (
+                            <div key={`empty-preview-${i}`} className="grid-edit-slot-card grid-edit-slot-card--empty">
                                 <div className="grid-edit-slot-head">
                                     <span className="grid-edit-slot-num">#{i + 1}</span>
                                     <span className="grid-edit-slot-type-badge">Empty</span>
                                 </div>
-                                <p className="grid-edit-hint">Drag an entitled app here from the preview, or add a new block into the first empty slot below.</p>
+                                <p className="grid-edit-hint">
+                                    Drag an entitled app here on the <strong>Grid</strong> tab, or use <strong>+ Add slot</strong> below.
+                                </p>
                             </div>
-                        )
-                    )}
+                        ))}
+
+                    {filledSlotsExpanded && emptyCount > 0 ? (
+                        <details className="grid-edit-slots-empty-details">
+                            <summary className="grid-edit-slots-empty-summary">
+                                {emptyCount} empty slot{emptyCount === 1 ? '' : 's'} (list)
+                            </summary>
+                            <p className="grid-edit-hint grid-edit-slots-empty-lede">
+                                Slot numbers with no tile: <strong>{emptySlotIndices.map((idx) => `#${idx + 1}`).join(', ')}</strong>
+                            </p>
+                        </details>
+                    ) : null}
+
+                    {!filledSlotsExpanded && emptyAfterPreviewIndices.length > 0 ? (
+                        <details className="grid-edit-slots-empty-details">
+                            <summary className="grid-edit-slots-empty-summary">
+                                {emptyAfterPreviewIndices.length} more empty slot{emptyAfterPreviewIndices.length === 1 ? '' : 's'}
+                            </summary>
+                            <p className="grid-edit-hint grid-edit-slots-empty-lede">
+                                Positions: <strong>{emptyAfterPreviewIndices.map((idx) => `#${idx + 1}`).join(', ')}</strong>
+                            </p>
+                        </details>
+                    ) : null}
                 </div>
                 {showAddSlotChoice ? (
                     <div className="grid-edit-add-slot-choice">

@@ -4,10 +4,13 @@ import { useAppConfig } from '../hooks/useAppConfig';
 import type { PortalSkinConfig } from '../types';
 import { applyHeinekenGridLayouts, HEINEKEN_SKIN } from '../constants/heinekenDemoPreset';
 import './SkinEditorModal.css';
+import '../pages/GridEdit.css';
 
 interface SkinEditorModalProps {
     isOpen: boolean;
     onClose: () => void;
+    /** When true, render inline (no portal or dimmed overlay). Used on Admin → Skin tab. */
+    embedded?: boolean;
 }
 
 const DEFAULT_PRIMARY = '#ed0000';
@@ -29,7 +32,7 @@ function toHex(color: string): string {
     return color;
 }
 
-const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) => {
+const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose, embedded = false }) => {
     const { skinConfig, setSkinConfig } = useAppConfig();
     const [logoUrl, setLogoUrl] = useState(skinConfig?.logoUrl ?? '');
     const [primaryColor, setPrimaryColor] = useState(skinConfig?.primaryColor ?? DEFAULT_PRIMARY);
@@ -120,10 +123,10 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
     );
 
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen || embedded) return;
         document.addEventListener('keydown', handleEscape, { capture: true });
         return () => document.removeEventListener('keydown', handleEscape, { capture: true });
-    }, [isOpen, handleEscape]);
+    }, [isOpen, embedded, handleEscape]);
 
     const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (e.target === e.currentTarget) onClose();
@@ -155,7 +158,7 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
         if (skinConfig?.primaryColorActive?.trim()) config.primaryColorActive = skinConfig.primaryColorActive.trim();
         if (skinConfig?.primaryColorDisabled?.trim()) config.primaryColorDisabled = skinConfig.primaryColorDisabled.trim();
         setSkinConfig(Object.keys(config).length > 0 ? config : null);
-        onClose();
+        if (!embedded) onClose();
     };
 
     const dataUrlWithFontMime = (dataUrl: string, filename: string): string => {
@@ -218,38 +221,12 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
         setBorderSubtleColor('');
         setPortalTextColor('');
         setPortalTextMutedColor('');
-        onClose();
+        if (!embedded) onClose();
     };
 
-    if (!isOpen) return null;
-
-    return createPortal(
-        <div className="skin-editor-modal-overlay portal-modal" onClick={handleOverlayClick} role="presentation">
-            <div className="skin-editor-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="skin-editor-modal-title">
-                <div className="skin-editor-modal-header">
-                    <h3 id="skin-editor-modal-title" className="skin-editor-modal-title">Customize portal</h3>
-                    <button type="button" className="skin-editor-modal-close" onClick={onClose} aria-label="Close">
-                        ×
-                    </button>
-                </div>
-                {import.meta.env.DEV ? (
-                    <div className="skin-editor-demo-presets">
-                        <span className="skin-editor-demo-presets-label">Local demos</span>
-                        <button
-                            type="button"
-                            className="skin-editor-demo-preset-btn"
-                            onClick={() => {
-                                applyHeinekenGridLayouts();
-                                setSkinConfig(HEINEKEN_SKIN);
-                                onClose();
-                                window.location.reload();
-                            }}
-                        >
-                            Apply Heineken-style skin
-                        </button>
-                    </div>
-                ) : null}
-                <div className="skin-editor-modal-body">
+    function skinFields(): React.ReactNode {
+        return (
+            <>
                     <div className="skin-editor-field">
                         <label htmlFor="skin-logo">Logo URL</label>
                         <input
@@ -507,16 +484,86 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
                             />
                         </div>
                     </details>
-                </div>
-                <div className="skin-editor-modal-footer">
-                    <button type="button" className="skin-editor-btn skin-editor-btn-secondary" onClick={handleReset}>
+            </>
+        );
+    }
+
+    if (!isOpen) return null;
+
+    const devDemoPresets =
+        import.meta.env.DEV ? (
+            <div className="skin-editor-demo-presets">
+                <span className="skin-editor-demo-presets-label">Local demos</span>
+                <button
+                    type="button"
+                    className="skin-editor-demo-preset-btn"
+                    onClick={() => {
+                        applyHeinekenGridLayouts();
+                        setSkinConfig(HEINEKEN_SKIN);
+                        onClose();
+                        window.location.reload();
+                    }}
+                >
+                    Apply Heineken-style skin
+                </button>
+            </div>
+        ) : null;
+
+    if (embedded) {
+        return (
+            <div className="skin-editor-form-root grid-edit-form-root">
+                {devDemoPresets}
+                <section className="grid-edit-section">
+                    <h2>Portal skin</h2>
+                    <p className="grid-edit-hint">
+                        Colors, logo, fonts, and optional panel and search strip styling. Changes apply after Save.
+                    </p>
+                    {skinFields()}
+                </section>
+                <div className="grid-edit-footer">
+                    <button type="button" className="grid-edit-btn secondary" onClick={handleReset}>
                         Reset to default
                     </button>
-                    <button type="button" className="skin-editor-btn skin-editor-btn-primary" onClick={handleSave}>
-                        Save
+                    <button type="button" className="grid-edit-btn primary" onClick={handleSave}>
+                        Save changes
                     </button>
                 </div>
             </div>
+        );
+    }
+
+    const dialog = (
+        <div
+            className="skin-editor-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="skin-editor-modal-title"
+        >
+            <div className="skin-editor-modal-header">
+                <h3 id="skin-editor-modal-title" className="skin-editor-modal-title">
+                    Customize portal
+                </h3>
+                <button type="button" className="skin-editor-modal-close" onClick={onClose} aria-label="Close">
+                    ×
+                </button>
+            </div>
+            {devDemoPresets}
+            <div className="skin-editor-modal-body">{skinFields()}</div>
+            <div className="skin-editor-modal-footer">
+                <button type="button" className="skin-editor-btn skin-editor-btn-secondary" onClick={handleReset}>
+                    Reset to default
+                </button>
+                <button type="button" className="skin-editor-btn skin-editor-btn-primary" onClick={handleSave}>
+                    Save
+                </button>
+            </div>
+        </div>
+    );
+
+    return createPortal(
+        <div className="skin-editor-modal-overlay portal-modal" onClick={handleOverlayClick} role="presentation">
+            {dialog}
         </div>,
         document.body
     );

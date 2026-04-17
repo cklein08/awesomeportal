@@ -1,7 +1,8 @@
 // Utility to get configuration values at runtime
 // This checks window.APP_CONFIG first (runtime), then falls back to build-time env vars
 
-import { PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
+import type { AppItem } from '../components/LeftNav';
+import { getLeftNavAppsForPersona, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
 import type { AppBuilderDropIn, EntitlementPayload, ExternalParams, GridEditConfig, PortalPersonaId, PortalSkinConfig } from '../types';
 import { normalizePersistedImageUrl } from './pathUtils';
 
@@ -79,6 +80,9 @@ export const GRID_EDIT_STORAGE_KEY = 'awesomeportal_gridEditConfig';
 export const ROLE_GRIDS_STORAGE_KEY = 'awesomeportal_roleGrids';
 export const PERSONA_STORAGE_KEY = 'awesomeportal_selectedPersona';
 export const APP_BUILDER_STORAGE_KEY = 'awesomeportal_appBuilderApps';
+/** Per-persona left nav list (full replacement when present). */
+export const PERSONA_LEFT_NAV_STORAGE_KEY = 'awesomeportal_personaLeftNavOverrides';
+export const PERSONA_LEFT_NAV_UPDATED_EVENT = 'awesomeportal-persona-left-nav-updated';
 
 export const SKIN_STORAGE_KEY = 'awesomeportal_skinConfig';
 export const AEM_PROGRAM_STORAGE_KEY = 'awesomeportal_selectedAemProgram';
@@ -92,6 +96,7 @@ export const PORTAL_PERSISTENT_LOCAL_STORAGE_KEYS: readonly string[] = [
     SKIN_STORAGE_KEY,
     APP_BUILDER_STORAGE_KEY,
     PERSONA_STORAGE_KEY,
+    PERSONA_LEFT_NAV_STORAGE_KEY,
     AEM_PROGRAM_STORAGE_KEY,
     SAVED_SEARCHES_STORAGE_KEY,
 ];
@@ -371,4 +376,92 @@ export const setSelectedAemProgram = (program: AemProgramOption | null): void =>
     } catch (e) {
         console.warn('Failed to save selected AEM program', e);
     }
-}; 
+};
+
+const MAX_PERSONA_LEFT_NAV_ITEMS = 24;
+
+function sanitizePersonaLeftNavItems(items: unknown): AppItem[] | null {
+    if (!Array.isArray(items)) return null;
+    const out: AppItem[] = [];
+    const seen = new Set<string>();
+    for (const row of items) {
+        if (!row || typeof row !== 'object') continue;
+        const rec = row as Record<string, unknown>;
+        const id = typeof rec.id === 'string' ? rec.id.trim() : '';
+        const name = typeof rec.name === 'string' ? rec.name.trim() : '';
+        if (!id || !name) continue;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const hrefRaw = rec.href;
+        const hrefTrim = typeof hrefRaw === 'string' ? hrefRaw.trim() : '';
+        const href = hrefTrim.length > 0 ? hrefTrim : undefined;
+        out.push(href ? { id, name, href } : { id, name });
+        if (out.length >= MAX_PERSONA_LEFT_NAV_ITEMS) break;
+    }
+    return out.length > 0 ? out : null;
+}
+
+function dispatchPersonaLeftNavUpdated(): void {
+    try {
+        window.dispatchEvent(new Event(PERSONA_LEFT_NAV_UPDATED_EVENT));
+    } catch {
+        /* ignore */
+    }
+}
+
+/** Parsed override list for one persona, or null if none / invalid. */
+export function getPersonaLeftNavOverride(persona: PortalPersonaId): AppItem[] | null {
+    try {
+        const raw = localStorage.getItem(PERSONA_LEFT_NAV_STORAGE_KEY);
+        if (!raw) return null;
+        const all = JSON.parse(raw) as Partial<Record<PortalPersonaId, unknown>>;
+        return sanitizePersonaLeftNavItems(all[persona]);
+    } catch {
+        return null;
+    }
+}
+
+/** Defaults plus optional per-persona override from localStorage. */
+export function getEffectiveLeftNavForPersona(persona: PortalPersonaId): AppItem[] {
+    const override = getPersonaLeftNavOverride(persona);
+    if (override && override.length > 0) return override;
+    return getLeftNavAppsForPersona(persona);
+}
+
+export function setPersonaLeftNavForPersona(persona: PortalPersonaId, items: AppItem[]): void {
+    const cleaned = sanitizePersonaLeftNavItems(items);
+    try {
+        const raw = localStorage.getItem(PERSONA_LEFT_NAV_STORAGE_KEY);
+        const all: Partial<Record<PortalPersonaId, AppItem[]>> = raw ? (JSON.parse(raw) as Partial<Record<PortalPersonaId, AppItem[]>>) : {};
+        if (!cleaned) {
+            delete all[persona];
+        } else {
+            all[persona] = cleaned;
+        }
+        if (Object.keys(all).length === 0) {
+            localStorage.removeItem(PERSONA_LEFT_NAV_STORAGE_KEY);
+        } else {
+            localStorage.setItem(PERSONA_LEFT_NAV_STORAGE_KEY, JSON.stringify(all));
+        }
+        dispatchPersonaLeftNavUpdated();
+    } catch (e) {
+        console.warn('Failed to save persona left nav', e);
+    }
+}
+
+export function clearPersonaLeftNavOverride(persona: PortalPersonaId): void {
+    try {
+        const raw = localStorage.getItem(PERSONA_LEFT_NAV_STORAGE_KEY);
+        if (!raw) return;
+        const all = JSON.parse(raw) as Partial<Record<PortalPersonaId, AppItem[]>>;
+        delete all[persona];
+        if (Object.keys(all).length === 0) {
+            localStorage.removeItem(PERSONA_LEFT_NAV_STORAGE_KEY);
+        } else {
+            localStorage.setItem(PERSONA_LEFT_NAV_STORAGE_KEY, JSON.stringify(all));
+        }
+        dispatchPersonaLeftNavUpdated();
+    } catch (e) {
+        console.warn('Failed to clear persona left nav', e);
+    }
+}

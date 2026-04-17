@@ -375,12 +375,6 @@
   background-color: var(--portal-chrome-bg, transparent);
 }
 
-.da-content-in-frame-bar {
-  flex-shrink: 0;
-  padding: 8px 20px 0;
-  margin-bottom: 4px;
-}
-
 .da-content-in-frame-iframe {
   flex: 1;
   min-height: 0;

@@ -15,7 +15,7 @@
     --admin-banner-height: 52px;
 
     box-sizing: border-box;
-    /* Pin shell to the viewport so the main workspace and Drop-ins column can scroll independently */
+    /* Pin shell to the viewport so the main workspace and Applications column can scroll independently */
     min-height: 100vh;
     min-height: 100dvh;
     height: 100vh;
@@ -169,14 +169,14 @@
 }
 
 .admin-shell-icon-btn--header-actions {
-    width: 80px;
-    height: 80px;
-    border-radius: 16px;
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
 }
 
 .admin-shell-icon-btn--header-actions svg {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
 }
 
@@ -493,12 +493,13 @@
     max-width: 100%;
 }
 
-/* Light card so GridEdit form stays readable */
+/* Layout & URLs — GridEditForm matches admin shell (dark) */
 .admin-shell-layout-panel {
-    padding: 16px;
-    background: #ececec;
+    padding: 20px 22px;
+    background: transparent;
     border-radius: inherit;
     min-height: 400px;
+    color-scheme: dark;
 }
 
 .admin-shell-layout-panel .grid-edit-page {
@@ -509,6 +510,292 @@
 
 .admin-shell-layout-panel .grid-edit-form-root {
     padding: 0;
+    color: var(--admin-text);
+    font-family: adobe-clean, "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+}
+
+.admin-shell-layout-panel .grid-edit-section h2 {
+    color: var(--admin-text);
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+}
+
+.admin-shell-layout-panel .grid-edit-hint,
+.admin-shell-layout-panel .grid-edit-slots-empty-lede {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .grid-edit-hint--meta,
+.admin-shell-layout-panel .grid-edit-slots-toolbar-note {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .grid-edit-hint--persona-locked {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .grid-edit-persona-inline,
+.admin-shell-layout-panel .grid-edit-persona-inline-label {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .grid-edit-persona-select {
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.875rem;
+}
+
+.admin-shell-layout-panel .grid-edit-dimensions label {
+    color: var(--admin-muted);
+    font-size: 0.85rem;
+}
+
+.admin-shell-layout-panel .grid-edit-form-root input[type="text"],
+.admin-shell-layout-panel .grid-edit-form-root input[type="url"],
+.admin-shell-layout-panel .grid-edit-form-root input[type="number"],
+.admin-shell-layout-panel .grid-edit-form-root select,
+.admin-shell-layout-panel .grid-edit-form-root textarea {
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+}
+
+.admin-shell-layout-panel .grid-edit-textarea {
+    min-height: 120px;
+    line-height: 1.45;
+}
+
+.admin-shell-layout-panel .grid-edit-textarea::placeholder,
+.admin-shell-layout-panel .grid-edit-form-root input::placeholder {
+    color: #737373;
+}
+
+.admin-shell-layout-panel .grid-edit-banner-error {
+    color: #f87171;
+}
+
+.admin-shell-layout-panel .grid-edit-banner-preview {
+    border-color: var(--admin-border);
+    background: var(--admin-bg);
+}
+
+.admin-shell-layout-panel .grid-edit-appbuilder-row input[type="text"],
+.admin-shell-layout-panel .grid-edit-appbuilder-row input[type="url"] {
+    border-radius: 10px;
+}
+
+.admin-shell-layout-panel .grid-edit-slot-card {
+    background: var(--admin-surface-2);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+}
+
+.admin-shell-layout-panel .grid-edit-slot-card--empty {
+    background: rgba(0, 0, 0, 0.25);
+    opacity: 1;
+}
+
+.admin-shell-layout-panel .grid-edit-slot-head-title {
+    color: var(--admin-text);
+}
+
+.admin-shell-layout-panel .grid-edit-slot-num {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .grid-edit-slot-type-badge {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--admin-muted);
+    border: 1px solid var(--admin-border);
+}
+
+.admin-shell-layout-panel .grid-edit-slot-card label {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .grid-edit-filled-compact {
+    background: var(--admin-surface-2);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+}
+
+.admin-shell-layout-panel .grid-edit-filled-compact-row {
+    color: var(--admin-text);
+}
+
+.admin-shell-layout-panel .grid-edit-filled-compact-num {
+    color: var(--admin-text);
+}
+
+.admin-shell-layout-panel .grid-edit-filled-compact-id {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .grid-edit-slots-empty-details {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px dashed var(--admin-border);
+    border-radius: var(--admin-radius);
+}
+
+.admin-shell-layout-panel .grid-edit-slots-empty-summary {
+    color: var(--admin-text);
+}
+
+.admin-shell-layout-panel .grid-edit-add-slot-choice-label {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .grid-edit-footer {
+    border-top-color: var(--admin-border);
+    margin-top: 28px;
+    padding-top: 20px;
+}
+
+.admin-shell-layout-panel .grid-edit-section--persona {
+    padding: 14px 16px;
+    margin-bottom: 24px;
+    border-radius: var(--admin-radius);
+    border: 1px solid var(--admin-border);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-shell-layout-panel .grid-edit-btn {
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.admin-shell-layout-panel .grid-edit-btn.small {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+
+.admin-shell-layout-panel .grid-edit-btn.primary {
+    background: #fa0f00;
+    border-color: #fa0f00;
+    color: #fff;
+}
+
+.admin-shell-layout-panel .grid-edit-btn.primary:hover {
+    filter: brightness(1.08);
+}
+
+.admin-shell-layout-panel .grid-edit-btn.secondary {
+    background: transparent;
+    color: var(--admin-text);
+    border: 1px solid var(--admin-border);
+}
+
+.admin-shell-layout-panel .grid-edit-btn.secondary:hover {
+    background: var(--admin-surface-2);
+    border-color: #555;
+}
+
+.admin-shell-layout-panel .grid-edit-btn.danger {
+    background: rgba(127, 29, 29, 0.35);
+    color: #fecaca;
+    border-color: #7f1d1d;
+}
+
+.admin-shell-layout-panel .grid-edit-btn.danger:hover {
+    background: rgba(127, 29, 29, 0.55);
+}
+
+.admin-shell-layout-panel .grid-edit-btn:not(.primary):not(.secondary):not(.danger) {
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
+    border: 1px solid var(--admin-border);
+}
+
+.admin-shell-layout-panel .grid-edit-btn:not(.primary):not(.secondary):not(.danger):hover {
+    background: #2e2e2e;
+    border-color: #555;
+}
+
+.admin-shell-layout-panel .grid-edit-form-root :focus-visible {
+    outline: 2px solid var(--admin-blue);
+    outline-offset: 2px;
+}
+
+.admin-shell-layout-panel .grid-edit-btn:focus-visible {
+    outline-offset: 3px;
+}
+
+/* Skin tab — same form shell as Layout & URLs */
+.admin-shell-layout-panel .skin-editor-form-root input[type="color"] {
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: var(--admin-surface-2);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-demo-presets {
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 10px 12px;
+    margin-bottom: 16px;
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-demo-presets-label {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-demo-preset-btn {
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
+    border: 1px solid var(--admin-border);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-demo-preset-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #555;
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-field label {
+    color: var(--admin-muted);
+    font-size: 0.85rem;
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-color-hex {
+    border-radius: 10px;
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-advanced {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-advanced-summary {
+    color: var(--admin-text);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-file-name {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-file-input {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-clear-file {
+    color: var(--admin-blue);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-field-note {
+    color: var(--admin-muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-color-input {
+    border: 1px solid var(--admin-border);
+    background: var(--admin-surface-2);
 }
 
 .admin-shell-persona-panel {
@@ -565,6 +852,84 @@
     filter: brightness(1.08);
 }
 
+.admin-shell-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--admin-text);
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: 1px solid var(--admin-border);
+    cursor: pointer;
+}
+
+.admin-shell-btn-secondary:hover {
+    background: var(--admin-surface-2);
+    border-color: #555;
+}
+
+.admin-shell-nav-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    max-width: 52rem;
+}
+
+.admin-shell-nav-editor-head,
+.admin-shell-nav-editor-row {
+    display: grid;
+    grid-template-columns: minmax(6rem, 9rem) minmax(7rem, 1fr) minmax(10rem, 1.4fr) auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.admin-shell-nav-editor-head {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-muted);
+    padding: 0 2px;
+}
+
+.admin-shell-nav-input {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--admin-border);
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
+    font-size: 0.8125rem;
+    min-width: 0;
+}
+
+.admin-shell-nav-remove {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--admin-border);
+    background: transparent;
+    color: var(--admin-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.admin-shell-nav-remove:hover {
+    color: #f87171;
+    border-color: #7f1d1d;
+}
+
+.admin-shell-nav-editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
 /* Bottom reserved slot */
 .admin-shell-bottom-slot {
     flex-shrink: 0;
@@ -581,39 +946,66 @@
     text-align: center;
 }
 
-/* --- Right: drop-ins --- */
+/* --- Right: Applications catalog --- */
+/* Match agent prompt (`.admin-shell-agent-input`): same face as main shell, not global `h2` / `--font-heading`. */
 .admin-shell-right {
     width: var(--admin-right-width);
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    padding: 20px 16px 16px;
+    padding: 12px 16px 12px 20px;
     border-left: 1px solid var(--admin-border);
     background: #000;
     min-height: 0;
     overflow: hidden;
+    font-family: adobe-clean, "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.45;
 }
 
 .admin-shell-right-header {
-    margin-bottom: 8px;
     flex-shrink: 0;
+    margin-bottom: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .admin-shell-right-title {
-    margin: 0;
-    font-size: 1rem;
+    margin: 0 0 6px 0;
+    font-family: inherit;
+    font-size: 0.95rem;
     font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: normal;
+    color: var(--admin-text);
 }
 
 .admin-shell-right-sub {
-    font-size: 0.75rem;
+    margin: 0;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.45;
     color: var(--admin-muted);
 }
 
 .admin-shell-right-lede {
-    font-size: 0.8rem;
-    margin-bottom: 14px;
+    margin: 10px 0 14px 0;
     flex-shrink: 0;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: var(--admin-muted);
+    font-weight: 400;
+}
+
+.admin-shell-right-empty {
+    margin: 0;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: var(--admin-muted);
+    font-weight: 400;
 }
 
 .admin-shell-entitlement-list {
@@ -634,10 +1026,11 @@
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    padding: 12px;
+    padding: 12px 14px;
     border-radius: 12px;
     border: 1px solid var(--admin-border);
-    background: var(--admin-surface);
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
     cursor: grab;
 }
 
@@ -651,15 +1044,19 @@
 }
 
 .admin-shell-entitlement-title {
+    font-family: inherit;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: var(--admin-text);
 }
 
 .admin-shell-entitlement-desc {
-    font-size: 0.72rem;
+    font-family: inherit;
+    font-size: 0.95rem;
     color: var(--admin-muted);
     margin-top: 4px;
-    line-height: 1.35;
+    line-height: 1.45;
 }
 
 /* --- Bottom status bar (agent / system messages only) --- */
@@ -697,8 +1094,8 @@
 .admin-shell-banner-msg {
     flex: 1;
     min-width: 0;
-    line-height: 1.35;
     font-size: 0.875rem;
+    line-height: 1.35;
 }
 
 .admin-shell-banner-dismiss {

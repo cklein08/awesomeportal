@@ -1,27 +1,29 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import type { AppItem } from '../components/LeftNav';
+import SkinEditorModal from '../components/SkinEditorModal';
 import { ADOBE_ENTITLEMENTS } from '../constants/adobeEntitlements';
 import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
-import {
-    getLeftNavAppsForPersona,
-    PORTAL_PERSONA_LABELS,
-    PORTAL_PERSONA_ORDER,
-    PORTAL_PERSONA_TOPBAR_MARK,
-} from '../constants/portalPersonas';
+import { PORTAL_EMBED_ADOBE_FILES_APP_ID } from '../constants/adobeFilesEmbed';
+import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER, PORTAL_PERSONA_TOPBAR_MARK } from '../constants/portalPersonas';
 import type { EntitlementPayload, ExternalParams, PortalPersonaId, SlotBlockDescriptor } from '../types';
 import { AppConfigProvider } from '../components/AppConfigProvider';
 import AppGrid, { DRAG_TYPE_ENTITLEMENT } from '../components/AppGrid';
 import GridEditForm from '../components/GridEditForm';
 import PersonaImpersonateModal from '../components/PersonaImpersonateModal';
 import { PersonaGlyph } from '../components/PersonaGlyph';
+import { PortalAppRailIcon } from '../components/PortalAppRailIcon';
 import { useGridEditor } from '../hooks/useGridEditor';
 import { previewAppTilesFromSlotBlocks } from '../hooks/useSlotBlocks';
 import {
     appBuilderDropInsToEntitlements,
+    clearPersonaLeftNavOverride,
+    getEffectiveLeftNavForPersona,
     getExternalParams,
     getSelectedPersona,
     isPortalPersonaId,
+    setPersonaLeftNavForPersona,
     setSelectedPersona,
 } from '../utils/config';
 import { canAccessPortalSetup, canImpersonatePortalPersonas, setSkipAdminLandingRedirect } from '../utils/portalAccess';
@@ -35,7 +37,7 @@ function readAccessToken(): string {
     }
 }
 
-type WorkspaceTabId = 'grid' | 'layout' | 'persona';
+type WorkspaceTabId = 'grid' | 'layout' | 'personas' | 'skin';
 
 const AdminActivities: React.FC = () => {
     const navigate = useNavigate();
@@ -148,7 +150,62 @@ const AdminActivities: React.FC = () => {
         e.dataTransfer.effectAllowed = 'copy';
     }, []);
 
-    const navPreview = useMemo(() => getLeftNavAppsForPersona(editor.editingPersona), [editor.editingPersona]);
+    const [navDraft, setNavDraft] = useState<AppItem[]>(() => getEffectiveLeftNavForPersona(getSelectedPersona()));
+
+    useEffect(() => {
+        setNavDraft(getEffectiveLeftNavForPersona(storedPersona));
+    }, [storedPersona]);
+
+    const updateNavRow = useCallback((index: number, patch: Partial<AppItem>) => {
+        setNavDraft((rows) => {
+            const next = [...rows];
+            const cur = next[index];
+            if (!cur) return rows;
+            next[index] = { ...cur, ...patch };
+            return next;
+        });
+    }, []);
+
+    const addNavRow = useCallback(() => {
+        const id =
+            typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+                ? `nav-${crypto.randomUUID()}`
+                : `nav-${Date.now()}`;
+        setNavDraft((rows) => [...rows, { id, name: 'New item', href: '' }]);
+    }, []);
+
+    const removeNavRow = useCallback((index: number) => {
+        setNavDraft((rows) => rows.filter((_, i) => i !== index));
+    }, []);
+
+    const saveNavDraft = useCallback(() => {
+        const cleaned = navDraft
+            .map((r) => ({
+                id: r.id.trim(),
+                name: r.name.trim(),
+                href: r.href?.trim() ? r.href.trim() : undefined,
+            }))
+            .filter((r) => r.id.length > 0 && r.name.length > 0);
+        if (cleaned.length === 0) {
+            setBanner({ kind: 'error', text: 'Add at least one nav row with an id and label.' });
+            return;
+        }
+        setPersonaLeftNavForPersona(storedPersona, cleaned);
+        setNavDraft(cleaned);
+        setBanner({
+            kind: 'success',
+            text: `Saved left nav for ${PORTAL_PERSONA_LABELS[storedPersona]}.`,
+        });
+    }, [storedPersona, navDraft]);
+
+    const resetNavToDefaults = useCallback(() => {
+        clearPersonaLeftNavOverride(storedPersona);
+        setNavDraft(getEffectiveLeftNavForPersona(storedPersona));
+        setBanner({
+            kind: 'success',
+            text: `Left nav reset to defaults for ${PORTAL_PERSONA_LABELS[storedPersona]}.`,
+        });
+    }, [storedPersona]);
 
     const catalogEntitlements = useMemo(
         () => [...ADOBE_ENTITLEMENTS, ...appBuilderDropInsToEntitlements(appBuilderApps)],
@@ -162,11 +219,6 @@ const AdminActivities: React.FC = () => {
         return catalogEntitlements.filter((ent) => !addedIds.has(ent.id));
     }, [catalogEntitlements, slotBlocks24]);
 
-    const backToPortal = useCallback(() => {
-        setSkipAdminLandingRedirect(true);
-        navigate('/');
-    }, [navigate]);
-
     if (!allowed) {
         return null;
     }
@@ -174,7 +226,8 @@ const AdminActivities: React.FC = () => {
     const workspaceTabs: { id: WorkspaceTabId; label: string }[] = [
         { id: 'grid', label: 'Grid' },
         { id: 'layout', label: 'Layout & URLs' },
-        { id: 'persona', label: 'Persona' },
+        { id: 'personas', label: 'Personas' },
+        { id: 'skin', label: 'Skin' },
     ];
 
     return (
@@ -204,16 +257,13 @@ const AdminActivities: React.FC = () => {
                         <input type="search" placeholder="Search admin tools (coming soon)" className="admin-shell-search-input" disabled />
                     </div>
                     <div className="admin-shell-topbar-actions">
-                        <button type="button" className="admin-shell-pill" onClick={backToPortal}>
-                            Back to portal
-                        </button>
                         <button
                             type="button"
                             className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
                             title="Notifications"
                             aria-label="Notifications"
                         >
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                             </svg>
@@ -224,7 +274,7 @@ const AdminActivities: React.FC = () => {
                             title="Help"
                             aria-label="Help"
                         >
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" />
                                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                                 <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -244,7 +294,11 @@ const AdminActivities: React.FC = () => {
                             </span>
                             <span className="admin-shell-rail-label">Home</span>
                         </Link>
-                        <Link to="/" className="admin-shell-rail-item" title="Apps">
+                        <Link
+                            to={{ pathname: '/', search: `?persona=${encodeURIComponent(editingPersona)}` }}
+                            className="admin-shell-rail-item"
+                            title={`Apps — portal grid (${PORTAL_PERSONA_LABELS[editingPersona]})`}
+                        >
                             <span className="admin-shell-rail-icon">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -256,14 +310,44 @@ const AdminActivities: React.FC = () => {
                             <span className="admin-shell-rail-label">Apps</span>
                         </Link>
                         <div className="admin-shell-rail-files-stack">
-                            <Link to="/" className="admin-shell-rail-item" title="Files — open portal">
+                            <button
+                                type="button"
+                                className="admin-shell-rail-item"
+                                title="Files — Adobe cloud storage (in portal)"
+                                aria-label="Files — Adobe cloud storage (in portal)"
+                                onClick={() => {
+                                    setSkipAdminLandingRedirect(true);
+                                    navigate(
+                                        { pathname: '/', search: `?persona=${encodeURIComponent(editingPersona)}` },
+                                        { state: { openApp: PORTAL_EMBED_ADOBE_FILES_APP_ID } }
+                                    );
+                                }}
+                            >
                                 <span className="admin-shell-rail-icon">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                                     </svg>
                                 </span>
                                 <span className="admin-shell-rail-label">Files</span>
-                            </Link>
+                            </button>
+                            <button
+                                type="button"
+                                className="admin-shell-rail-item"
+                                title="Assets — browse and search"
+                                aria-label="Assets — browse and search"
+                                onClick={() => {
+                                    setSkipAdminLandingRedirect(true);
+                                    navigate(
+                                        { pathname: '/', search: `?persona=${encodeURIComponent(editingPersona)}` },
+                                        { state: { openApp: 'assets-browser' } }
+                                    );
+                                }}
+                            >
+                                <span className="admin-shell-rail-icon">
+                                    <PortalAppRailIcon appId="assets-browser" />
+                                </span>
+                                <span className="admin-shell-rail-label">Assets</span>
+                            </button>
                             {canImpersonate ? (
                                 <button
                                     type="button"
@@ -336,7 +420,7 @@ const AdminActivities: React.FC = () => {
                             {workspaceTab === 'grid' ? (
                                 <div className="admin-shell-grid-wrap">
                                     <div className="admin-shell-grid-persona" role="status">
-                                        <span className="admin-shell-grid-persona-label">Drop-ins apply to</span>
+                                        <span className="admin-shell-grid-persona-label">Applications apply to</span>
                                         <span className="admin-shell-grid-persona-name">
                                             {PORTAL_PERSONA_LABELS[editor.editingPersona]}
                                         </span>
@@ -361,7 +445,7 @@ const AdminActivities: React.FC = () => {
                                     <GridEditForm {...editor} showPersonaPicker lockPersonaSelect={personaFromUrl != null} />
                                 </div>
                             ) : null}
-                            {workspaceTab === 'persona' ? (
+                            {workspaceTab === 'personas' ? (
                                 <div className="admin-shell-persona-panel">
                                     <p className="admin-shell-muted">
                                         Layout and grid apply to <strong>{PORTAL_PERSONA_LABELS[editor.editingPersona]}</strong>. Use the
@@ -387,15 +471,69 @@ const AdminActivities: React.FC = () => {
                                             ))}
                                         </select>
                                     </label>
-                                    <p className="admin-shell-muted">Left nav for this persona:</p>
-                                    <ul className="admin-shell-nav-preview">
-                                        {navPreview.map((a) => (
-                                            <li key={a.id}>{a.name}</li>
+                                    <p className="admin-shell-muted">
+                                        Left nav for <strong>{PORTAL_PERSONA_LABELS[storedPersona]}</strong> (the persona selected above).
+                                        Leave link empty to use the portal&apos;s built-in screen for that id (dashboard, analytics, etc.).
+                                        Set a URL to send that row to an external or absolute path instead.
+                                    </p>
+                                    <div className="admin-shell-nav-editor">
+                                        <div className="admin-shell-nav-editor-head" aria-hidden>
+                                            <span>Id</span>
+                                            <span>Label</span>
+                                            <span>Link (optional)</span>
+                                            <span />
+                                        </div>
+                                        {navDraft.map((row, index) => (
+                                            <div key={index} className="admin-shell-nav-editor-row">
+                                                <input
+                                                    type="text"
+                                                    className="admin-shell-nav-input"
+                                                    value={row.id}
+                                                    onChange={(e) => updateNavRow(index, { id: e.target.value })}
+                                                    aria-label={`Nav id ${index + 1}`}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    className="admin-shell-nav-input"
+                                                    value={row.name}
+                                                    onChange={(e) => updateNavRow(index, { name: e.target.value })}
+                                                    aria-label={`Nav label ${index + 1}`}
+                                                />
+                                                <input
+                                                    type="url"
+                                                    className="admin-shell-nav-input"
+                                                    value={row.href ?? ''}
+                                                    onChange={(e) => updateNavRow(index, { href: e.target.value })}
+                                                    placeholder="https://…"
+                                                    aria-label={`Nav link ${index + 1}`}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="admin-shell-nav-remove"
+                                                    onClick={() => removeNavRow(index)}
+                                                    aria-label={`Remove nav row ${index + 1}`}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
                                         ))}
-                                    </ul>
-                                    <Link className="admin-shell-btn-primary" to="/" state={{ openSkinEditor: true }}>
-                                        Open skin editor
-                                    </Link>
+                                    </div>
+                                    <div className="admin-shell-nav-editor-actions">
+                                        <button type="button" className="admin-shell-btn-secondary" onClick={addNavRow}>
+                                            Add row
+                                        </button>
+                                        <button type="button" className="admin-shell-btn-secondary" onClick={resetNavToDefaults}>
+                                            Reset to defaults
+                                        </button>
+                                        <button type="button" className="admin-shell-btn-primary" onClick={saveNavDraft}>
+                                            Save nav
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
+                            {workspaceTab === 'skin' ? (
+                                <div className="admin-shell-layout-panel">
+                                    <SkinEditorModal embedded isOpen onClose={() => {}} />
                                 </div>
                             ) : null}
                         </div>
@@ -405,17 +543,17 @@ const AdminActivities: React.FC = () => {
                         </section>
                     </main>
 
-                    <aside className="admin-shell-right" aria-label="Drop-ins and catalog">
+                    <aside className="admin-shell-right" aria-label="Applications catalog">
                         <div className="admin-shell-right-header">
-                            <h2 className="admin-shell-right-title">Drop-ins</h2>
-                            <span className="admin-shell-right-sub">Entitled apps</span>
+                            <h2 className="admin-shell-right-title">Applications</h2>
+                            <p className="admin-shell-right-sub">Entitled apps</p>
                         </div>
-                        <p className="admin-shell-muted admin-shell-right-lede">
+                        <p className="admin-shell-right-lede">
                             Drag into an empty slot on the Grid tab. App Builder URLs from Layout appear here after save.
                         </p>
                         <div className="admin-shell-entitlement-list">
                             {availableEntitlements.length === 0 ? (
-                                <p className="admin-shell-muted">All catalog apps are on the grid for this persona.</p>
+                                <p className="admin-shell-right-empty">All catalog apps are on the grid for this persona.</p>
                             ) : null}
                             {availableEntitlements.map((ent) => (
                                 <div

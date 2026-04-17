@@ -5,11 +5,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DateValue } from 'react-aria-components';
 import '../MainApp.css';
 import '../pages/AdminActivities.css';
+import { ADOBE_FILES_WEB_URL, PORTAL_EMBED_ADOBE_FILES_APP_ID } from '../constants/adobeFilesEmbed';
 import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
 
 import { DynamicMediaClient } from '../clients/dynamicmedia-client';
 import { DEFAULT_FACETS, type ExcFacets } from '../constants/facets';
-import { getLeftNavAppsForPersona, PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
+import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
 import type {
     Asset,
     CartItem,
@@ -32,10 +33,14 @@ import {
     clearEphemeralLocalStorageOnSignOut,
     getAdobeClientId,
     getBucket,
+    getEffectiveLeftNavForPersona,
     getExternalParams,
     getGridEditConfig,
     getSelectedAemProgram,
     getSelectedPersona,
+    isPortalPersonaId,
+    PERSONA_LEFT_NAV_STORAGE_KEY,
+    PERSONA_LEFT_NAV_UPDATED_EVENT,
     setGridEditConfig,
     setSelectedAemProgram,
     setSelectedPersona,
@@ -319,8 +324,21 @@ function MainApp(): React.JSX.Element {
     const [selectedDaContentUrl, setSelectedDaContentUrl] = useState<string | null>(null);
     const [iframeCannotDisplay, setIframeCannotDisplay] = useState(false);
     const [portalPersona, setPortalPersona] = useState<PortalPersonaId>(() => getSelectedPersona());
-    const apps = useMemo(() => getLeftNavAppsForPersona(portalPersona), [portalPersona]);
-    /** Assets browser is reached via the Files rail control; omit duplicate entry below the divider. */
+    const [leftNavRev, setLeftNavRev] = useState(0);
+    useEffect(() => {
+        const bump = (): void => setLeftNavRev((n) => n + 1);
+        window.addEventListener(PERSONA_LEFT_NAV_UPDATED_EVENT, bump);
+        const onStorage = (e: StorageEvent): void => {
+            if (e.key === PERSONA_LEFT_NAV_STORAGE_KEY) bump();
+        };
+        window.addEventListener('storage', onStorage);
+        return () => {
+            window.removeEventListener(PERSONA_LEFT_NAV_UPDATED_EVENT, bump);
+            window.removeEventListener('storage', onStorage);
+        };
+    }, []);
+    const apps = useMemo(() => getEffectiveLeftNavForPersona(portalPersona), [portalPersona, leftNavRev]);
+    /** Assets browser is opened from the dedicated rail icon above; omit duplicate below the divider. */
     const portalRailApps = useMemo(() => apps.filter((a) => a.id !== 'assets-browser'), [apps]);
     const [personaImpersonateModalOpen, setPersonaImpersonateModalOpen] = useState(false);
     const [portalWorkspacePrompt, setPortalWorkspacePrompt] = useState('');
@@ -345,16 +363,18 @@ function MainApp(): React.JSX.Element {
     const handleSelectDaContentUrl = useCallback((url: string) => {
         setSelectedDaContentUrl(url);
         setSelectedTileId(null);
+        setSelectedAppId(null);
         setIframeCannotDisplay(false);
     }, []);
 
     // After showing an iframe, offer fallback message in case the app cannot be displayed (e.g. X-Frame-Options)
+    const showWorkspaceIframe = Boolean(selectedDaContentUrl) || selectedAppId === PORTAL_EMBED_ADOBE_FILES_APP_ID;
     useEffect(() => {
-        if (!selectedDaContentUrl) return;
+        if (!showWorkspaceIframe) return;
         setIframeCannotDisplay(false);
         const t = setTimeout(() => setIframeCannotDisplay(true), 5000);
         return () => clearTimeout(t);
-    }, [selectedDaContentUrl]);
+    }, [showWorkspaceIframe]);
     // Slots from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__), externalParams.slotBlocks, or default tiles.
     // gridConfigVersion is bumped when we save grid config so useSlotBlocks recomputes and shows new tiles.
     const [gridConfigVersion, setGridConfigVersion] = useState(0);
@@ -459,13 +479,25 @@ function MainApp(): React.JSX.Element {
         }
     }, [externalParams?.isBlockIntegration]);
 
-    /** Client-side return to portal root (app grid) without a full reload. */
+    /** Client-side return to portal root app grid for the active persona (`?persona=`). */
     const goPortalAppsShell = useCallback(() => {
-        navigate({ pathname: '/', search: '', hash: '' });
+        const search = `?persona=${encodeURIComponent(portalPersona)}`;
+        navigate({ pathname: '/', search, hash: '' });
         setSelectedAppId(null);
         setSelectedTileId(null);
         setSelectedDaContentUrl(null);
-    }, [navigate]);
+    }, [navigate, portalPersona]);
+
+    const prevPersonaSearchRef = useRef<string | null>(null);
+    useEffect(() => {
+        const cur = location.search ?? '';
+        if (prevPersonaSearchRef.current === cur) return;
+        prevPersonaSearchRef.current = cur;
+        const q = new URLSearchParams(cur).get('persona');
+        if (!q || !isPortalPersonaId(q)) return;
+        if (q === portalPersona) return;
+        applyPortalPersona(q);
+    }, [location.search, portalPersona, applyPortalPersona]);
 
     const prevAccessTokenRef = useRef('');
     useEffect(() => {
@@ -491,10 +523,20 @@ function MainApp(): React.JSX.Element {
     }, [accessToken]);
 
     useEffect(() => {
-        const st = location.state as { openSkinEditor?: boolean } | undefined;
-        if (!st?.openSkinEditor) return;
-        if (authenticated) {
+        const st = location.state as { openSkinEditor?: boolean; openApp?: string } | undefined;
+        if (!st || (!st.openSkinEditor && !st.openApp)) return;
+        if (st.openSkinEditor && authenticated) {
             setShowSkinEditor(true);
+        }
+        /* Deep-link to in-portal app without calling handleAppSelect (declared later in this component). */
+        if (st.openApp === 'assets-browser') {
+            setSelectedAppId('assets-browser');
+            setSelectedTileId(null);
+            setSelectedDaContentUrl(null);
+        } else if (st.openApp === PORTAL_EMBED_ADOBE_FILES_APP_ID) {
+            setSelectedAppId(PORTAL_EMBED_ADOBE_FILES_APP_ID);
+            setSelectedTileId(null);
+            setSelectedDaContentUrl(null);
         }
         navigate(
             { pathname: location.pathname, search: location.search, hash: location.hash },
@@ -1065,6 +1107,12 @@ function MainApp(): React.JSX.Element {
 
     // Handle app selection
     const handleAppSelect = (appId: string): void => {
+        const navItem = apps.find((a) => a.id === appId);
+        const linkHref = navItem?.href?.trim();
+        if (linkHref) {
+            window.location.assign(linkHref);
+            return;
+        }
         if (appId === 'portal-activities' || appId === 'portal-admin' || appId === 'portal-grid') {
             navigate(`/admin/activities?persona=${encodeURIComponent(portalPersona)}`);
             return;
@@ -1340,7 +1388,13 @@ function MainApp(): React.JSX.Element {
                                 </span>
                                 <span className="admin-shell-rail-label">Home</span>
                             </button>
-                            <button type="button" className="admin-shell-rail-item" onClick={goPortalAppsShell} title="Apps" aria-label="Apps">
+                            <button
+                                type="button"
+                                className="admin-shell-rail-item"
+                                onClick={goPortalAppsShell}
+                                title={`Apps — grid for ${PORTAL_PERSONA_LABELS[portalPersona]}`}
+                                aria-label={`Apps — portal grid for ${PORTAL_PERSONA_LABELS[portalPersona]}`}
+                            >
                                 <span className="admin-shell-rail-icon">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                                         <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -1354,10 +1408,17 @@ function MainApp(): React.JSX.Element {
                             <div className="admin-shell-rail-files-stack">
                                 <button
                                     type="button"
-                                    className={`admin-shell-rail-item ${isAssetsBrowser ? 'active' : ''}`}
-                                    onClick={() => handleAppSelect('assets-browser')}
-                                    title="Files — Assets browser"
-                                    aria-label="Files — Assets browser"
+                                    className={`admin-shell-rail-item ${
+                                        selectedAppId === PORTAL_EMBED_ADOBE_FILES_APP_ID ? 'active' : ''
+                                    }`}
+                                    title="Files — Adobe cloud storage (in portal)"
+                                    aria-label="Files — Adobe cloud storage (in portal)"
+                                    onClick={() => {
+                                        setSelectedAppId(PORTAL_EMBED_ADOBE_FILES_APP_ID);
+                                        setSelectedTileId(null);
+                                        setSelectedDaContentUrl(null);
+                                        setIframeCannotDisplay(false);
+                                    }}
                                 >
                                     <span className="admin-shell-rail-icon">
                                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -1365,6 +1426,18 @@ function MainApp(): React.JSX.Element {
                                         </svg>
                                     </span>
                                     <span className="admin-shell-rail-label">Files</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`admin-shell-rail-item ${isAssetsBrowser ? 'active' : ''}`}
+                                    onClick={() => handleAppSelect('assets-browser')}
+                                    title="Assets — browse and search"
+                                    aria-label="Assets — browse and search"
+                                >
+                                    <span className="admin-shell-rail-icon">
+                                        <PortalAppRailIcon appId="assets-browser" />
+                                    </span>
+                                    <span className="admin-shell-rail-label">Assets</span>
                                 </button>
                                 {canImpersonatePortalPersona ? (
                                     <button
@@ -1379,21 +1452,49 @@ function MainApp(): React.JSX.Element {
                                 ) : null}
                             </div>
                             <div className="admin-shell-rail-divider" aria-hidden />
-                            {portalRailApps.map((app) => (
-                                <button
-                                    key={app.id}
-                                    type="button"
-                                    className={`admin-shell-rail-item ${selectedAppId === app.id ? 'active' : ''}`}
-                                    title={app.name}
-                                    aria-label={app.name}
-                                    onClick={() => handleAppSelect(app.id)}
-                                >
-                                    <span className="admin-shell-rail-icon">
-                                        <PortalAppRailIcon appId={app.id} />
-                                    </span>
-                                    <span className="admin-shell-rail-label">{app.name}</span>
-                                </button>
-                            ))}
+                            {portalRailApps.map((app) => {
+                                const railActive = selectedAppId === app.id;
+                                const railClass = `admin-shell-rail-item${railActive ? ' active' : ''}`;
+                                const railInner = (
+                                    <>
+                                        <span className="admin-shell-rail-icon">
+                                            <PortalAppRailIcon appId={app.id} />
+                                        </span>
+                                        <span className="admin-shell-rail-label">{app.name}</span>
+                                    </>
+                                );
+                                const href = app.href?.trim();
+                                if (href) {
+                                    return (
+                                        <a
+                                            key={app.id}
+                                            href={href}
+                                            className={railClass}
+                                            title={app.name}
+                                            aria-label={app.name}
+                                            onClick={(e) => {
+                                                if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+                                                e.preventDefault();
+                                                handleAppSelect(app.id);
+                                            }}
+                                        >
+                                            {railInner}
+                                        </a>
+                                    );
+                                }
+                                return (
+                                    <button
+                                        key={app.id}
+                                        type="button"
+                                        className={railClass}
+                                        title={app.name}
+                                        aria-label={app.name}
+                                        onClick={() => handleAppSelect(app.id)}
+                                    >
+                                        {railInner}
+                                    </button>
+                                );
+                            })}
                         </aside>
                         <main className="admin-shell-main portal-workspace-main">
                             {showPortalWorkspaceAgent ? (
@@ -1404,7 +1505,7 @@ function MainApp(): React.JSX.Element {
                                         placeholder="Describe what you want to change or generate for the portal. A top-level agent will run here later."
                                         value={portalWorkspacePrompt}
                                         onChange={(e) => setPortalWorkspacePrompt(e.target.value)}
-                                        rows={3}
+                                        rows={2}
                                     />
                                     <div className="admin-shell-agent-footer">
                                         <span className="admin-shell-agent-chip">Portal</span>
@@ -1568,19 +1669,34 @@ function MainApp(): React.JSX.Element {
                                 </div>
                             </div>
                             </>
+                        ) : selectedAppId === PORTAL_EMBED_ADOBE_FILES_APP_ID ? (
+                            <div className="da-content-in-frame">
+                                <iframe
+                                    title="Adobe Files"
+                                    src={ADOBE_FILES_WEB_URL}
+                                    className="da-content-in-frame-iframe"
+                                />
+                                {iframeCannotDisplay && (
+                                    <div className="da-content-in-frame-error" role="alert">
+                                        <p className="da-content-in-frame-error-text">
+                                            Adobe Files could not be displayed in this frame (the site may block embedding). You can open it in a new tab
+                                            instead.
+                                        </p>
+                                        <a
+                                            href={ADOBE_FILES_WEB_URL}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="app-grid-customize-btn da-content-in-frame-error-link"
+                                        >
+                                            Open Adobe Files in new tab
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
                         ) : selectedAppId === 'dashboard' ? (
                             <Dashboard />
                         ) : selectedDaContentUrl ? (
                             <div className="da-content-in-frame">
-                                <div className="da-content-in-frame-bar">
-                                    <button
-                                        type="button"
-                                        className="app-grid-customize-btn"
-                                        onClick={() => setSelectedDaContentUrl(null)}
-                                    >
-                                        Back to grid
-                                    </button>
-                                </div>
                                 <iframe
                                     title="DA Content"
                                     src={selectedDaContentUrl}

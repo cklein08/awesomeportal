@@ -4,6 +4,8 @@ import './LeftNav.css';
 export interface AppItem {
     id: string;
     name: string;
+    /** When set, selecting this item navigates the browser to this URL (same tab). */
+    href?: string;
     icon?: React.ReactNode;
 }
 
@@ -27,16 +29,33 @@ const LeftNav: React.FC<LeftNavProps> = ({ apps, selectedAppId, onAppSelect, aft
             </div>
             <nav className="left-nav-list">
                 {apps.flatMap((app) => {
-                    const row = (
-                        <button
-                            key={app.id}
-                            className={`left-nav-item ${selectedAppId === app.id ? 'active' : ''}`}
-                            onClick={() => onAppSelect(app.id)}
-                        >
+                    const active = selectedAppId === app.id;
+                    const className = `left-nav-item${active ? ' active' : ''}`;
+                    const label = (
+                        <>
                             {app.icon && <span className="left-nav-icon">{app.icon}</span>}
                             <span className="left-nav-label">{app.name}</span>
-                        </button>
+                        </>
                     );
+                    const row =
+                        app.href && app.href.trim() ? (
+                            <a
+                                key={app.id}
+                                href={app.href.trim()}
+                                className={className}
+                                onClick={(e) => {
+                                    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+                                    e.preventDefault();
+                                    onAppSelect(app.id);
+                                }}
+                            >
+                                {label}
+                            </a>
+                        ) : (
+                            <button key={app.id} type="button" className={className} onClick={() => onAppSelect(app.id)}>
+                                {label}
+                            </button>
+                        );
                     if (afterAppId === app.id && afterAppSlot) {
                         return [
                             row,
