@@ -27,6 +27,46 @@
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
+}
+
+.grid-edit-persona-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: #444;
+}
+
+.grid-edit-persona-inline-label {
+    white-space: nowrap;
+}
+
+.grid-edit-persona-select {
+    min-width: 10rem;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+}
+
+.grid-edit-appbuilder-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.grid-edit-appbuilder-row input[type="text"],
+.grid-edit-appbuilder-row input[type="url"] {
+    flex: 1 1 140px;
+    min-width: 120px;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.9rem;
 }
 
 .grid-edit-section {

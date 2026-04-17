@@ -1,59 +1,82 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { GridEditConfig, GridTopBanner, SlotBlockDescriptor } from '../types';
-import { getExternalParams, getGridEditConfig, setGridEditConfig } from '../utils/config';
+import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
+import type { AppBuilderDropIn, GridEditConfig, GridTopBanner, PortalPersonaId, SlotBlockDescriptor } from '../types';
+import {
+    getAppBuilderDropIns,
+    getGridLayout,
+    getStaticExternalParams,
+    readPersonaFromLocation,
+    setAppBuilderDropIns,
+    setGridLayout,
+} from '../utils/config';
 import './GridEdit.css';
 
 const KNOWN_APP_IDS = ['firefly', 'experience-hub', 'ai-agents'];
 
 const MAX_BANNER_FILE_SIZE = 400 * 1024; // 400 KB
 
-function defaultSlotBlocks(): SlotBlockDescriptor[] {
-    const params = getExternalParams();
-    if (params.slotBlocks && params.slotBlocks.length > 0) {
-        return params.slotBlocks;
+function slotBlocksFromStaticBase(): SlotBlockDescriptor[] {
+    const base = getStaticExternalParams();
+    const raw = base.slotBlocks;
+    if (raw && Array.isArray(raw) && raw.length > 0) {
+        const dense = raw.filter((b): b is SlotBlockDescriptor => b != null && typeof b === 'object');
+        if (dense.length > 0) return dense;
     }
     return [
-        { id: 'firefly', title: 'Adobe Firefly', description: 'Generate images using AI', appId: 'firefly' },
-        { id: 'experience-hub', title: 'Experience Hub', description: 'Manage content experiences', appId: 'experience-hub' },
-        { id: 'ai-agents', title: 'AI Agents', description: 'Interact with intelligent agents', appId: 'ai-agents' },
+        { id: 'firefly', title: 'Adobe Firefly', description: 'Generate images using AI', slotType: 'application', appId: 'firefly' },
+        { id: 'experience-hub', title: 'Experience Hub', description: 'Manage content experiences', slotType: 'application', appId: 'experience-hub' },
+        { id: 'ai-agents', title: 'AI Agents', description: 'Interact with intelligent agents', slotType: 'application', appId: 'ai-agents' },
     ];
+}
+
+function buildGridConfigForPersona(persona: PortalPersonaId): GridEditConfig {
+    const savedConfig = getGridLayout(persona);
+    const base = getStaticExternalParams();
+    const fromBase =
+        base.slotBlocks?.filter((b): b is SlotBlockDescriptor => b != null && typeof b === 'object') ?? [];
+    const slotBlocks = savedConfig?.slotBlocks ?? (fromBase.length > 0 ? fromBase : slotBlocksFromStaticBase());
+    return {
+        slotBlocks,
+        gridTopContent: savedConfig?.gridTopContent ?? base.gridTopContent ?? '',
+        gridTopBanners: savedConfig?.gridTopBanners ?? base.gridTopBanners ?? [],
+        slotHeight: savedConfig?.slotHeight ?? base.slotHeight ?? 120,
+        slotWidth: savedConfig?.slotWidth ?? base.slotWidth ?? 140,
+    };
 }
 
 const GridEdit: React.FC = () => {
     const navigate = useNavigate();
+    const initialPersona = readPersonaFromLocation();
+    const [editingPersona, setEditingPersona] = useState<PortalPersonaId>(initialPersona);
     const [saved, setSaved] = useState(false);
     const [bannerFileError, setBannerFileError] = useState<string | null>(null);
     const [showAddSlotChoice, setShowAddSlotChoice] = useState(false);
-    const [config, setConfig] = useState<GridEditConfig>(() => {
-        const savedConfig = getGridEditConfig();
-        const base = getExternalParams();
-        return {
-            slotBlocks: savedConfig?.slotBlocks ?? base.slotBlocks ?? defaultSlotBlocks(),
-            gridTopContent: savedConfig?.gridTopContent ?? base.gridTopContent ?? '',
-            gridTopBanners: savedConfig?.gridTopBanners ?? base.gridTopBanners ?? [],
-            slotHeight: savedConfig?.slotHeight ?? base.slotHeight ?? 120,
-            slotWidth: savedConfig?.slotWidth ?? base.slotWidth ?? 140,
-        };
-    });
+    const [config, setConfig] = useState<GridEditConfig>(() => buildGridConfigForPersona(initialPersona));
+    const [appBuilderApps, setAppBuilderApps] = useState<AppBuilderDropIn[]>(() => getAppBuilderDropIns());
+
+    useEffect(() => {
+        setConfig(buildGridConfigForPersona(editingPersona));
+    }, [editingPersona]);
 
     useEffect(() => {
         setSaved(false);
-    }, [config]);
+    }, [config, appBuilderApps, editingPersona]);
 
     const updateConfig = useCallback((patch: Partial<GridEditConfig>) => {
         setConfig((prev) => ({ ...prev, ...patch }));
     }, []);
 
     const handleSave = useCallback(() => {
-        setGridEditConfig(config);
+        setGridLayout(editingPersona, config);
+        setAppBuilderDropIns(appBuilderApps);
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
-    }, [config]);
+    }, [config, appBuilderApps, editingPersona]);
 
     const handleReset = useCallback(() => {
         setConfig({
-            slotBlocks: defaultSlotBlocks(),
+            slotBlocks: slotBlocksFromStaticBase(),
             gridTopContent: '',
             gridTopBanners: [],
             slotHeight: 120,
@@ -147,6 +170,21 @@ const GridEdit: React.FC = () => {
             <header className="grid-edit-header">
                 <h1>Edit Grid (Admin)</h1>
                 <div className="grid-edit-actions">
+                    <label className="grid-edit-persona-inline">
+                        <span className="grid-edit-persona-inline-label">Layout for</span>
+                        <select
+                            className="grid-edit-persona-select"
+                            value={editingPersona}
+                            onChange={(e) => setEditingPersona(e.target.value as PortalPersonaId)}
+                            aria-label="Persona layout to edit"
+                        >
+                            {PORTAL_PERSONA_ORDER.map((id) => (
+                                <option key={id} value={id}>
+                                    {PORTAL_PERSONA_LABELS[id]}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
                     <button type="button" className="grid-edit-btn secondary" onClick={() => navigate('/')}>
                         Back to Grid
                     </button>
@@ -244,6 +282,60 @@ const GridEdit: React.FC = () => {
                 ))}
                 <button type="button" className="grid-edit-btn secondary" onClick={addBanner}>
                     + Add banner
+                </button>
+            </section>
+
+            <section className="grid-edit-section">
+                <h2>App Builder drop-ins</h2>
+                <p className="grid-edit-hint">
+                    Register hosted URLs (ExC Shell, AEM UI extension, etc.). They appear in the main portal sidebar under Adobe apps so admins can drag them onto the grid for any persona.
+                </p>
+                {appBuilderApps.map((app, i) => (
+                    <div key={`${app.id}-${i}`} className="grid-edit-appbuilder-row">
+                        <input
+                            type="text"
+                            placeholder="Stable id (e.g. my-extension)"
+                            value={app.id}
+                            onChange={(e) => {
+                                const next = [...appBuilderApps];
+                                next[i] = { ...next[i], id: e.target.value };
+                                setAppBuilderApps(next);
+                            }}
+                            aria-label={`App Builder id ${i + 1}`}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Title"
+                            value={app.title}
+                            onChange={(e) => {
+                                const next = [...appBuilderApps];
+                                next[i] = { ...next[i], title: e.target.value };
+                                setAppBuilderApps(next);
+                            }}
+                            aria-label={`App Builder title ${i + 1}`}
+                        />
+                        <input
+                            type="url"
+                            placeholder="https://…"
+                            value={app.url}
+                            onChange={(e) => {
+                                const next = [...appBuilderApps];
+                                next[i] = { ...next[i], url: e.target.value };
+                                setAppBuilderApps(next);
+                            }}
+                            aria-label={`App Builder URL ${i + 1}`}
+                        />
+                        <button type="button" className="grid-edit-btn small danger" onClick={() => setAppBuilderApps(appBuilderApps.filter((_, j) => j !== i))}>
+                            Remove
+                        </button>
+                    </div>
+                ))}
+                <button
+                    type="button"
+                    className="grid-edit-btn secondary"
+                    onClick={() => setAppBuilderApps([...appBuilderApps, { id: `app-${Date.now()}`, title: '', url: '' }])}
+                >
+                    + Add App Builder URL
                 </button>
             </section>
 

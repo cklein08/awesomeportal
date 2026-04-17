@@ -402,6 +402,18 @@ export interface GridTopBanner {
     href?: string;
 }
 
+/** Persona used for distinct tile layouts and left navigation (IMS group mapping comes later). */
+export type PortalPersonaId = 'marketeer' | 'developer' | 'admin';
+
+/** Admin-registered App Builder (or other) hosted URLs surfaced in the entitlements panel. */
+export interface AppBuilderDropIn {
+    id: string;
+    title: string;
+    url: string;
+    description?: string;
+    iconUrl?: string;
+}
+
 /** Admin-editable grid config (slots, top content, banners, slot dimensions). Persisted e.g. in localStorage. */
 export interface GridEditConfig {
     /** Up to 24 slots; null = empty slot. Enables drop-only-into-empty and preserves existing slot positions. */

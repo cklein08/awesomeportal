@@ -7,6 +7,7 @@ import '../MainApp.css';
 
 import { DynamicMediaClient } from '../clients/dynamicmedia-client';
 import { DEFAULT_FACETS, type ExcFacets } from '../constants/facets';
+import { getLeftNavAppsForPersona, PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
 import type {
     Asset,
     CartItem,
@@ -15,6 +16,7 @@ import type {
     EntitlementPayload,
     ExternalParams,
     LoadingState,
+    PortalPersonaId,
     Rendition,
     RightsData,
     SearchResult,
@@ -25,7 +27,20 @@ import { CURRENT_VIEW, LOADING, QUERY_TYPES } from '../types';
 import { populateAssetFromHit } from '../utils/assetTransformers';
 import { fetchOptimizedDeliveryBlob, removeBlobFromCache } from '../utils/blobCache';
 import { getDefaultSlotBlocks, useSlotBlocks } from '../hooks/useSlotBlocks';
-import { getAdobeClientId, getBucket, getExternalParams, getGridEditConfig, getSelectedAemProgram, setGridEditConfig, setSelectedAemProgram, type AemProgramOption } from '../utils/config';
+import {
+    appBuilderDropInsToEntitlements,
+    getAdobeClientId,
+    getAppBuilderDropIns,
+    getBucket,
+    getExternalParams,
+    getGridEditConfig,
+    getSelectedAemProgram,
+    getSelectedPersona,
+    setGridEditConfig,
+    setSelectedAemProgram,
+    setSelectedPersona,
+    type AemProgramOption,
+} from '../utils/config';
 import { getProfilePictureUrl } from '../utils/profileImage';
 import { AppConfigProvider } from './AppConfigProvider';
 
@@ -50,7 +65,7 @@ import Facets from './Facets';
 import HeaderBar from './HeaderBar';
 import ImageGallery from './ImageGallery';
 import SearchBar from './SearchBar';
-import LeftNav, { type AppItem } from './LeftNav';
+import LeftNav from './LeftNav';
 import AppGrid, { DRAG_TYPE_ENTITLEMENT } from './AppGrid';
 import { ADOBE_ENTITLEMENTS } from '../constants/adobeEntitlements';
 import Firefly from '../pages/Firefly';
@@ -280,12 +295,17 @@ function MainApp(): React.JSX.Element {
     const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
     const [selectedDaContentUrl, setSelectedDaContentUrl] = useState<string | null>(null);
     const [iframeCannotDisplay, setIframeCannotDisplay] = useState(false);
-    const [apps] = useState<AppItem[]>([
-        { id: 'assets-browser', name: 'Assets Browser' },
-        { id: 'dashboard', name: 'Dashboard' },
-        { id: 'analytics', name: 'Analytics' },
-        { id: 'settings', name: 'Settings' },
-    ]);
+    const [portalPersona, setPortalPersona] = useState<PortalPersonaId>(() => getSelectedPersona());
+    const apps = useMemo(() => getLeftNavAppsForPersona(portalPersona), [portalPersona]);
+
+    const handlePortalPersonaChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+        const p = e.target.value as PortalPersonaId;
+        setSelectedPersona(p);
+        setPortalPersona(p);
+        setGridConfigVersion((v) => v + 1);
+        setSelectedTileId(null);
+        setSelectedDaContentUrl(null);
+    }, []);
     const handleSelectDaContentUrl = useCallback((url: string) => {
         setSelectedDaContentUrl(url);
         setSelectedTileId(null);
@@ -925,6 +945,18 @@ function MainApp(): React.JSX.Element {
 
     // Handle app selection
     const handleAppSelect = (appId: string): void => {
+        if (appId === 'portal-grid') {
+            navigate(`/admin/grid-edit?persona=${encodeURIComponent(portalPersona)}`);
+            return;
+        }
+        if (appId === 'portal-brand') {
+            if (authenticated) {
+                setShowSkinEditor(true);
+            } else {
+                ToastQueue.negative('Please sign in to customize portal branding', { timeout: 4000 });
+            }
+            return;
+        }
         // If user selected Settings, only allow when authenticated
         if (appId === 'settings') {
             if (authenticated) {
@@ -1384,6 +1416,21 @@ function MainApp(): React.JSX.Element {
                         ) : (
                             <>
                                 <div className="app-grid-view-toggle">
+                                    <label className="portal-persona-switcher">
+                                        <span className="portal-persona-switcher-label">View as</span>
+                                        <select
+                                            className="portal-persona-select"
+                                            value={portalPersona}
+                                            onChange={handlePortalPersonaChange}
+                                            aria-label="Portal persona"
+                                        >
+                                            {PORTAL_PERSONA_ORDER.map((id) => (
+                                                <option key={id} value={id}>
+                                                    {PORTAL_PERSONA_LABELS[id]}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
                                     <button
                                         type="button"
                                         className={`app-grid-customize-btn ${viewMode === 'admin' ? 'active' : ''}`}
@@ -1404,7 +1451,7 @@ function MainApp(): React.JSX.Element {
                                         <button
                                             type="button"
                                             className="app-grid-customize-btn"
-                                            onClick={() => navigate('/admin/grid-edit')}
+                                            onClick={() => navigate(`/admin/grid-edit?persona=${encodeURIComponent(portalPersona)}`)}
                                         >
                                             Edit grid
                                         </button>
@@ -1447,7 +1494,11 @@ function MainApp(): React.JSX.Element {
                                 .filter((b): b is SlotBlockDescriptor => b != null && typeof b === 'object')
                                 .map((b) => b.id)
                         );
-                        const availableEntitlements = ADOBE_ENTITLEMENTS.filter((ent) => !addedIds.has(ent.id));
+                        const catalogEntitlements = [
+                            ...ADOBE_ENTITLEMENTS,
+                            ...appBuilderDropInsToEntitlements(getAppBuilderDropIns()),
+                        ];
+                        const availableEntitlements = catalogEntitlements.filter((ent) => !addedIds.has(ent.id));
                         return (
                         <div className="entitlements-panel">
                             <h3 className="entitlements-panel-title">Adobe apps</h3>

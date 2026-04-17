@@ -270,6 +270,28 @@
   margin-bottom: 4px;
 }
 
+.portal-persona-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+  font-size: 0.875rem;
+  color: #333;
+}
+
+.portal-persona-switcher-label {
+  white-space: nowrap;
+}
+
+.portal-persona-select {
+  min-width: 9rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 0.875rem;
+  background: #fff;
+}
+
 .app-grid-edit-bar {
   display: flex;
   flex-wrap: wrap;

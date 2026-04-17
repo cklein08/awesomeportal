@@ -1,9 +1,14 @@
 // Utility to get configuration values at runtime
 // This checks window.APP_CONFIG first (runtime), then falls back to build-time env vars
 
-import type { ExternalParams, GridEditConfig, PortalSkinConfig } from '../types';
+import type { AppBuilderDropIn, EntitlementPayload, ExternalParams, GridEditConfig, PortalPersonaId, PortalSkinConfig } from '../types';
 
 const GRID_EDIT_STORAGE_KEY = 'awesomeportal_gridEditConfig';
+/** Per-persona grid layouts (marketeer / developer / admin). */
+const ROLE_GRIDS_STORAGE_KEY = 'awesomeportal_roleGrids';
+const PERSONA_STORAGE_KEY = 'awesomeportal_selectedPersona';
+const APP_BUILDER_STORAGE_KEY = 'awesomeportal_appBuilderApps';
+
 export const SKIN_STORAGE_KEY = 'awesomeportal_skinConfig';
 export const AEM_PROGRAM_STORAGE_KEY = 'awesomeportal_selectedAemProgram';
 
@@ -43,6 +48,137 @@ export const getAdobeClientId = (): string => getConfig().ADOBE_CLIENT_ID;
 export const getBucket = (): string => getConfig().BUCKET;
 
 
+type RoleGridsState = Partial<Record<PortalPersonaId, GridEditConfig>>;
+
+export function isPortalPersonaId(v: string): v is PortalPersonaId {
+    return v === 'marketeer' || v === 'developer' || v === 'admin';
+}
+
+/** Window-only external params (no merged grid). Used when editing a persona layout other than the live selection. */
+export const getStaticExternalParams = (): ExternalParams => {
+    try {
+        return window.awesomeportalConfig?.externalParams || {};
+    } catch {
+        return {};
+    }
+};
+
+function migrateLegacyGridToRoleGrids(): void {
+    try {
+        const existingRoles = localStorage.getItem(ROLE_GRIDS_STORAGE_KEY);
+        if (existingRoles) {
+            const parsed = JSON.parse(existingRoles) as RoleGridsState;
+            if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                return;
+            }
+        }
+        const legacyRaw = localStorage.getItem(GRID_EDIT_STORAGE_KEY);
+        if (!legacyRaw) return;
+        const legacy = JSON.parse(legacyRaw) as GridEditConfig;
+        const initial: RoleGridsState = {
+            marketeer: legacy,
+            developer: legacy,
+            admin: legacy,
+        };
+        localStorage.setItem(ROLE_GRIDS_STORAGE_KEY, JSON.stringify(initial));
+    } catch (e) {
+        console.warn('Failed to migrate legacy grid config', e);
+    }
+}
+
+/** Layout saved for a specific persona (independent of the current persona switcher). */
+export const getGridLayout = (persona: PortalPersonaId): GridEditConfig | null => {
+    migrateLegacyGridToRoleGrids();
+    try {
+        const raw = localStorage.getItem(ROLE_GRIDS_STORAGE_KEY);
+        if (raw) {
+            const all = JSON.parse(raw) as RoleGridsState;
+            const forPersona = all[persona];
+            if (forPersona && typeof forPersona === 'object') return forPersona;
+        }
+        const legacyRaw = localStorage.getItem(GRID_EDIT_STORAGE_KEY);
+        if (legacyRaw) {
+            return JSON.parse(legacyRaw) as GridEditConfig;
+        }
+    } catch {
+        return null;
+    }
+    return null;
+};
+
+/** Persist layout for one persona (others unchanged). */
+export const setGridLayout = (persona: PortalPersonaId, config: GridEditConfig): void => {
+    migrateLegacyGridToRoleGrids();
+    try {
+        const raw = localStorage.getItem(ROLE_GRIDS_STORAGE_KEY);
+        const all: RoleGridsState = raw ? (JSON.parse(raw) as RoleGridsState) : {};
+        all[persona] = config;
+        localStorage.setItem(ROLE_GRIDS_STORAGE_KEY, JSON.stringify(all));
+    } catch (e) {
+        console.warn('Failed to save role grid config', e);
+    }
+};
+
+export const getSelectedPersona = (): PortalPersonaId => {
+    try {
+        const v = localStorage.getItem(PERSONA_STORAGE_KEY);
+        if (v && isPortalPersonaId(v)) return v;
+    } catch {
+        /* ignore */
+    }
+    return 'marketeer';
+};
+
+export const setSelectedPersona = (persona: PortalPersonaId): void => {
+    try {
+        localStorage.setItem(PERSONA_STORAGE_KEY, persona);
+    } catch (e) {
+        console.warn('Failed to save selected persona', e);
+    }
+};
+
+/** URL `?persona=marketeer|developer|admin` overrides for the grid editor; otherwise current switcher value. */
+export const readPersonaFromLocation = (): PortalPersonaId => {
+    try {
+        const q = new URLSearchParams(window.location.search).get('persona');
+        if (q && isPortalPersonaId(q)) return q;
+    } catch {
+        /* ignore */
+    }
+    return getSelectedPersona();
+};
+
+export const getAppBuilderDropIns = (): AppBuilderDropIn[] => {
+    try {
+        const raw = localStorage.getItem(APP_BUILDER_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw) as unknown;
+        return Array.isArray(parsed) ? (parsed as AppBuilderDropIn[]) : [];
+    } catch {
+        return [];
+    }
+};
+
+export const setAppBuilderDropIns = (apps: AppBuilderDropIn[]): void => {
+    try {
+        localStorage.setItem(APP_BUILDER_STORAGE_KEY, JSON.stringify(apps));
+    } catch (e) {
+        console.warn('Failed to save App Builder drop-ins', e);
+    }
+};
+
+/** Map registered App Builder URLs to entitlement payloads for the drag panel. */
+export const appBuilderDropInsToEntitlements = (apps: AppBuilderDropIn[]): EntitlementPayload[] =>
+    apps
+        .filter((a) => a.id && a.title && a.url)
+        .map((a) => ({
+            id: `appbuilder-${a.id}`,
+            title: a.title,
+            description: a.description ?? `App Builder · ${a.title}`,
+            href: a.url,
+            iconUrl: a.iconUrl,
+        }));
+
 // Utility to get external parameters from awesomeportalConfig
 export const getExternalParams = (): ExternalParams => {
     try {
@@ -62,24 +198,12 @@ export const getExternalParams = (): ExternalParams => {
     }
 };
 
-/** Load admin grid edit config from localStorage. */
-export const getGridEditConfig = (): GridEditConfig | null => {
-    try {
-        const raw = localStorage.getItem(GRID_EDIT_STORAGE_KEY);
-        if (!raw) return null;
-        return JSON.parse(raw) as GridEditConfig;
-    } catch {
-        return null;
-    }
-};
+/** Grid for the currently selected persona (used by main grid + drag/drop persistence). */
+export const getGridEditConfig = (): GridEditConfig | null => getGridLayout(getSelectedPersona());
 
-/** Save admin grid edit config to localStorage. */
+/** Save grid for the currently selected persona. */
 export const setGridEditConfig = (config: GridEditConfig): void => {
-    try {
-        localStorage.setItem(GRID_EDIT_STORAGE_KEY, JSON.stringify(config));
-    } catch (e) {
-        console.warn('Failed to save grid edit config', e);
-    }
+    setGridLayout(getSelectedPersona(), config);
 };
 
 /** Load portal skin config from localStorage. */
