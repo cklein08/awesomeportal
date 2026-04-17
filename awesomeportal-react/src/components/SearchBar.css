@@ -49,7 +49,7 @@
 .query-input-bar {
     display: flex;
     align-items: center;
-    background: black;
+    background: var(--portal-search-bg, #000000);
     border-radius: 999px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
     padding: 4px 8px 4px 0;
@@ -62,7 +62,8 @@
     position: absolute;
     left: 14px;
     top: 20%;
-    color: #888;
+    color: var(--portal-search-fg, #888888);
+    opacity: 0.75;
     pointer-events: none;
 }
 
@@ -75,7 +76,7 @@
     border-bottom-left-radius: 0;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
-    background: #fff;
+    background: var(--portal-elevated-bg, #ffffff);
     font-size: 0.9rem;
     outline: none;
     color: #222;

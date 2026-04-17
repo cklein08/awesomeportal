@@ -447,6 +447,22 @@ export interface PortalSkinConfig {
     /** Data URL from uploaded heading font. */
     fontHeadingDataUrl?: string;
     heroImageUrl?: string;
+    /** Main page / content canvas (defaults to backgroundColor when omitted). */
+    pageBackgroundColor?: string;
+    /** Left nav, facets column, entitlements sidebar. */
+    panelBackgroundColor?: string;
+    /** Cards, dialogs, inputs on neutral surfaces. */
+    elevatedSurfaceColor?: string;
+    /** Assets search strip behind the query bar. */
+    searchBarBackgroundColor?: string;
+    /** Icons / controls on the search strip (when search bar is dark). */
+    searchBarForegroundColor?: string;
+    /** Hairlines between panels. */
+    borderSubtleColor?: string;
+    /** Primary copy on portal chrome (nav labels, panel titles). */
+    portalTextColor?: string;
+    /** Secondary copy (hints, captions). */
+    portalTextMutedColor?: string;
 }
 
 // External Parameters interface

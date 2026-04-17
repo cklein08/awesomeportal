@@ -3,6 +3,7 @@
     padding: 20px;
     overflow-y: auto;
     height: 100%;
+    background-color: var(--portal-chrome-bg, transparent);
     --app-tile-min-height: 120px;
     --app-tile-min-width: 140px;
 }
@@ -42,13 +43,13 @@
     height: auto;
     object-fit: contain;
     border-radius: 8px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--portal-border, #e0e0e0);
 }
 
 .app-grid-top-content {
     font-size: 1rem;
     line-height: 1.5;
-    color: #333;
+    color: var(--portal-text, #333);
 }
 
 .app-grid-top-content p {
@@ -71,8 +72,8 @@
 }
 
 .app-grid-tile {
-    background-color: white;
-    border: 2px solid #e0e0e0;
+    background-color: var(--portal-elevated-bg, #ffffff);
+    border: 2px solid var(--portal-border, #e0e0e0);
     border-radius: 12px;
     padding: 20px;
     display: flex;
@@ -98,8 +99,8 @@
 
 .app-grid-tile.empty {
     border-style: dashed;
-    border-color: #ccc;
-    background-color: #fafafa;
+    border-color: var(--portal-border, #ccc);
+    background-color: var(--portal-panel-bg, #fafafa);
     cursor: default;
 }
 
@@ -128,7 +129,7 @@
     height: 28px;
     border-radius: 50%;
     border: 2px solid var(--primary-color, #f40000);
-    background: white;
+    background: var(--portal-elevated-bg, #ffffff);
     color: var(--primary-color, #f40000);
     cursor: pointer;
     display: flex;
@@ -170,7 +171,7 @@
     margin: 0 0 8px 0;
     font-size: 1rem;
     font-weight: 600;
-    color: #333;
+    color: var(--portal-text, #333);
     word-break: break-word;
     overflow-wrap: break-word;
     overflow: hidden;
@@ -179,7 +180,7 @@
 .app-tile-description {
     margin: 0;
     font-size: 0.85rem;
-    color: #666;
+    color: var(--portal-text-muted, #666);
     line-height: 1.4;
     word-break: break-word;
     overflow-wrap: break-word;
@@ -187,7 +188,7 @@
 }
 
 .app-tile-placeholder {
-    color: #999;
+    color: var(--portal-text-muted, #999);
     font-size: 0.9rem;
     font-style: italic;
 }

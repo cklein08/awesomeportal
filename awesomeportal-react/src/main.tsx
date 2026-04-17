@@ -21,6 +21,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
+import './portal-skin-tokens.css';
 import { applyHeinekenLocalDemo } from './constants/heinekenDemoPreset';
 import { getExternalParams } from './utils/config';
 

@@ -35,11 +35,23 @@ const EXTRA_SKIN_VARS = [
     '--primary-color-disabled',
 ] as const;
 
+const PORTAL_CHROME_VARS = [
+    '--portal-chrome-bg',
+    '--portal-panel-bg',
+    '--portal-elevated-bg',
+    '--portal-search-bg',
+    '--portal-search-fg',
+    '--portal-border',
+    '--portal-text',
+    '--portal-text-muted',
+] as const;
+
 function clearSkinOverrides(): void {
     const root = document.documentElement;
     const varNames = new Set(SKIN_TO_CSS_VARS.map(({ varName }) => varName));
     varNames.forEach((varName) => root.style.removeProperty(varName));
     EXTRA_SKIN_VARS.forEach((varName) => root.style.removeProperty(varName));
+    PORTAL_CHROME_VARS.forEach((varName) => root.style.removeProperty(varName));
     [GOOGLE_FONTS_LINK_ID, SKIN_FONT_STYLESHEET_ID, SKIN_FONTFACE_STYLE_ID].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.remove();
@@ -135,7 +147,7 @@ function injectGoogleFonts(fontFamilies: string[]): void {
     if (trimmed.length === 0) return;
 
     const familyParam = trimmed
-        .map((f) => `family=${encodeURIComponent(f.replaceAll(' ', '+'))}`)
+        .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}`)
         .join('&');
     const href = `https://fonts.googleapis.com/css2?${familyParam}&display=swap`;
 
@@ -217,5 +229,32 @@ export function applySkin(config: PortalSkinConfig | null = getSkinConfig()): vo
     }
     if (!hasHeadingFontFile && config.fontFamilyHeading?.trim()) {
         root.style.setProperty('--font-heading', `'${config.fontFamilyHeading.trim()}'`);
+    }
+
+    // Portal chrome (panels, search strip, borders) — optional keys
+    const chromeBg = config.pageBackgroundColor?.trim() || config.backgroundColor?.trim();
+    if (chromeBg) {
+        root.style.setProperty('--portal-chrome-bg', chromeBg);
+    }
+    if (config.panelBackgroundColor?.trim()) {
+        root.style.setProperty('--portal-panel-bg', config.panelBackgroundColor.trim());
+    }
+    if (config.elevatedSurfaceColor?.trim()) {
+        root.style.setProperty('--portal-elevated-bg', config.elevatedSurfaceColor.trim());
+    }
+    if (config.searchBarBackgroundColor?.trim()) {
+        root.style.setProperty('--portal-search-bg', config.searchBarBackgroundColor.trim());
+    }
+    if (config.searchBarForegroundColor?.trim()) {
+        root.style.setProperty('--portal-search-fg', config.searchBarForegroundColor.trim());
+    }
+    if (config.borderSubtleColor?.trim()) {
+        root.style.setProperty('--portal-border', config.borderSubtleColor.trim());
+    }
+    if (config.portalTextColor?.trim()) {
+        root.style.setProperty('--portal-text', config.portalTextColor.trim());
+    }
+    if (config.portalTextMutedColor?.trim()) {
+        root.style.setProperty('--portal-text-muted', config.portalTextMutedColor.trim());
     }
 }

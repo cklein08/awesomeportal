@@ -1,0 +1,21 @@
+/**
+ * Defaults for portal-wide chrome (side panels, search strip, page canvas).
+ * applySkin() sets these on document.documentElement when a skin includes the matching keys.
+ */
+:root {
+  --portal-chrome-bg: #ffffff;
+  --portal-panel-bg: #f8f9fa;
+  --portal-elevated-bg: #ffffff;
+  --portal-search-bg: #000000;
+  --portal-search-fg: rgba(255, 255, 255, 0.92);
+  --portal-border: #e0e0e0;
+  --portal-text: #333333;
+  --portal-text-muted: #666666;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background-color: var(--portal-chrome-bg);
+}

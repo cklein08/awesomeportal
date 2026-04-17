@@ -331,8 +331,8 @@
 .facet-filter-panel {
   flex: 0 0 330px;
   min-width: 22%;
-  border-left: 1px solid #e0e0e0;
-  background: #fafbfc;
+  border-left: 1px solid var(--portal-border, #e0e0e0);
+  background: var(--portal-panel-bg, #fafbfc);
   padding: 30px;
   overflow-y: auto;
   height: -webkit-fill-available;
@@ -343,7 +343,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background-color: #fafbfc;
+  background-color: var(--portal-panel-bg, #fafbfc);
+  color: var(--portal-text, inherit);
 }
 
   

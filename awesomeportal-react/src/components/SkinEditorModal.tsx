@@ -45,6 +45,14 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
     const [bodyFileName, setBodyFileName] = useState('');
     const [headingFileName, setHeadingFileName] = useState('');
     const [heroImageUrl, setHeroImageUrl] = useState(skinConfig?.heroImageUrl ?? '');
+    const [pageBackgroundColor, setPageBackgroundColor] = useState(skinConfig?.pageBackgroundColor ?? '');
+    const [panelBackgroundColor, setPanelBackgroundColor] = useState(skinConfig?.panelBackgroundColor ?? '');
+    const [elevatedSurfaceColor, setElevatedSurfaceColor] = useState(skinConfig?.elevatedSurfaceColor ?? '');
+    const [searchBarBackgroundColor, setSearchBarBackgroundColor] = useState(skinConfig?.searchBarBackgroundColor ?? '');
+    const [searchBarForegroundColor, setSearchBarForegroundColor] = useState(skinConfig?.searchBarForegroundColor ?? '');
+    const [borderSubtleColor, setBorderSubtleColor] = useState(skinConfig?.borderSubtleColor ?? '');
+    const [portalTextColor, setPortalTextColor] = useState(skinConfig?.portalTextColor ?? '');
+    const [portalTextMutedColor, setPortalTextMutedColor] = useState(skinConfig?.portalTextMutedColor ?? '');
 
     const syncFromConfig = useCallback(() => {
         if (skinConfig) {
@@ -62,6 +70,14 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
             setBodyFileName(skinConfig.fontBodyDataUrl ? 'Custom font uploaded' : '');
             setHeadingFileName(skinConfig.fontHeadingDataUrl ? 'Custom font uploaded' : '');
             setHeroImageUrl(skinConfig.heroImageUrl ?? '');
+            setPageBackgroundColor(skinConfig.pageBackgroundColor ?? '');
+            setPanelBackgroundColor(skinConfig.panelBackgroundColor ?? '');
+            setElevatedSurfaceColor(skinConfig.elevatedSurfaceColor ?? '');
+            setSearchBarBackgroundColor(skinConfig.searchBarBackgroundColor ?? '');
+            setSearchBarForegroundColor(skinConfig.searchBarForegroundColor ?? '');
+            setBorderSubtleColor(skinConfig.borderSubtleColor ?? '');
+            setPortalTextColor(skinConfig.portalTextColor ?? '');
+            setPortalTextMutedColor(skinConfig.portalTextMutedColor ?? '');
         } else {
             setLogoUrl('');
             setPrimaryColor(DEFAULT_PRIMARY);
@@ -77,6 +93,14 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
             setBodyFileName('');
             setHeadingFileName('');
             setHeroImageUrl('');
+            setPageBackgroundColor('');
+            setPanelBackgroundColor('');
+            setElevatedSurfaceColor('');
+            setSearchBarBackgroundColor('');
+            setSearchBarForegroundColor('');
+            setBorderSubtleColor('');
+            setPortalTextColor('');
+            setPortalTextMutedColor('');
         }
     }, [skinConfig]);
 
@@ -119,6 +143,14 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
         if (fontBodyDataUrl) config.fontBodyDataUrl = fontBodyDataUrl;
         if (fontHeadingDataUrl) config.fontHeadingDataUrl = fontHeadingDataUrl;
         if (heroImageUrl.trim()) config.heroImageUrl = heroImageUrl.trim();
+        if (pageBackgroundColor.trim()) config.pageBackgroundColor = toHex(pageBackgroundColor) || pageBackgroundColor.trim();
+        if (panelBackgroundColor.trim()) config.panelBackgroundColor = toHex(panelBackgroundColor) || panelBackgroundColor.trim();
+        if (elevatedSurfaceColor.trim()) config.elevatedSurfaceColor = toHex(elevatedSurfaceColor) || elevatedSurfaceColor.trim();
+        if (searchBarBackgroundColor.trim()) config.searchBarBackgroundColor = toHex(searchBarBackgroundColor) || searchBarBackgroundColor.trim();
+        if (searchBarForegroundColor.trim()) config.searchBarForegroundColor = searchBarForegroundColor.trim();
+        if (borderSubtleColor.trim()) config.borderSubtleColor = toHex(borderSubtleColor) || borderSubtleColor.trim();
+        if (portalTextColor.trim()) config.portalTextColor = toHex(portalTextColor) || portalTextColor.trim();
+        if (portalTextMutedColor.trim()) config.portalTextMutedColor = toHex(portalTextMutedColor) || portalTextMutedColor.trim();
         if (skinConfig?.primaryColorHover?.trim()) config.primaryColorHover = skinConfig.primaryColorHover.trim();
         if (skinConfig?.primaryColorActive?.trim()) config.primaryColorActive = skinConfig.primaryColorActive.trim();
         if (skinConfig?.primaryColorDisabled?.trim()) config.primaryColorDisabled = skinConfig.primaryColorDisabled.trim();
@@ -178,6 +210,14 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
         setBodyFileName('');
         setHeadingFileName('');
         setHeroImageUrl('');
+        setPageBackgroundColor('');
+        setPanelBackgroundColor('');
+        setElevatedSurfaceColor('');
+        setSearchBarBackgroundColor('');
+        setSearchBarForegroundColor('');
+        setBorderSubtleColor('');
+        setPortalTextColor('');
+        setPortalTextMutedColor('');
         onClose();
     };
 
@@ -284,7 +324,7 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
                             type="text"
                             value={fontFamilyBody}
                             onChange={(e) => setFontFamilyBody(e.target.value)}
-                            placeholder="e.g. Open Sans, sans-serif"
+                            placeholder="e.g. Source Sans 3:wght@400;600"
                         />
                     </div>
                     <div className="skin-editor-field">
@@ -294,7 +334,7 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
                             type="text"
                             value={fontFamilyHeading}
                             onChange={(e) => setFontFamilyHeading(e.target.value)}
-                            placeholder="e.g. Roboto, sans-serif"
+                            placeholder="e.g. Barlow Semi Condensed:wght@500;700"
                         />
                     </div>
                     <div className="skin-editor-field">
@@ -383,6 +423,90 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
                             placeholder="https://example.com/hero.jpg"
                         />
                     </div>
+                    <details className="skin-editor-advanced">
+                        <summary className="skin-editor-advanced-summary">Panels, search strip & text</summary>
+                        <p className="skin-editor-field-note">Optional. Page background overrides the main canvas only; leave blank to use Background color for the full page.</p>
+                        <div className="skin-editor-field">
+                            <label htmlFor="skin-page-bg">Page background (optional)</label>
+                            <input
+                                id="skin-page-bg"
+                                type="text"
+                                value={pageBackgroundColor}
+                                onChange={(e) => setPageBackgroundColor(e.target.value)}
+                                placeholder="#f2ede4"
+                            />
+                        </div>
+                        <div className="skin-editor-field">
+                            <label htmlFor="skin-panel-bg">Side panels (nav, facets, entitlements)</label>
+                            <input
+                                id="skin-panel-bg"
+                                type="text"
+                                value={panelBackgroundColor}
+                                onChange={(e) => setPanelBackgroundColor(e.target.value)}
+                                placeholder="#e4dfd4"
+                            />
+                        </div>
+                        <div className="skin-editor-field">
+                            <label htmlFor="skin-elevated">Cards / elevated surfaces</label>
+                            <input
+                                id="skin-elevated"
+                                type="text"
+                                value={elevatedSurfaceColor}
+                                onChange={(e) => setElevatedSurfaceColor(e.target.value)}
+                                placeholder="#ffffff"
+                            />
+                        </div>
+                        <div className="skin-editor-field">
+                            <label htmlFor="skin-search-bg">Search strip background</label>
+                            <input
+                                id="skin-search-bg"
+                                type="text"
+                                value={searchBarBackgroundColor}
+                                onChange={(e) => setSearchBarBackgroundColor(e.target.value)}
+                                placeholder="#00381a"
+                            />
+                        </div>
+                        <div className="skin-editor-field">
+                            <label htmlFor="skin-search-fg">Search strip foreground (icons / links)</label>
+                            <input
+                                id="skin-search-fg"
+                                type="text"
+                                value={searchBarForegroundColor}
+                                onChange={(e) => setSearchBarForegroundColor(e.target.value)}
+                                placeholder="rgba(255,255,255,0.92)"
+                            />
+                        </div>
+                        <div className="skin-editor-field">
+                            <label htmlFor="skin-border">Hairline borders</label>
+                            <input
+                                id="skin-border"
+                                type="text"
+                                value={borderSubtleColor}
+                                onChange={(e) => setBorderSubtleColor(e.target.value)}
+                                placeholder="#cfc8ba"
+                            />
+                        </div>
+                        <div className="skin-editor-field">
+                            <label htmlFor="skin-portal-text">Panel text</label>
+                            <input
+                                id="skin-portal-text"
+                                type="text"
+                                value={portalTextColor}
+                                onChange={(e) => setPortalTextColor(e.target.value)}
+                                placeholder="#1a1a1a"
+                            />
+                        </div>
+                        <div className="skin-editor-field">
+                            <label htmlFor="skin-portal-muted">Muted text</label>
+                            <input
+                                id="skin-portal-muted"
+                                type="text"
+                                value={portalTextMutedColor}
+                                onChange={(e) => setPortalTextMutedColor(e.target.value)}
+                                placeholder="#4a4a4a"
+                            />
+                        </div>
+                    </details>
                 </div>
                 <div className="skin-editor-modal-footer">
                     <button type="button" className="skin-editor-btn skin-editor-btn-secondary" onClick={handleReset}>
