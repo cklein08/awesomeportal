@@ -1509,7 +1509,9 @@ function MainApp(): React.JSX.Element {
                                 );
                             })}
                         </aside>
-                        <main className="admin-shell-main portal-workspace-main">
+                        <main
+                            className={`admin-shell-main portal-workspace-main${showWorkspaceIframe ? ' portal-workspace-main--embed' : ''}`}
+                        >
                             {showPortalWorkspaceAgent ? (
                                 <section className="admin-shell-agent" aria-label="Agent prompt (coming soon)">
                                     <div className="admin-shell-agent-label">Prompt</div>
@@ -1549,7 +1551,9 @@ function MainApp(): React.JSX.Element {
                                     </div>
                                 </section>
                             ) : null}
-                            <div className="portal-workspace-main-scroll">
+                            <div
+                                className={`portal-workspace-main-scroll${showWorkspaceIframe ? ' portal-workspace-main-scroll--embed' : ''}`}
+                            >
                         {isAssetsBrowser && !authenticated ? (
                             <div className="aem-signin-in-content">
                                 <p className="aem-signin-in-content-text">

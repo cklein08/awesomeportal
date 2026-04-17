@@ -9,15 +9,20 @@ html.portal-suppress-host-top-app-bar .top-app-bar-content-container {
 .container {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  min-width: 0;
   margin: 0 auto;
   box-sizing: border-box;
-  min-height: 100vh;
   background-color: var(--portal-chrome-bg, #ffffff);
 }
 
 /* Portal workspace: reuse admin-shell CSS variables below HeaderBar (not full-viewport admin-shell). */
 .portal-workspace-root.admin-shell {
   min-height: 0;
+  min-width: 0;
+  width: 100%;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -26,8 +31,19 @@ html.portal-suppress-host-top-app-bar .top-app-bar-content-container {
   color: var(--admin-text, #f5f5f5);
 }
 
+.portal-workspace-root.admin-shell .admin-shell-body {
+  min-width: 0;
+  width: 100%;
+}
+
 .portal-workspace-main {
   min-height: 0;
+}
+
+/* Edge-to-edge workspace when hosting an iframe (rail stays; remove main gutters). */
+.portal-workspace-main.portal-workspace-main--embed {
+  padding-inline: 0;
+  padding-bottom: 0;
 }
 
 .portal-workspace-main-scroll {
@@ -36,6 +52,36 @@ html.portal-suppress-host-top-app-bar .top-app-bar-content-container {
   overflow: auto;
   display: flex;
   flex-direction: column;
+}
+
+/* Workspace iframe: stable flex height + full width of main column. */
+.portal-workspace-main-scroll--embed {
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.portal-workspace-main-scroll--embed > .da-content-in-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.portal-workspace-main-scroll--embed .da-content-in-frame-iframe {
+  align-self: stretch;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.portal-workspace-main-scroll--embed .da-content-in-frame--clip-embedded-top-app-bar .da-content-in-frame-clip {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  min-width: 0;
 }
 
 .container,
@@ -377,6 +423,8 @@ html.portal-suppress-host-top-app-bar .top-app-bar-content-container {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
   overflow: hidden;
   background-color: var(--portal-chrome-bg, transparent);
 }

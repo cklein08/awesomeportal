@@ -1,3 +1,7 @@
+html {
+  height: 100%;
+}
+
 :root {
   --font-body: adobe-clean, "Source Sans 3", "TCCC UnityText Regular", "Helvetica Neue", Arial, Helvetica, sans-serif;
   --font-heading: var(--font-body);
@@ -5,7 +9,16 @@
 
 body {
   margin: 0;
+  height: 100%;
   font-family: var(--font-body, adobe-clean, "Source Sans 3", "TCCC UnityText Regular", "Helvetica Neue", Arial, Helvetica, sans-serif);
+}
+
+#root {
+  min-height: 100dvh;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 code {
