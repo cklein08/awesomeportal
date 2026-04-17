@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { AppTile } from '../components/AppGrid';
 import type { SlotBlockDescriptor } from '../types';
 import { getExternalParams } from '../utils/config';
+import { resolveTileOpenMode } from '../utils/tileNavigation';
 
 const GRID_SLOT_COUNT = 24;
 
@@ -81,14 +82,27 @@ function slotBlockToAppTile(
     } else if (block.appId) {
         onClick = () => onSelectTileId(block.appId!);
     } else if (block.href) {
+        const mode = resolveTileOpenMode(block);
         onClick = () => {
+            if (mode === 'new-tab') {
+                try {
+                    window.open(block.href!, '_blank', 'noopener');
+                } catch {
+                    window.location.assign(block.href!);
+                }
+                return;
+            }
+            if (mode === 'navigate') {
+                window.location.assign(block.href!);
+                return;
+            }
             if (onSelectDaContentUrl) {
                 onSelectDaContentUrl(block.href!);
             } else {
                 try {
                     window.open(block.href!, '_blank', 'noopener');
                 } catch {
-                    window.location.href = block.href!;
+                    window.location.assign(block.href!);
                 }
             }
         };

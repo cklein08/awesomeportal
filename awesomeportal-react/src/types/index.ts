@@ -378,6 +378,11 @@ export interface SlotBlockDescriptor {
     description?: string;
     iconUrl?: string;
     href?: string;
+    /**
+     * How `href` (or da URL) opens when the tile is not a built-in `appId`.
+     * Default is `iframe` (host shell). Adobe SaaS often sets `X-Frame-Options`; prefer `new-tab` for those URLs.
+     */
+    openMode?: 'iframe' | 'new-tab' | 'navigate';
     /** If set and matches a known app (e.g. firefly, experience-hub, ai-agents), tile uses that app's onClick behavior. */
     appId?: string;
     /** When 'da-content', slot uses daContentUrl and form shows DA Content URL instead of App ID/Link URL. */
@@ -393,6 +398,7 @@ export interface EntitlementPayload {
     description?: string;
     href: string;
     iconUrl?: string;
+    openMode?: SlotBlockDescriptor['openMode'];
 }
 
 /** Banner/image shown above the grid (admin-configured). */
@@ -412,6 +418,7 @@ export interface AppBuilderDropIn {
     url: string;
     description?: string;
     iconUrl?: string;
+    openMode?: SlotBlockDescriptor['openMode'];
 }
 
 /** Admin-editable grid config (slots, top content, banners, slot dimensions). Persisted e.g. in localStorage. */

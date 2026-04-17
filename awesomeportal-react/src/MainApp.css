@@ -298,6 +298,16 @@
   background: #fff;
 }
 
+.portal-persona-readonly {
+  min-width: 9rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  color: #333;
+  background: rgba(0, 0, 0, 0.04);
+}
+
 .app-grid-edit-bar {
   display: flex;
   flex-wrap: wrap;

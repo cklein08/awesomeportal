@@ -4,6 +4,11 @@ Use this file to record what shipped and what is next. Update it when you merge 
 
 ## Recently completed
 
+- **README — portal persona & IMS env** — Quick Reference documents persona/admin behavior, sign-out preservation, optional `VITE_IMS_*` / `VITE_PORTAL_*` variables, and pointers to `src/utils/imsPersona.ts` and `docs/HOSTED_TILES.md`.
+- **Sign-out preserves portal config** — `clearEphemeralLocalStorageOnSignOut()` keeps grid/skin/persona/App Builder keys; `sessionStorage` still cleared on sign-out (`src/utils/config.ts`, `MainApp.tsx`).
+- **IMS-driven persona** — Non-admins get persona from access token (optional env substring lists + `VITE_PORTAL_PERSONA_AFTER_SIGNIN`); admins / cookie hosts keep the persona switcher (`src/utils/imsPersona.ts`, `MainApp.tsx`).
+- **Hosted tile open modes** — `openMode` on slots/entitlements (`iframe` | `new-tab` | `navigate`); curated Adobe tiles default to new tab; see `docs/HOSTED_TILES.md`.
+- **`/admin` hub** — `AdminHub` route links to grid edit, branding (via navigation state), placeholder org settings; left nav **Admin hub** for admins (`App.tsx`, `portalPersonas.ts`).
 - **Persona layouts & nav** — Per-persona grids (`awesomeportal_roleGrids`), persona switcher, App Builder drop-ins merged into entitlements, grid editor scoped by persona.
 - **Heineken local demo** — Skin preset, Coachella banner asset, `VITE_HEINEKEN_DEMO`, bundled assets with Vite `base` via `withBase()`.
 - **Portal skin system** — `PortalSkinConfig` extended (page/panel/elevated/search/border/text); `applySkin` sets `--portal-*` on `documentElement`; Skin Editor + Heineken preset.
@@ -21,6 +26,8 @@ Use this file to record what shipped and what is next. Update it when you merge 
 | `VITE_SKIP_SPLASH=true` | Skip splash gate entirely. |
 | `SKIP_RUNTIME_CONFIG_VALIDATION=1` | Allow post-Vite config script with missing `VITE_*` (CI only). |
 | `VITE_ADOBE_CLIENT_ID`, `VITE_BUCKET` | Required for real runtime config (strict `npm run build` default). |
+| `VITE_IMS_ADMIN_GROUP_SUBSTRINGS` | Comma-separated fragments; if any appear in JWT JSON, user is portal admin (persona switcher). Unset = all IMS users treated as admin (demo default). |
+| `VITE_IMS_PERSONA_*_SUBSTRINGS`, `VITE_PORTAL_PERSONA_AFTER_SIGNIN`, `VITE_PORTAL_ALL_USERS_ARE_ADMINS` | Optional IMS persona mapping; see `src/utils/imsPersona.ts` and **README** (Portal persona and admin). |
 
 ## Suggested next steps
 

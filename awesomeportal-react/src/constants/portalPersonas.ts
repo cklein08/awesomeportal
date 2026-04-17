@@ -34,6 +34,7 @@ export function getLeftNavAppsForPersona(persona: PortalPersonaId): AppItem[] {
     // admin — full org tooling + layout and brand entry points
     return [
         { id: 'dashboard', name: 'Dashboard' },
+        { id: 'portal-admin', name: 'Admin hub' },
         { id: 'assets-browser', name: 'Assets browser' },
         { id: 'portal-grid', name: 'Portal layout' },
         { id: 'portal-brand', name: 'Brand & theme' },

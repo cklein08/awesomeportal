@@ -46,6 +46,19 @@ That writes empty placeholders into `dist/config.js`; the app still needs real r
 **Splash screen (local / automation)**  
 Set `VITE_SKIP_SPLASH=true` in `.env` or the shell so the portal loads without the session splash gate (useful for Playwright or quick local iteration).
 
+**Portal persona and admin (IMS)**  
+After Adobe IMS sign-in, the portal derives **persona** from the access token (JWT payload heuristics plus optional env substring lists). Users who qualify as **portal admins** keep the header persona dropdown and can use the **`/admin`** hub; everyone else sees a read-only persona label and is updated on token refresh. Legacy **cookie-auth** hosts on supported dev origins still allow manual persona override. Sign-out clears session storage and only **non-portal** `localStorage` keys so grids, skin, persona, and App Builder URLs survive.
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_IMS_ADMIN_GROUP_SUBSTRINGS` | Comma-separated fragments matched (case-insensitive) anywhere in the decoded JWT JSON. A match means portal admin (switcher + admin hub). **If unset**, every signed-in IMS user is treated as admin so local demos keep the switcher. |
+| `VITE_IMS_PERSONA_ADMIN_SUBSTRINGS` | Optional fragments that map the resolved persona to `admin`. |
+| `VITE_IMS_PERSONA_DEVELOPER_SUBSTRINGS` | Optional fragments that map the resolved persona to `developer`. |
+| `VITE_PORTAL_PERSONA_AFTER_SIGNIN` | If set to `marketeer`, `developer`, or `admin`, forces that persona after sign-in. |
+| `VITE_PORTAL_ALL_USERS_ARE_ADMINS` | If `true`, every signed-in user is a portal admin (development convenience). |
+
+Logic lives in `src/utils/imsPersona.ts`. Curated tile targets and **`openMode`** (`iframe` / `new-tab` / `navigate`) are described in `docs/HOSTED_TILES.md`.
+
 ### 📁 **Key Files**
 
 - `src/components/MainApp.tsx` - Main application

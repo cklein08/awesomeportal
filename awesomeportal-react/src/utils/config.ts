@@ -74,14 +74,46 @@ function maybeRewriteGridForPersona(all: RoleGridsState, persona: PortalPersonaI
     return cleaned;
 }
 
-const GRID_EDIT_STORAGE_KEY = 'awesomeportal_gridEditConfig';
+export const GRID_EDIT_STORAGE_KEY = 'awesomeportal_gridEditConfig';
 /** Per-persona grid layouts (marketeer / developer / admin). */
-const ROLE_GRIDS_STORAGE_KEY = 'awesomeportal_roleGrids';
-const PERSONA_STORAGE_KEY = 'awesomeportal_selectedPersona';
-const APP_BUILDER_STORAGE_KEY = 'awesomeportal_appBuilderApps';
+export const ROLE_GRIDS_STORAGE_KEY = 'awesomeportal_roleGrids';
+export const PERSONA_STORAGE_KEY = 'awesomeportal_selectedPersona';
+export const APP_BUILDER_STORAGE_KEY = 'awesomeportal_appBuilderApps';
 
 export const SKIN_STORAGE_KEY = 'awesomeportal_skinConfig';
 export const AEM_PROGRAM_STORAGE_KEY = 'awesomeportal_selectedAemProgram';
+
+const SAVED_SEARCHES_STORAGE_KEY = 'awesomeportal-saved-searches';
+
+/** Keys preserved when clearing auth/session data on sign-out. */
+export const PORTAL_PERSISTENT_LOCAL_STORAGE_KEYS: readonly string[] = [
+    ROLE_GRIDS_STORAGE_KEY,
+    GRID_EDIT_STORAGE_KEY,
+    SKIN_STORAGE_KEY,
+    APP_BUILDER_STORAGE_KEY,
+    PERSONA_STORAGE_KEY,
+    AEM_PROGRAM_STORAGE_KEY,
+    SAVED_SEARCHES_STORAGE_KEY,
+];
+
+/** Remove all localStorage keys except portal preferences (grids, skin, persona, App Builder, saved searches, AEM program). */
+export function clearEphemeralLocalStorageOnSignOut(): void {
+    const keep = new Set(PORTAL_PERSISTENT_LOCAL_STORAGE_KEYS);
+    const keys: string[] = [];
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k) keys.push(k);
+        }
+        for (const k of keys) {
+            if (!keep.has(k)) {
+                localStorage.removeItem(k);
+            }
+        }
+    } catch (e) {
+        console.warn('clearEphemeralLocalStorageOnSignOut failed', e);
+    }
+}
 
 export interface AemProgramOption {
     id: string;
@@ -253,6 +285,7 @@ export const appBuilderDropInsToEntitlements = (apps: AppBuilderDropIn[]): Entit
             description: a.description ?? `App Builder · ${a.title}`,
             href: a.url,
             iconUrl: a.iconUrl,
+            openMode: a.openMode,
         }));
 
 // Utility to get external parameters from awesomeportalConfig

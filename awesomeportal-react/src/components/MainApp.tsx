@@ -29,6 +29,7 @@ import { fetchOptimizedDeliveryBlob, removeBlobFromCache } from '../utils/blobCa
 import { getDefaultSlotBlocks, useSlotBlocks } from '../hooks/useSlotBlocks';
 import {
     appBuilderDropInsToEntitlements,
+    clearEphemeralLocalStorageOnSignOut,
     getAdobeClientId,
     getAppBuilderDropIns,
     getBucket,
@@ -41,6 +42,7 @@ import {
     setSelectedPersona,
     type AemProgramOption,
 } from '../utils/config';
+import { isPortalAdminFromToken, resolvePersonaFromAccessToken } from '../utils/imsPersona';
 import { getProfilePictureUrl } from '../utils/profileImage';
 import { AppConfigProvider } from './AppConfigProvider';
 
@@ -57,7 +59,7 @@ declare global {
 // Components
 import { CalendarDate } from '@internationalized/date';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthorizationStatus, CheckRightsRequest, FadelClient } from '../clients/fadel-client';
 import { calendarDateToEpoch } from '../utils/formatters';
 import CartPanel from './CartPanel';
@@ -324,6 +326,7 @@ function MainApp(): React.JSX.Element {
     const [gridConfigVersion, setGridConfigVersion] = useState(0);
     const appTiles = useSlotBlocks(setSelectedTileId, handleSelectDaContentUrl, gridConfigVersion);
     const navigate = useNavigate();
+    const location = useLocation();
     const [viewMode, setViewMode] = useState<'admin' | 'creator'>('admin');
 
     // AEM instance selector (Assets Browser, admin view)
@@ -396,6 +399,47 @@ function MainApp(): React.JSX.Element {
     useEffect(() => {
         localStorage.setItem('cartItems', JSON.stringify(cartItems));
     }, [cartItems]);
+
+    const canOverridePortalPersona = useMemo(() => {
+        if (!authenticated) return false;
+        if (isCookieAuth()) return true;
+        return isPortalAdminFromToken(accessToken);
+    }, [authenticated, accessToken]);
+
+    const prevAccessTokenRef = useRef('');
+    useEffect(() => {
+        const prev = prevAccessTokenRef.current;
+        prevAccessTokenRef.current = accessToken;
+        if (!accessToken) return;
+        const resolved = resolvePersonaFromAccessToken(accessToken);
+        if (!resolved) return;
+        const admin = isPortalAdminFromToken(accessToken);
+        if (!prev) {
+            if (!admin) {
+                setSelectedPersona(resolved);
+                setPortalPersona(resolved);
+                setGridConfigVersion((v) => v + 1);
+            }
+            return;
+        }
+        if (!admin) {
+            setSelectedPersona(resolved);
+            setPortalPersona(resolved);
+            setGridConfigVersion((v) => v + 1);
+        }
+    }, [accessToken]);
+
+    useEffect(() => {
+        const st = location.state as { openSkinEditor?: boolean } | undefined;
+        if (!st?.openSkinEditor) return;
+        if (authenticated) {
+            setShowSkinEditor(true);
+        }
+        navigate(
+            { pathname: location.pathname, search: location.search, hash: location.hash },
+            { replace: true, state: {} }
+        );
+    }, [location.state, location.pathname, location.search, location.hash, authenticated, navigate]);
 
     useEffect(() => {
         const hasAccessToken = Boolean(accessToken);
@@ -922,17 +966,12 @@ function MainApp(): React.JSX.Element {
         console.log('🚪 User signed out, clearing access token');
         setAccessToken('');
         try {
-            // Clear all localStorage
-            const localStorageLength = localStorage.length;
-            console.log(`- Clearing ${localStorageLength} localStorage items`);
-            localStorage.clear();
-
-            // Clear all sessionStorage
+            clearEphemeralLocalStorageOnSignOut();
             const sessionStorageLength = sessionStorage.length;
-            console.log(`- Clearing ${sessionStorageLength} sessionStorage items`);
             sessionStorage.clear();
-
-            console.log('✅ All browser storage cleared successfully');
+            console.log(
+                `✅ Cleared session storage (${sessionStorageLength} keys) and non-portal localStorage; preserved portal layouts, skin, persona, App Builder, saved searches.`
+            );
         } catch (error) {
             console.error('❌ Error clearing browser storage:', error);
         }
@@ -945,6 +984,10 @@ function MainApp(): React.JSX.Element {
 
     // Handle app selection
     const handleAppSelect = (appId: string): void => {
+        if (appId === 'portal-admin') {
+            navigate('/admin');
+            return;
+        }
         if (appId === 'portal-grid') {
             navigate(`/admin/grid-edit?persona=${encodeURIComponent(portalPersona)}`);
             return;
@@ -1013,6 +1056,7 @@ function MainApp(): React.JSX.Element {
             description: payload.description,
             href: payload.href,
             iconUrl: payload.iconUrl,
+            openMode: payload.openMode,
             slotType: 'application',
         };
         const nextBlocks = [...currentBlocks];
@@ -1418,18 +1462,24 @@ function MainApp(): React.JSX.Element {
                                 <div className="app-grid-view-toggle">
                                     <label className="portal-persona-switcher">
                                         <span className="portal-persona-switcher-label">View as</span>
-                                        <select
-                                            className="portal-persona-select"
-                                            value={portalPersona}
-                                            onChange={handlePortalPersonaChange}
-                                            aria-label="Portal persona"
-                                        >
-                                            {PORTAL_PERSONA_ORDER.map((id) => (
-                                                <option key={id} value={id}>
-                                                    {PORTAL_PERSONA_LABELS[id]}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        {canOverridePortalPersona ? (
+                                            <select
+                                                className="portal-persona-select"
+                                                value={portalPersona}
+                                                onChange={handlePortalPersonaChange}
+                                                aria-label="Portal persona"
+                                            >
+                                                {PORTAL_PERSONA_ORDER.map((id) => (
+                                                    <option key={id} value={id}>
+                                                        {PORTAL_PERSONA_LABELS[id]}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <span className="portal-persona-readonly" aria-live="polite">
+                                                {PORTAL_PERSONA_LABELS[portalPersona]}
+                                            </span>
+                                        )}
                                     </label>
                                     <button
                                         type="button"

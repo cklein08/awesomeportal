@@ -1,0 +1,82 @@
+.admin-hub {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: clamp(24px, 4vw, 40px) 20px 48px;
+    font-family: var(--font-body, system-ui, sans-serif);
+    color: var(--portal-text, #1a1a1a);
+    background: var(--portal-chrome-bg, #ffffff);
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+.admin-hub-header {
+    margin-bottom: 2rem;
+}
+
+.admin-hub-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.75rem;
+    font-family: var(--font-heading, var(--font-body, system-ui, sans-serif));
+}
+
+.admin-hub-lede {
+    margin: 0;
+    color: var(--portal-text-muted, #555);
+    line-height: 1.5;
+}
+
+.admin-hub-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.admin-hub-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--portal-border, #e0e0e0);
+    background: var(--portal-elevated-bg, #fff);
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+a.admin-hub-card:hover {
+    border-color: var(--primary-color, #ed0000);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.admin-hub-card--muted {
+    opacity: 0.85;
+}
+
+.admin-hub-card-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.admin-hub-card-desc {
+    font-size: 0.9rem;
+    color: var(--portal-text-muted, #666);
+    line-height: 1.4;
+}
+
+.admin-hub-footer {
+    margin-top: 2rem;
+    font-size: 0.95rem;
+}
+
+.admin-hub-footer a {
+    color: var(--link-color, var(--primary-color, #ed0000));
+    text-decoration: none;
+}
+
+.admin-hub-footer a:hover {
+    text-decoration: underline;
+}
