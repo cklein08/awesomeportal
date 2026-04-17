@@ -10,9 +10,9 @@ import { PORTAL_PERSONA_ORDER } from './portalPersonas';
 import { getGridLayout, setGridLayout, setSkinConfig } from '../utils/config';
 import { withBase } from '../utils/pathUtils';
 
-/** Bundled SVGs so local dev works offline and is not blocked by hotlink/CDN limits. */
+/** Bundled assets so local dev works offline and is not blocked by hotlink/CDN limits. */
 const HEINEKEN_LOGO = withBase('/brand-demos/heineken/logo.svg');
-const HEINEKEN_HERO = withBase('/brand-demos/heineken/hero.svg');
+const HEINEKEN_COACHELLA_BANNER = withBase('/brand-demos/heineken/coachella-banner.png');
 
 export const HEINEKEN_SKIN: PortalSkinConfig = {
     logoUrl: HEINEKEN_LOGO,
@@ -32,7 +32,7 @@ export const HEINEKEN_SKIN: PortalSkinConfig = {
     accentColor: '#E60012',
     fontFamilyBody: 'Source Sans 3:wght@400;600',
     fontFamilyHeading: 'Barlow Semi Condensed:wght@500;700',
-    heroImageUrl: HEINEKEN_HERO,
+    heroImageUrl: HEINEKEN_COACHELLA_BANNER,
 };
 
 /** Marketing-style strip above the tile grid (heineken.marketing–style editorial bar). */
@@ -47,8 +47,8 @@ export const HEINEKEN_GRID_TOP_HTML = `
 
 export const HEINEKEN_TOP_BANNERS: GridTopBanner[] = [
     {
-        url: HEINEKEN_HERO,
-        alt: 'Green hops / barley mood',
+        url: HEINEKEN_COACHELLA_BANNER,
+        alt: "Heineken Coachella promotional banner featuring fans holding beer bottles with the text 'Fans have more friends.'",
         href: 'https://www.heineken.com/',
     },
 ];

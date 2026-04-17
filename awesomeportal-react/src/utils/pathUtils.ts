@@ -11,7 +11,7 @@ export function withBase(absoluteFromSiteRoot: string): string {
 
 /**
  * Fixes URLs saved with HTML entities (e.g. `&amp;` in query strings) and swaps a known-broken
- * legacy Heineken demo Unsplash URL for the bundled hero SVG.
+ * legacy Heineken demo Unsplash URL for the bundled marketing banner asset.
  */
 export function normalizeImageSrcForDisplay(url: string | undefined | null): string {
     if (url == null) return '';
@@ -19,7 +19,7 @@ export function normalizeImageSrcForDisplay(url: string | undefined | null): str
     if (!u) return '';
     u = u.replace(/&amp;/gi, '&');
     if (u.includes('images.unsplash.com/photo-1518176258769')) {
-        return withBase('/brand-demos/heineken/hero.svg');
+        return withBase('/brand-demos/heineken/coachella-banner.png');
     }
     return u;
 }
