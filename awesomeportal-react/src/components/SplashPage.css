@@ -1,0 +1,72 @@
+.splash-page {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(24px, 5vw, 48px);
+    box-sizing: border-box;
+    background: radial-gradient(120% 100% at 50% 0%, #2a2a2a 0%, #0f0f0f 55%, #050505 100%);
+    color: #f5f5f5;
+    font-family: var(--font-body, system-ui, sans-serif);
+}
+
+.splash-page-inner {
+    width: min(36rem, 100%);
+    text-align: center;
+}
+
+.splash-page-kicker {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.splash-page-title {
+    margin: 0 0 1rem;
+    font-family: var(--font-heading, var(--font-body, system-ui, sans-serif));
+    font-size: clamp(1.75rem, 4vw, 2.35rem);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+.splash-page-lede {
+    margin: 0 0 2rem;
+    font-size: 1rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.splash-page-cta {
+    appearance: none;
+    border: none;
+    border-radius: 999px;
+    padding: 0.85rem 1.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    color: #fff;
+    background-color: var(--primary-color, #ed0000);
+    box-shadow: 0 4px 20px rgba(237, 0, 0, 0.35);
+    transition: background-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+.splash-page-cta:hover {
+    background-color: var(--primary-color-hover, #d11700);
+    box-shadow: 0 6px 24px rgba(237, 0, 0, 0.42);
+}
+
+.splash-page-cta:active {
+    background-color: var(--primary-color-active, #bd1500);
+    transform: translateY(1px);
+}
+
+.splash-page-cta:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+}
