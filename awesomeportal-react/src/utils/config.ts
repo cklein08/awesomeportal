@@ -250,6 +250,21 @@ export const setSelectedPersona = (persona: PortalPersonaId): void => {
     }
 };
 
+/**
+ * If the current URL includes a valid `?persona=`, persist it before React mounts so the first
+ * paint matches impersonation / deep links (grid + hooks that read `getSelectedPersona()`).
+ */
+export function syncStoredPersonaFromUrlIfPresent(): void {
+    try {
+        const q = new URLSearchParams(window.location.search).get('persona');
+        if (q && isPortalPersonaId(q)) {
+            setSelectedPersona(q);
+        }
+    } catch {
+        /* ignore */
+    }
+}
+
 /** URL `?persona=marketeer|developer|admin` overrides for the grid editor; otherwise current switcher value. */
 export const readPersonaFromLocation = (): PortalPersonaId => {
     try {

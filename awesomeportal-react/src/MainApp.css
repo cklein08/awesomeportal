@@ -40,7 +40,8 @@ html.portal-suppress-host-top-app-bar .top-app-bar-content-container {
 
 .container,
 .container * {
-  font-family: var(--font-body);
+  /* Match index.css :root stack when skin does not set --font-body (invalid var() would otherwise drop .admin-shell’s face) */
+  font-family: var(--font-body, adobe-clean, "Source Sans 3", "TCCC UnityText Regular", "Helvetica Neue", Arial, Helvetica, sans-serif);
 }
 
 .main-content {

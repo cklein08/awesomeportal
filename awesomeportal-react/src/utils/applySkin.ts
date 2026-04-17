@@ -236,6 +236,15 @@ export function applySkin(config: PortalSkinConfig | null = getSkinConfig()): vo
         root.style.setProperty('--font-heading', `'${config.fontFamilyHeading.trim()}'`);
     }
 
+    // Clear stale documentElement overrides when this skin pass does not define fonts, so :root
+    // defaults from index.css apply (e.g. after removing custom fonts or opening ?persona= links).
+    if (!hasBodyFontFile && !config.fontFamilyBody?.trim()) {
+        root.style.removeProperty('--font-body');
+    }
+    if (!hasHeadingFontFile && !config.fontFamilyHeading?.trim()) {
+        root.style.removeProperty('--font-heading');
+    }
+
     // Portal chrome (panels, search strip, borders) — optional keys
     const chromeBg = config.pageBackgroundColor?.trim() || config.backgroundColor?.trim();
     if (chromeBg) {

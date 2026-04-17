@@ -23,13 +23,14 @@ import App from './App';
 import './index.css';
 import './portal-skin-tokens.css';
 import { applyHeinekenLocalDemo } from './constants/heinekenDemoPreset';
-import { getExternalParams, sanitizeAllStoredRoleGridsImageUrls } from './utils/config';
+import { getExternalParams, sanitizeAllStoredRoleGridsImageUrls, syncStoredPersonaFromUrlIfPresent } from './utils/config';
 
 if (import.meta.env.VITE_HEINEKEN_DEMO === 'true') {
     applyHeinekenLocalDemo();
 }
 
 sanitizeAllStoredRoleGridsImageUrls();
+syncStoredPersonaFromUrlIfPresent();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
