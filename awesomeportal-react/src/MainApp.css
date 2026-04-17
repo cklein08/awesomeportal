@@ -387,6 +387,33 @@ html.portal-suppress-host-top-app-bar .top-app-bar-content-container {
   border: none;
 }
 
+/*
+ * Cross-origin iframes cannot be DOM-edited from the portal; clip the top band where
+ * Adobe apps render .top-app-bar-content-container (~48–56px). Override with
+ * --portal-embedded-top-app-bar-crop on this wrapper if a target uses a different height.
+ */
+.da-content-in-frame--clip-embedded-top-app-bar {
+  --portal-embedded-top-app-bar-crop: 52px;
+}
+
+.da-content-in-frame--clip-embedded-top-app-bar .da-content-in-frame-clip {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.da-content-in-frame--clip-embedded-top-app-bar .da-content-in-frame-clip .da-content-in-frame-iframe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--portal-embedded-top-app-bar-crop));
+  bottom: 0;
+  width: 100%;
+  height: auto;
+  border: none;
+}
+
 .da-content-in-frame-error {
   flex-shrink: 0;
   padding: 12px 20px;

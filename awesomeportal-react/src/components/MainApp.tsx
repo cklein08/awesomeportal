@@ -1709,12 +1709,14 @@ function MainApp(): React.JSX.Element {
                         ) : selectedAppId === 'dashboard' ? (
                             <Dashboard />
                         ) : selectedDaContentUrl ? (
-                            <div className="da-content-in-frame">
-                                <iframe
-                                    title="DA Content"
-                                    src={selectedDaContentUrl}
-                                    className="da-content-in-frame-iframe"
-                                />
+                            <div className="da-content-in-frame da-content-in-frame--clip-embedded-top-app-bar">
+                                <div className="da-content-in-frame-clip">
+                                    <iframe
+                                        title="DA Content"
+                                        src={selectedDaContentUrl}
+                                        className="da-content-in-frame-iframe"
+                                    />
+                                </div>
                                 {iframeCannotDisplay && (
                                     <div className="da-content-in-frame-error" role="alert">
                                         <p className="da-content-in-frame-error-text">
