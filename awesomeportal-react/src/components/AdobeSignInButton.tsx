@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AdobeSignInButtonProps } from '../types';
 import { getAdobeClientId } from '../utils/config';
+import { getPortalSpaRootHref, readPostImsReturnSettleMs } from '../utils/portalSession';
 
 interface IMSConfig {
     clientId: string;
@@ -17,10 +18,11 @@ interface IMSConfig {
  *   - onAuthenticated: function(token) => void (called with Bearer token on success)
  *   - onSignOut: function() => void (called when user signs out)
  */
-const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, onSignOut }) => {
+const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, onSignOut, sessionActive, imsSession }) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+    const [postAuthSettling, setPostAuthSettling] = useState(false);
 
     // IMS config for implicit flow - memoized to prevent unnecessary re-renders
     const imsConfig: IMSConfig = useMemo(() => ({
@@ -101,6 +103,18 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
         });
     }, [imsConfig, onAuthenticated]);
 
+    const replaceLocationAfterAuth = useCallback((target: string) => {
+        const ms = readPostImsReturnSettleMs();
+        if (ms <= 0) {
+            window.location.replace(target);
+            return;
+        }
+        setPostAuthSettling(true);
+        window.setTimeout(() => {
+            window.location.replace(target);
+        }, ms);
+    }, []);
+
     // Check if token is expired or about to expire (within 5 minutes)
     const isTokenExpired = useCallback((): boolean => {
         const expiresAt = localStorage.getItem('tokenExpiresAt');
@@ -154,12 +168,9 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
 
             const authUrl = `https://ims-na1.adobelogin.com/ims/authorize/v2?${params.toString()}`;
 
-            // Persist the redirect URL so we land on the app root after login (e.g. /tools/assets-browser/).
-            // Do not set postSignInRedirectApp so the user lands on the main grid with the drag-and-drop panel visible.
+            // Land on SPA root (Vite `base`), not index.html, so the default route shows the portal grid.
             try {
-                const basePath = (typeof import.meta !== 'undefined' && (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL) || '/tools/assets-browser/';
-                const appRoot = `${window.location.origin}${basePath.replace(/\/?$/, '/')}`;
-                sessionStorage.setItem('postSignInRedirect', appRoot);
+                sessionStorage.setItem('postSignInRedirect', getPortalSpaRootHref());
             } catch (e) {
                 // ignore session storage errors
             }
@@ -255,10 +266,9 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                         } catch {
                             // ignore
                         }
-                        const basePath = (typeof import.meta !== 'undefined' && (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL) || '/tools/assets-browser/';
-                        return `${window.location.origin}${basePath.replace(/\/?$/, '/')}`;
+                        return getPortalSpaRootHref();
                     })();
-                    window.location.replace(cleanTarget);
+                    replaceLocationAfterAuth(cleanTarget);
                     return;
                 }
             } catch (error) {
@@ -321,10 +331,9 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                         } catch {
                             // ignore
                         }
-                        const basePath = (typeof import.meta !== 'undefined' && (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL) || '/tools/assets-browser/';
-                        return `${window.location.origin}${basePath.replace(/\/?$/, '/')}`;
+                        return getPortalSpaRootHref();
                     })();
-                    window.location.replace(cleanTarget);
+                    replaceLocationAfterAuth(cleanTarget);
                     return;
                 }
             } catch (error) {
@@ -400,10 +409,9 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                             } catch {
                                 // ignore
                             }
-                            const basePath = (typeof import.meta !== 'undefined' && (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL) || '/tools/assets-browser/';
-                            return `${window.location.origin}${basePath.replace(/\/?$/, '/')}`;
+                            return getPortalSpaRootHref();
                         })();
-                        window.location.replace(cleanTarget);
+                        replaceLocationAfterAuth(cleanTarget);
                         return;
                     }
                 }
@@ -445,10 +453,37 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
         };
 
         checkExistingToken();
-    }, [onAuthenticated, isTokenExpired, performSilentRefresh, setupTokenRefresh]);
+    }, [onAuthenticated, isTokenExpired, performSilentRefresh, setupTokenRefresh, replaceLocationAfterAuth]);
+
+    const signedIn = sessionActive !== undefined ? sessionActive : isAuthenticated;
+    const imsBearerSession = imsSession === true;
 
     return (
         <>
+            {postAuthSettling ? (
+                <div
+                    className="ims-auth-settling-overlay"
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 2147483646,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 24,
+                        background: 'rgba(0, 20, 8, 0.82)',
+                        color: '#fff',
+                        textAlign: 'center',
+                        fontFamily: 'system-ui, sans-serif',
+                    }}
+                    role="status"
+                    aria-live="polite"
+                >
+                    <p style={{ maxWidth: '26rem', fontSize: '1.05rem', lineHeight: 1.5, margin: 0 }}>
+                        Completing sign-in… If Adobe showed an organization or profile step, you can finish there before we open the portal. Taking you in shortly.
+                    </p>
+                </div>
+            ) : null}
             <button
                 type="button"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200"
@@ -457,13 +492,18 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                     color: '#fff',
                     opacity: loading ? 0.7 : 1
                 }}
-                onClick={isAuthenticated ? handleSignOut : handleSignIn}
+                onClick={signedIn ? handleSignOut : handleSignIn}
                 disabled={loading || !imsConfig.clientId}
             >
                 {loading
-                    ? (isAuthenticated ? 'Signing out...' : 'Signing in...')
-                    : (isAuthenticated ? 'Sign out' : 'Sign in with Adobe')
-                }
+                    ? signedIn
+                        ? 'Signing out...'
+                        : 'Signing in...'
+                    : signedIn
+                        ? imsBearerSession
+                            ? 'Sign Out with Adobe'
+                            : 'Sign out'
+                        : 'Sign in with Adobe'}
             </button>
             {error && (
                 <div className="mt-2 text-sm text-red-600">{error}</div>

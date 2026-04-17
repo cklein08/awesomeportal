@@ -1,14 +1,23 @@
 import React from 'react';
+import AdobeSignInButton from './AdobeSignInButton';
 import './SplashPage.css';
+import { isLegacyCookiePortalHost } from '../utils/portalAccess';
+import { getPortalTitle } from '../utils/portalBranding';
 import { withBase } from '../utils/pathUtils';
 
 export type SplashPageProps = {
-    onContinue: () => void;
+    /** Called after IMS stores a token (splash gate then opens the app). */
+    onAuthenticated: (token: string) => void;
+    /** Legacy cookie dev hosts only: enter portal without Adobe sign-in. */
+    onDevContinue?: () => void;
 };
 
 const isHeinekenDemo = import.meta.env.VITE_HEINEKEN_DEMO === 'true';
 
-const SplashPage: React.FC<SplashPageProps> = ({ onContinue }) => {
+const SplashPage: React.FC<SplashPageProps> = ({ onAuthenticated, onDevContinue }) => {
+    const portalTitle = getPortalTitle();
+    const showDevSkip = Boolean(onDevContinue) && isLegacyCookiePortalHost();
+
     return (
         <div
             className={`splash-page${isHeinekenDemo ? ' splash-page--heineken' : ''}`}
@@ -24,14 +33,32 @@ const SplashPage: React.FC<SplashPageProps> = ({ onContinue }) => {
                         <p className="splash-page-kicker">Adobe</p>
                     )}
                     <h1 id="splash-title" className="splash-page-title">
-                        Awesome Portal
+                        {portalTitle}
                     </h1>
                     <p className="splash-page-lede">
-                        Continue to open the portal. This screen is shown once per browser tab session.
+                        Sign in with your Adobe ID. After Adobe returns you here, we wait briefly so you can confirm your profile or organization before opening the
+                        portal. This screen is shown once per browser tab until you sign in (or continue on a supported dev host).
                     </p>
-                    <button type="button" className="splash-page-cta" onClick={onContinue}>
-                        Continue
-                    </button>
+                    <div className="splash-page-auth">
+                        <AdobeSignInButton
+                            onAuthenticated={onAuthenticated}
+                            onSignOut={() => {
+                                try {
+                                    localStorage.removeItem('accessToken');
+                                    localStorage.removeItem('tokenExpiresAt');
+                                } catch {
+                                    /* ignore */
+                                }
+                            }}
+                        />
+                    </div>
+                    {showDevSkip ? (
+                        <p className="splash-page-dev-wrap">
+                            <button type="button" className="splash-page-dev-link" onClick={() => onDevContinue?.()}>
+                                Continue without Adobe (local cookie host)
+                            </button>
+                        </p>
+                    ) : null}
                 </div>
             </div>
         </div>

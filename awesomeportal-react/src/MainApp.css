@@ -685,3 +685,62 @@ button:disabled:hover {
   font-weight: 600;
   line-height: 19px;
 }
+
+.portal-signin-gate {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: var(--portal-page-bg, #f7f7f7);
+}
+
+.portal-signin-gate-card {
+  max-width: 420px;
+  width: 100%;
+  padding: 32px 28px;
+  border-radius: 12px;
+  background: var(--portal-elevated-bg, #fff);
+  border: 1px solid var(--portal-border, #e0e0e0);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.portal-signin-gate-card h1 {
+  margin: 0 0 12px 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--portal-text, #222);
+}
+
+.portal-signin-gate-card p {
+  margin: 0 0 20px 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #555;
+}
+
+.portal-persona-impersonation-bar {
+  margin: 0 20px 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(244, 0, 0, 0.06);
+  border: 1px solid rgba(244, 0, 0, 0.2);
+}
+
+.portal-persona-impersonation-bar p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #333;
+}
+
+.portal-persona-switcher-hint {
+  width: 100%;
+  flex-basis: 100%;
+  margin: 6px 0 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #555;
+  max-width: 36rem;
+}

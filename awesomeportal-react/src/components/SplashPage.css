@@ -135,3 +135,34 @@
     outline: 2px solid #fff;
     outline-offset: 3px;
 }
+
+.splash-page-auth {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.splash-page-auth > button {
+    width: 100%;
+    max-width: 16rem;
+}
+
+.splash-page-dev-wrap {
+    margin: 1.25rem 0 0;
+}
+
+.splash-page-dev-link {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.78);
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.splash-page-dev-link:hover {
+    color: #fff;
+}

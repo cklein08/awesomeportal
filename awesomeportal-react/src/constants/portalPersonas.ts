@@ -11,7 +11,7 @@ export const PORTAL_PERSONA_ORDER: PortalPersonaId[] = ['marketeer', 'developer'
 
 /**
  * Left navigation entries per persona. IDs are handled in MainApp.handleAppSelect
- * (e.g. portal-grid → grid editor, settings → Adobe account).
+ * (e.g. portal-activities → Admin activities, settings → Adobe account).
  */
 export function getLeftNavAppsForPersona(persona: PortalPersonaId): AppItem[] {
     if (persona === 'marketeer') {
@@ -26,17 +26,16 @@ export function getLeftNavAppsForPersona(persona: PortalPersonaId): AppItem[] {
         return [
             { id: 'dashboard', name: 'Dashboard' },
             { id: 'assets-browser', name: 'Assets browser' },
-            { id: 'portal-grid', name: 'Portal layout' },
+            { id: 'portal-activities', name: 'Admin activities' },
             { id: 'analytics', name: 'Analytics' },
             { id: 'settings', name: 'Adobe account' },
         ];
     }
-    // admin — full org tooling + layout and brand entry points
+    // admin — org tooling, unified admin screen, and brand entry point
     return [
         { id: 'dashboard', name: 'Dashboard' },
-        { id: 'portal-admin', name: 'Admin hub' },
+        { id: 'portal-activities', name: 'Admin activities' },
         { id: 'assets-browser', name: 'Assets browser' },
-        { id: 'portal-grid', name: 'Portal layout' },
         { id: 'portal-brand', name: 'Brand & theme' },
         { id: 'analytics', name: 'Analytics' },
         { id: 'settings', name: 'Adobe account' },

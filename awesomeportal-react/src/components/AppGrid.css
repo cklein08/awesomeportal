@@ -149,6 +149,21 @@
     color: white;
 }
 
+.app-grid-tile.has-inline-remove {
+    position: relative;
+}
+
+.slot-delete-btn--inline {
+    animation: none;
+    border-color: var(--portal-border, #ccc);
+    color: #555;
+}
+
+.slot-delete-btn--inline:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: #111;
+}
+
 .app-tile-icon {
     font-size: 2.5rem;
     margin-bottom: 12px;

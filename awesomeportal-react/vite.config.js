@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       port: 5173,
-      open: '/tools/assets-browser/index.html'
+      open: '/tools/assets-browser/'
     },
     base: '/tools/assets-browser/',
     // Load environment files in order of priority

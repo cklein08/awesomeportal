@@ -2,9 +2,8 @@ import React, { useMemo } from 'react';
 import type { AppTile } from '../components/AppGrid';
 import type { SlotBlockDescriptor } from '../types';
 import { getExternalParams } from '../utils/config';
+import { GRID_SLOT_COUNT, ensureSlots24 } from '../utils/gridSlots';
 import { resolveTileOpenMode } from '../utils/tileNavigation';
-
-const GRID_SLOT_COUNT = 24;
 
 /**
  * Global set by DA (or embedding host) after SDK context is ready.
@@ -135,13 +134,17 @@ export function getDefaultSlotBlocks(): SlotBlockDescriptor[] {
     ];
 }
 
-/** Normalize raw slot blocks to 24 slots; null = empty. Handles dense arrays (no nulls) from legacy config. */
-function normalizeTo24Slots(raw: SlotBlockDescriptor[] | (SlotBlockDescriptor | null)[] | undefined): (SlotBlockDescriptor | null)[] {
-    if (!raw || !Array.isArray(raw)) return Array.from({ length: GRID_SLOT_COUNT }, () => null);
-    return Array.from({ length: GRID_SLOT_COUNT }, (_, i) => {
-        const b = raw[i];
-        return b != null && typeof b === 'object' ? (b as SlotBlockDescriptor) : null;
-    });
+/**
+ * Preview tiles for a fixed 24-slot descriptor array (no navigation side effects).
+ */
+export function previewAppTilesFromSlotBlocks(blocks: (SlotBlockDescriptor | null)[] | undefined): (AppTile | null)[] {
+    const noop = (): void => {};
+    const slots = ensureSlots24(blocks);
+    if (slots.every((s) => s == null)) {
+        const defaultTiles = getDefaultTiles(noop);
+        return Array.from({ length: GRID_SLOT_COUNT }, (_, i) => defaultTiles[i] ?? null);
+    }
+    return slots.map((block) => (block ? slotBlockToAppTile(block, noop, noop) : null));
 }
 
 /**
@@ -161,9 +164,9 @@ export function useSlotBlocks(
 
         let slots: (SlotBlockDescriptor | null)[];
         if (Array.isArray(daBlocks) && daBlocks.length > 0) {
-            slots = normalizeTo24Slots(daBlocks);
+            slots = ensureSlots24(daBlocks);
         } else if (externalBlocks != null && externalBlocks.length > 0) {
-            slots = normalizeTo24Slots(externalBlocks);
+            slots = ensureSlots24(externalBlocks);
         } else {
             const defaultTiles = getDefaultTiles(onSelectTileId);
             return Array.from({ length: GRID_SLOT_COUNT }, (_, i) => defaultTiles[i] ?? null);

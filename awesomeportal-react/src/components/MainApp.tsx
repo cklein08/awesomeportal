@@ -42,7 +42,9 @@ import {
     setSelectedPersona,
     type AemProgramOption,
 } from '../utils/config';
-import { isPortalAdminFromToken, resolvePersonaFromAccessToken } from '../utils/imsPersona';
+import { decodeImsAccessTokenPayload, isPortalAdminFromToken, resolvePersonaFromAccessToken } from '../utils/imsPersona';
+import { setSkipAdminLandingRedirect, shouldOpenAdminActivitiesAfterSignIn } from '../utils/portalAccess';
+import { getPortalSpaRootHref, readPostLoginAdminRedirectDelayMs } from '../utils/portalSession';
 import { getProfilePictureUrl } from '../utils/profileImage';
 import { AppConfigProvider } from './AppConfigProvider';
 
@@ -217,7 +219,20 @@ function MainApp(): React.JSX.Element {
     const [profile, setProfile] = useState<any | null>(null);
     const [profileImageError, setProfileImageError] = useState<boolean>(false);
 
-    const profilePictureUrl = getProfilePictureUrl(profile);
+    const profileWithJwtAvatar = useMemo(() => {
+        if (!accessToken?.trim()) return profile;
+        const payload = decodeImsAccessTokenPayload(accessToken);
+        const pic =
+            (payload && typeof payload.picture === 'string' && payload.picture) ||
+            (payload && typeof (payload as Record<string, unknown>).avatar === 'string'
+                ? ((payload as Record<string, unknown>).avatar as string)
+                : '') ||
+            '';
+        if (!pic && !profile) return profile;
+        return { ...profile, picture: profile?.picture || pic };
+    }, [profile, accessToken]);
+
+    const profilePictureUrl = getProfilePictureUrl(profileWithJwtAvatar);
 
     const [query, setQuery] = useState<string>('');
     const [dmImages, setDmImages] = useState<Asset[]>([]);
@@ -327,6 +342,7 @@ function MainApp(): React.JSX.Element {
     const appTiles = useSlotBlocks(setSelectedTileId, handleSelectDaContentUrl, gridConfigVersion);
     const navigate = useNavigate();
     const location = useLocation();
+    const prevLocationPathRef = useRef<string>('');
     const [viewMode, setViewMode] = useState<'admin' | 'creator'>('admin');
 
     // AEM instance selector (Assets Browser, admin view)
@@ -406,6 +422,17 @@ function MainApp(): React.JSX.Element {
         return isPortalAdminFromToken(accessToken);
     }, [authenticated, accessToken]);
 
+    const imsDerivedPersona = useMemo(
+        () => (accessToken ? resolvePersonaFromAccessToken(accessToken) : null),
+        [accessToken]
+    );
+
+    const showPersonaImpersonationBar =
+        canOverridePortalPersona &&
+        Boolean(accessToken) &&
+        imsDerivedPersona != null &&
+        portalPersona !== imsDerivedPersona;
+
     const prevAccessTokenRef = useRef('');
     useEffect(() => {
         const prev = prevAccessTokenRef.current;
@@ -445,6 +472,24 @@ function MainApp(): React.JSX.Element {
         const hasAccessToken = Boolean(accessToken);
         setAuthenticated(hasAccessToken || isCookieAuth());
     }, [accessToken]);
+
+    useEffect(() => {
+        if (!shouldOpenAdminActivitiesAfterSignIn(accessToken)) return;
+        if (location.pathname !== '/' && location.pathname !== '/index.html') return;
+        const delayMs = readPostLoginAdminRedirectDelayMs();
+        const id = window.setTimeout(() => {
+            navigate('/admin/activities', { replace: true });
+        }, delayMs);
+        return () => window.clearTimeout(id);
+    }, [accessToken, location.pathname, navigate]);
+
+    useEffect(() => {
+        const prev = prevLocationPathRef.current;
+        prevLocationPathRef.current = location.pathname;
+        if (prev.startsWith('/admin') && (location.pathname === '/' || location.pathname === '/index.html')) {
+            setGridConfigVersion((v) => v + 1);
+        }
+    }, [location.pathname]);
 
     useEffect(() => {
         // Only create client when authenticated (either mechanism) and bucket is available
@@ -964,6 +1009,7 @@ function MainApp(): React.JSX.Element {
 
     const handleSignOut = (): void => {
         console.log('🚪 User signed out, clearing access token');
+        setSkipAdminLandingRedirect(false);
         setAccessToken('');
         try {
             clearEphemeralLocalStorageOnSignOut();
@@ -975,6 +1021,7 @@ function MainApp(): React.JSX.Element {
         } catch (error) {
             console.error('❌ Error clearing browser storage:', error);
         }
+        window.location.assign(getPortalSpaRootHref());
     };
 
     // Toggle mobile filter panel
@@ -984,12 +1031,8 @@ function MainApp(): React.JSX.Element {
 
     // Handle app selection
     const handleAppSelect = (appId: string): void => {
-        if (appId === 'portal-admin') {
-            navigate('/admin');
-            return;
-        }
-        if (appId === 'portal-grid') {
-            navigate(`/admin/grid-edit?persona=${encodeURIComponent(portalPersona)}`);
+        if (appId === 'portal-activities' || appId === 'portal-admin' || appId === 'portal-grid') {
+            navigate(`/admin/activities?persona=${encodeURIComponent(portalPersona)}`);
             return;
         }
         if (appId === 'portal-brand') {
@@ -1199,8 +1242,20 @@ function MainApp(): React.JSX.Element {
                     cartItems={cartItems}
                     handleAuthenticated={handleIMSAccessToken}
                     handleSignOut={handleSignOut}
-                    profile={profile}
+                    profile={profileWithJwtAvatar}
+                    sessionActive={authenticated}
+                    imsSession={Boolean(accessToken?.trim())}
                 />
+
+                {showPersonaImpersonationBar && imsDerivedPersona ? (
+                    <div className="portal-persona-impersonation-bar" role="status">
+                        <p>
+                            You are viewing the portal as <strong>{PORTAL_PERSONA_LABELS[portalPersona]}</strong>. Your IMS session maps to{' '}
+                            <strong>{PORTAL_PERSONA_LABELS[imsDerivedPersona]}</strong>. Use <strong>View as</strong> to impersonate each persona, edit their
+                            grid in Admin activities, and confirm left navigation and tiles match expectations.
+                        </p>
+                    </div>
+                ) : null}
 
                 {/* Cart Container - moved from HeaderBar, now uses Portal */}
                 {createPortal(
@@ -1481,6 +1536,12 @@ function MainApp(): React.JSX.Element {
                                             </span>
                                         )}
                                     </label>
+                                    {canOverridePortalPersona ? (
+                                        <p className="portal-persona-switcher-hint">
+                                            Impersonate Marketeer, Developer, or Org admin to see that persona&apos;s left nav and grid. Admin activities keeps
+                                            the same persona in sync when you change layout there.
+                                        </p>
+                                    ) : null}
                                     <button
                                         type="button"
                                         className={`app-grid-customize-btn ${viewMode === 'admin' ? 'active' : ''}`}
@@ -1501,9 +1562,11 @@ function MainApp(): React.JSX.Element {
                                         <button
                                             type="button"
                                             className="app-grid-customize-btn"
-                                            onClick={() => navigate(`/admin/grid-edit?persona=${encodeURIComponent(portalPersona)}`)}
+                                            onClick={() =>
+                                                navigate(`/admin/activities?persona=${encodeURIComponent(portalPersona)}`)
+                                            }
                                         >
-                                            Edit grid
+                                            Admin activities
                                         </button>
                                         <button
                                             type="button"

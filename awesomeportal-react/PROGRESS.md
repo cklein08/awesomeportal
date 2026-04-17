@@ -4,6 +4,9 @@ Use this file to record what shipped and what is next. Update it when you merge 
 
 ## Recently completed
 
+- **Splash = Adobe sign-in** — `SplashPage` uses `AdobeSignInButton` instead of Continue; `PortalSplashGate` opens the app after `onAuthenticated`. Legacy cookie dev hosts can use **Continue without Adobe**. Removed the duplicate full-screen IMS gate from `MainApp.tsx` (sign-in only on splash).
+- **Client-branded portal title** — `VITE_PORTAL_CLIENT_NAME` + `getPortalTitle()` / `getPortalClientName()` in `src/utils/portalBranding.ts`; splash H1 and `document.title` show **{Client} Portal** (default name `Client` when unset). `index.html` title set generic **Portal** until the app runs.
+- **IMS return & admin redirect delays** — `VITE_POST_IMS_RETURN_SETTLE_MS` (default 2500, `0` = off) waits before `location.replace` after OAuth hash handling so users can finish Adobe org/profile steps. `VITE_POST_LOGIN_ADMIN_REDIRECT_DELAY_MS` (default 3500, `0` = off) defers auto-navigation to Admin activities from `/`.
 - **README — portal persona & IMS env** — Quick Reference documents persona/admin behavior, sign-out preservation, optional `VITE_IMS_*` / `VITE_PORTAL_*` variables, and pointers to `src/utils/imsPersona.ts` and `docs/HOSTED_TILES.md`.
 - **Sign-out preserves portal config** — `clearEphemeralLocalStorageOnSignOut()` keeps grid/skin/persona/App Builder keys; `sessionStorage` still cleared on sign-out (`src/utils/config.ts`, `MainApp.tsx`).
 - **IMS-driven persona** — Non-admins get persona from access token (optional env substring lists + `VITE_PORTAL_PERSONA_AFTER_SIGNIN`); admins / cookie hosts keep the persona switcher (`src/utils/imsPersona.ts`, `MainApp.tsx`).
@@ -12,7 +15,7 @@ Use this file to record what shipped and what is next. Update it when you merge 
 - **Persona layouts & nav** — Per-persona grids (`awesomeportal_roleGrids`), persona switcher, App Builder drop-ins merged into entitlements, grid editor scoped by persona.
 - **Heineken local demo** — Skin preset, Coachella banner asset, `VITE_HEINEKEN_DEMO`, bundled assets with Vite `base` via `withBase()`.
 - **Portal skin system** — `PortalSkinConfig` extended (page/panel/elevated/search/border/text); `applySkin` sets `--portal-*` on `documentElement`; Skin Editor + Heineken preset.
-- **Splash gate** — Full-screen splash before routes; session ack in `sessionStorage`; Heineken-style visual treatment; **`VITE_SKIP_SPLASH=true`** skips the gate (dev/CI/automation).
+- **Splash gate** — Full-screen splash before routes; session ack in `sessionStorage`; primary path is Adobe sign-in on the splash card; Heineken-style visual treatment; **`VITE_SKIP_SPLASH=true`** skips the gate (dev/CI/automation).
 - **Image URLs in storage** — `normalizePersistedImageUrl` on grid banners and skin URL fields; read/write migration + `sanitizeAllStoredRoleGridsImageUrls()` on app load.
 - **Gallery & asset cards** — `ImageGallery` / grid & list cards use `--portal-*` and heading/body font vars.
 - **Cart & facets chrome** — Cart panels (assets, download, rights extension, rights check, templates) and `Facets.css` wired to `--portal-*` / `--font-*` for neutral surfaces; primary vars for branded actions.
@@ -28,6 +31,9 @@ Use this file to record what shipped and what is next. Update it when you merge 
 | `VITE_ADOBE_CLIENT_ID`, `VITE_BUCKET` | Required for real runtime config (strict `npm run build` default). |
 | `VITE_IMS_ADMIN_GROUP_SUBSTRINGS` | Comma-separated fragments; if any appear in JWT JSON, user is portal admin (persona switcher). Unset = all IMS users treated as admin (demo default). |
 | `VITE_IMS_PERSONA_*_SUBSTRINGS`, `VITE_PORTAL_PERSONA_AFTER_SIGNIN`, `VITE_PORTAL_ALL_USERS_ARE_ADMINS` | Optional IMS persona mapping; see `src/utils/imsPersona.ts` and **README** (Portal persona and admin). |
+| `VITE_PORTAL_CLIENT_NAME` | Splash + `document.title`: shown as **{name} Portal** (`src/utils/portalBranding.ts`). |
+| `VITE_POST_IMS_RETURN_SETTLE_MS` | Ms to wait after IMS token-in-URL before SPA reload (`0` = immediate). `src/utils/portalSession.ts`, `AdobeSignInButton.tsx`. |
+| `VITE_POST_LOGIN_ADMIN_REDIRECT_DELAY_MS` | Ms on `/` before auto-redirect to Admin activities (`0` = immediate). `MainApp.tsx`. |
 
 ## Suggested next steps
 

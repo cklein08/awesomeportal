@@ -558,6 +558,10 @@ export interface AdobeUser {
 export interface AdobeSignInButtonProps {
     onAuthenticated: (token: string) => void;
     onSignOut: () => void;
+    /** When set, signed-in vs signed-out UI follows this (IMS cookie hosts without a bearer token can still be "active"). */
+    sessionActive?: boolean;
+    /** When true with an active session, sign-out label is "Sign Out with Adobe" (bearer token from IMS). */
+    imsSession?: boolean;
 }
 
 // Cart Panel Assets types (complex workflow)

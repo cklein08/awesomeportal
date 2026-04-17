@@ -32,6 +32,8 @@ interface AppGridProps {
     deleteMode?: boolean;
     /** When in delete mode, called when user clicks X on a slot (parent shows confirm then removes). */
     onRequestDeleteSlot?: (index: number) => void;
+    /** When true (without deleteMode), filled slots still show a remove control for quick clearing. */
+    inlineSlotRemove?: boolean;
 }
 
 /** MIME type for drag-and-drop payload from entitlements panel to grid. */
@@ -48,6 +50,7 @@ const AppGrid: React.FC<AppGridProps> = ({
     onDropSlot,
     deleteMode = false,
     onRequestDeleteSlot,
+    inlineSlotRemove = false,
 }) => {
     const { skinConfig } = useAppConfig();
     const heroImageUrl = skinConfig?.heroImageUrl ? normalizeImageSrcForDisplay(skinConfig.heroImageUrl) : undefined;
@@ -155,16 +158,16 @@ const AppGrid: React.FC<AppGridProps> = ({
                 {gridTiles.map((tile, index) => (
                     <div
                         key={tile?.id || `empty-${index}`}
-                        className={`app-grid-tile ${tile ? 'filled' : 'empty'}${dragOverIndex === index ? ' drag-over' : ''}${deleteMode && tile ? ' shake' : ''}`}
+                        className={`app-grid-tile ${tile ? 'filled' : 'empty'}${dragOverIndex === index ? ' drag-over' : ''}${deleteMode && tile ? ' shake' : ''}${inlineSlotRemove && tile && !deleteMode ? ' has-inline-remove' : ''}`}
                         onClick={() => handleTileClick(tile, index)}
                         onDragOver={onDropSlot ? (e) => handleDragOver(e, index) : undefined}
                         onDragLeave={onDropSlot ? (e) => handleDragLeave(e, index) : undefined}
                         onDrop={onDropSlot ? (e) => handleDrop(e, index) : undefined}
                     >
-                        {deleteMode && tile && onRequestDeleteSlot && (
+                        {tile && onRequestDeleteSlot && (deleteMode || inlineSlotRemove) && (
                             <button
                                 type="button"
-                                className="slot-delete-btn"
+                                className={`slot-delete-btn${inlineSlotRemove && !deleteMode ? ' slot-delete-btn--inline' : ''}`}
                                 onClick={(e) => handleDeleteClick(e, index)}
                                 aria-label={`Remove ${tile.title} from grid`}
                             >

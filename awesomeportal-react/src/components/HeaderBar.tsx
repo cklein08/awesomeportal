@@ -20,6 +20,10 @@ interface HeaderBarPropsSimplified {
     handleAuthenticated: (token: string) => void;
     handleSignOut: () => void;
     profile?: any;
+    /** Drives auth button: signed in vs sign in (includes cookie-only sessions when true). */
+    sessionActive?: boolean;
+    /** When true with sessionActive, sign-out label is "Sign Out with Adobe". */
+    imsSession?: boolean;
 }
 
 const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
@@ -32,7 +36,9 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     // handleDownloadAssets, // Removed - cart moved to MainApp
     handleAuthenticated,
     handleSignOut,
-    profile
+    profile,
+    sessionActive,
+    imsSession,
 }) => {
     // Get external params and skin from context
     const { externalParams, skinConfig } = useAppConfig();
@@ -97,6 +103,8 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
                     <AdobeSignInButton
                         onAuthenticated={handleAuthenticated}
                         onSignOut={handleSignOut}
+                        sessionActive={sessionActive}
+                        imsSession={imsSession}
                     />
                 </div>
                 {/* Profile icon — same source as account.adobe.com (IMS picture or Gravatar) */}

@@ -69,6 +69,16 @@
     font-size: 0.9rem;
 }
 
+.grid-edit-slot-card--empty {
+    opacity: 0.95;
+    background: #fafafa;
+}
+
+.grid-edit-hint--meta {
+    font-size: 0.8rem;
+    color: #666;
+}
+
 .grid-edit-section {
     margin-bottom: 32px;
 }

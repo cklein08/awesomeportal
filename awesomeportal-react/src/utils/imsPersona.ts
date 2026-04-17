@@ -5,7 +5,8 @@ import type { PortalPersonaId } from '../types';
  */
 export function decodeImsAccessTokenPayload(token: string): Record<string, unknown> | null {
     try {
-        const parts = token.split('.');
+        const raw = token.replace(/^Bearer\s+/i, '').trim();
+        const parts = raw.split('.');
         if (parts.length < 2) return null;
         let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
         while (base64.length % 4) base64 += '=';
