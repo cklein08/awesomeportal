@@ -387,6 +387,47 @@
     background: var(--portal-page-bg, #141414);
 }
 
+.admin-shell-grid-persona {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 12px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-shell-grid-persona-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--admin-muted);
+}
+
+.admin-shell-grid-persona-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.admin-shell-grid-persona-hint {
+    font-size: 0.78rem;
+    color: var(--admin-muted);
+    width: 100%;
+    margin-top: 2px;
+}
+
+@media (min-width: 640px) {
+    .admin-shell-grid-persona-hint {
+        width: auto;
+        margin-top: 0;
+        margin-left: auto;
+    }
+}
+
 .admin-shell-grid-wrap .app-grid-container {
     width: 100%;
     max-width: 100%;

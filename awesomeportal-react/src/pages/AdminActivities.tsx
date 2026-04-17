@@ -314,6 +314,15 @@ const AdminActivities: React.FC = () => {
                         <div className="admin-shell-workspace">
                             {workspaceTab === 'grid' ? (
                                 <div className="admin-shell-grid-wrap">
+                                    <div className="admin-shell-grid-persona" role="status">
+                                        <span className="admin-shell-grid-persona-label">Drop-ins apply to</span>
+                                        <span className="admin-shell-grid-persona-name">
+                                            {PORTAL_PERSONA_LABELS[editor.editingPersona]}
+                                        </span>
+                                        <span className="admin-shell-grid-persona-hint">
+                                            Change persona on the Layout &amp; URLs tab (&quot;Layout for&quot;).
+                                        </span>
+                                    </div>
                                     <AppGrid
                                         tiles={previewTiles}
                                         topContent={editor.config.gridTopContent ?? ''}
