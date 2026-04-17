@@ -16,6 +16,6 @@
 }
 
 .empty-cart-templates-message {
-    color: #999;
+    color: var(--portal-text-muted, #999999);
     font-size: 16px;
 }

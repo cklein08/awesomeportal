@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/generate-runtime-config.cjs",
+    "build:ci": "vite build && npx cross-env SKIP_RUNTIME_CONFIG_VALIDATION=1 node scripts/generate-runtime-config.cjs",
     "build:local": "npx cross-env NODE_ENV=local vite build && node scripts/generate-runtime-config.cjs",
     "build:dev": "npx cross-env NODE_ENV=development vite build && node scripts/generate-runtime-config.cjs",
     "build:staging": "npx cross-env NODE_ENV=staging vite build && node scripts/generate-runtime-config.cjs",

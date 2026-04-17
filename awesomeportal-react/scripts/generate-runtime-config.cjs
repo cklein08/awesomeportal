@@ -10,6 +10,10 @@ const path = require('path');
  * 2. Checks for runtime env vars (VITE_*)
  * 3. Falls back to .env files if runtime vars don't exist
  * 4. Generates config.js in dist/ folder
+ *
+ * Strict mode (default): exits non-zero if VITE_ADOBE_CLIENT_ID or VITE_BUCKET is missing.
+ * CI / packaging: set SKIP_RUNTIME_CONFIG_VALIDATION=1 to write empty placeholders and still exit 0.
+ * Deployment copy under ../../tools/assets-browser/ is skipped if that directory does not exist.
  */
 
 // Helper function to load .env files
@@ -70,17 +74,30 @@ const config = {
     // Add other environment variables as needed
 };
 
-// Validate required configuration
+// Validate required configuration (strict by default; relax for CI / artifact-only builds)
 const requiredVars = ['ADOBE_CLIENT_ID', 'BUCKET'];
 const missingVars = requiredVars.filter(key => !config[key]);
+const skipStrict =
+    process.env.SKIP_RUNTIME_CONFIG_VALIDATION === '1' ||
+    process.env.SKIP_RUNTIME_CONFIG_VALIDATION === 'true';
 
 if (missingVars.length > 0) {
-    console.error('❌ Missing required environment variables:');
-    missingVars.forEach(varName => {
-        console.error(`   - VITE_${varName}`);
-    });
-    console.error('\n💡 Please set these environment variables or add them to your .env file');
-    process.exit(1);
+    if (skipStrict) {
+        console.warn('⚠️  Missing environment variables (writing empty placeholders):');
+        missingVars.forEach((varName) => console.warn(`   - VITE_${varName}`));
+        console.warn(
+            '\n💡 Set SKIP_RUNTIME_CONFIG_VALIDATION only for packaging/CI. Runtime features need real VITE_ADOBE_CLIENT_ID and VITE_BUCKET.'
+        );
+    } else {
+        console.error('❌ Missing required environment variables:');
+        missingVars.forEach((varName) => {
+            console.error(`   - VITE_${varName}`);
+        });
+        console.error(
+            '\n💡 Set these in .env or the shell. For a build without secrets (e.g. CI), run with SKIP_RUNTIME_CONFIG_VALIDATION=1'
+        );
+        process.exit(1);
+    }
 }
 
 // Generate the config.js content
@@ -104,13 +121,20 @@ if (!fs.existsSync(distDir)) {
 const configPath = path.join(distDir, 'config.js');
 fs.writeFileSync(configPath, configContent);
 
-// Also write to tools/assets-browser/ for deployment
+// Also write to tools/assets-browser/ for deployment (optional — dir may not exist in CI clones)
 const toolsConfigPath = path.join(__dirname, '..', '..', 'tools', 'assets-browser', 'config.js');
-fs.writeFileSync(toolsConfigPath, configContent);
+const toolsConfigDir = path.dirname(toolsConfigPath);
+if (fs.existsSync(toolsConfigDir)) {
+    fs.writeFileSync(toolsConfigPath, configContent);
+} else {
+    console.warn('⚠️  Skipped writing tools config (directory missing):', toolsConfigDir);
+}
 
 // Log the results
 console.log('✅ Generated runtime config at:', configPath);
-console.log('✅ Generated deployment config at:', toolsConfigPath);
+if (fs.existsSync(toolsConfigDir)) {
+    console.log('✅ Generated deployment config at:', toolsConfigPath);
+}
 console.log('📋 Configuration:');
 console.log(`   Environment: ${nodeEnv}`);
 console.log(`   ADOBE_CLIENT_ID: ${config.ADOBE_CLIENT_ID || '(not set)'}`);

@@ -32,6 +32,20 @@ npm run build:prod
 npm run build:deploy
 ```
 
+**Build without Adobe env (CI / packaging only)**  
+`npm run build` runs `generate-runtime-config.cjs`, which normally requires `VITE_ADOBE_CLIENT_ID` and `VITE_BUCKET`. To produce `dist/` when those are unset (e.g. CI compile check), use either:
+
+```bash
+npm run build:ci
+# or
+SKIP_RUNTIME_CONFIG_VALIDATION=1 npm run build
+```
+
+That writes empty placeholders into `dist/config.js`; the app still needs real runtime config to call APIs.
+
+**Splash screen (local / automation)**  
+Set `VITE_SKIP_SPLASH=true` in `.env` or the shell so the portal loads without the session splash gate (useful for Playwright or quick local iteration).
+
 ### 📁 **Key Files**
 
 - `src/components/MainApp.tsx` - Main application

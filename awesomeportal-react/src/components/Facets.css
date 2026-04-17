@@ -56,9 +56,9 @@
 .facet-filter-section {
   width: 100%;
   border-radius: 8px;
-  background: #fff;
+  background: var(--portal-elevated-bg, #ffffff);
   box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
-  border: 1px solid #eee;
+  border: 1px solid var(--portal-border, #eeeeee);
   overflow: hidden;
   transition: box-shadow 0.2s;
   flex-shrink: 0;
@@ -83,7 +83,7 @@
   padding: 15px;
   box-sizing: border-box;
   margin: 0;
-  background-color: #fff;
+  background-color: var(--portal-elevated-bg, #ffffff);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -93,7 +93,7 @@
 .facet-filter-button:hover,
 .facet-filter-button:focus {
   background: none;
-  background-color: #fff;
+  background-color: var(--portal-elevated-bg, #ffffff);
 }
 
 .facet-filter-button-search {
@@ -111,7 +111,7 @@
   padding: 15px;
   box-sizing: border-box;
   margin: 0;
-  background-color: #fff;
+  background-color: var(--portal-elevated-bg, #ffffff);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -164,7 +164,7 @@
 .facet-filter-arrow-sub-level {
   cursor: pointer;
   font-size: 12px;
-  color: #666;
+  color: var(--portal-text-muted, #666666);
   margin-left: 8px;
   font-weight: bold;
 }
@@ -175,7 +175,7 @@
   font-style: normal;
   font-weight: 400;
   line-height: 140%;
-  font-family: "TCCC UnityHeadline", sans-serif !important;
+  font-family: var(--font-heading, "TCCC UnityHeadline", sans-serif) !important;
   padding-right: 5px;
   cursor: pointer;
 }
@@ -194,7 +194,7 @@
 }
 
 .facet-filter-tab-group.active .facet-filter-tab.clear {
-  color: #888;
+  color: var(--portal-text-muted, #888888);
 }
 
 .facet-filter-tab.clear {
@@ -218,7 +218,7 @@
 
 .facet-filter-values {
   padding: 0 20px 16px 20px;
-  background: #fafbfc;
+  background: var(--portal-panel-bg, #fafbfc);
   overflow-y: auto;
   max-height: calc(350px - 60px);
 
@@ -234,12 +234,12 @@
 
 .facet-filter-value-item {
   padding: 6px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--portal-border, #f0f0f0);
   font-size: 15px;
 }
 
 .facet-filter-value-count {
-  color: #888;
+  color: var(--portal-text-muted, #888888);
   font-size: 13px;
 }
 
@@ -261,7 +261,7 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
-  color: #404040;
+  color: var(--portal-text, #404040);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -411,9 +411,9 @@
   cursor: pointer;
   font-size: 14px;
   font-style: normal;
-  font-family: "TCCC UnityHeadline", sans-serif;
+  font-family: var(--font-heading, "TCCC UnityHeadline", sans-serif);
   font-weight: 600;
-  color: #666;
+  color: var(--portal-text-muted, #666666);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -476,7 +476,7 @@
 .saved-searches-empty {
   text-align: center;
   padding: 40px 20px;
-  color: #666;
+  color: var(--portal-text-muted, #666666);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -486,8 +486,8 @@
 }
 
 .saved-search-item {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--portal-elevated-bg, #ffffff);
+  border: 1px solid var(--portal-border, #e0e0e0);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -519,7 +519,7 @@
   padding: 0;
   font-weight: 500;
   font-size: 14px;
-  color: #333;
+  color: var(--portal-text, #333333);
   cursor: pointer;
   text-align: left;
 }
@@ -626,7 +626,7 @@
 }
 
 .save-search-modal-content {
-  background: white;
+  background: var(--portal-elevated-bg, #ffffff);
   border-radius: 8px;
   padding: 0;
   width: 90%;
@@ -638,15 +638,15 @@
 
 .save-search-modal-header {
   padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f8f9fa;
+  border-bottom: 1px solid var(--portal-border, #e0e0e0);
+  background: var(--portal-panel-bg, #f8f9fa);
 }
 
 .save-search-modal-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 500;
-  color: #333;
+  color: var(--portal-text, #333333);
 }
 
 .save-search-modal-body {
@@ -656,7 +656,7 @@
 .save-search-input {
   width: 100%;
   padding: 12px;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--portal-border, #d9d9d9);
   border-radius: 4px;
   font-size: 14px;
   font-family: inherit;
@@ -665,13 +665,13 @@
 }
 
 .save-search-input[type="text"] {
-  background-color: white;
-  color: #333;
+  background-color: var(--portal-elevated-bg, #ffffff);
+  color: var(--portal-text, #333333);
 }
 
 .save-search-input.save-search-link-display {
-  background-color: #f5f5f5;
-  color: #666;
+  background-color: var(--portal-panel-bg, #f5f5f5);
+  color: var(--portal-text-muted, #666666);
 }
 
 .save-search-field {
@@ -687,7 +687,7 @@
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--portal-text, #333333);
 }
 
 .save-search-input:focus {
@@ -697,7 +697,7 @@
 
 .save-search-modal-footer {
   padding: 16px 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--portal-border, #e0e0e0);
   display: flex;
   gap: 12px;
   justify-content: flex-end;
@@ -715,12 +715,12 @@
 }
 
 .save-search-cancel-btn {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--portal-panel-bg, #f5f5f5);
+  color: var(--portal-text-muted, #666666);
 }
 
 .save-search-cancel-btn:hover {
-  background: #e0e0e0;
+  background: var(--portal-border, #e0e0e0);
 }
 
 .save-search-confirm-btn {
@@ -729,7 +729,7 @@
 }
 
 .save-search-confirm-btn:hover {
-  background: #d32f2f;
+  background: var(--primary-color-hover, #d32f2f);
 }
 
 .save-search-confirm-btn:disabled {
@@ -758,7 +758,7 @@
   margin: 0 0 12px 0;
   font-size: 14px;
   line-height: 1.5;
-  color: #333;
+  color: var(--portal-text, #333333);
 }
 
 .save-search-modal-body p:last-child {
@@ -788,29 +788,29 @@
 .save-search-inline-input {
   flex: 1;
   padding: 14px 16px;
-  border: 2px solid #d43529;
+  border: 2px solid var(--primary-color, #d43529);
   border-radius: 25px;
   font-size: 14px;
   font-family: inherit;
   outline: none;
-  background: white;
-  color: #666;
+  background: var(--portal-elevated-bg, #ffffff);
+  color: var(--portal-text-muted, #666666);
 }
 
 .save-search-inline-input::placeholder {
-  color: #999;
+  color: var(--portal-text-muted, #999999);
 }
 
 .save-search-inline-input:focus {
-  border-color: #d43529;
+  border-color: var(--primary-color, #d43529);
   box-shadow: none;
 }
 
 .save-search-inline-save-btn {
   padding: 14px 24px;
-  background: #d43529;
+  background: var(--primary-color, #d43529);
   color: white;
-  border: 2px solid #d43529;
+  border: 2px solid var(--primary-color, #d43529);
   border-radius: 25px;
   font-size: 14px;
   font-weight: 500;
@@ -820,8 +820,8 @@
 }
 
 .save-search-inline-save-btn:hover:not(:disabled) {
-  background: #c42e23;
-  border-color: #c42e23;
+  background: var(--primary-color-hover, #c42e23);
+  border-color: var(--primary-color-hover, #c42e23);
 }
 
 .save-search-inline-save-btn:disabled {
@@ -840,9 +840,9 @@
 
 .facet-filter-save-btn {
   flex: 1;
-  background: white;
-  color: #333;
-  border: 1px solid #d9d9d9;
+  background: var(--portal-elevated-bg, #ffffff);
+  color: var(--portal-text, #333333);
+  border: 1px solid var(--portal-border, #d9d9d9);
   padding: 12px 16px;
   border-radius: 999px;
   font-size: 14px;
@@ -857,14 +857,14 @@
 }
 
 .facet-filter-save-btn.cancel-mode {
-  background: white;
-  color: #333;
-  border: 2px solid #333;
+  background: var(--portal-elevated-bg, #ffffff);
+  color: var(--portal-text, #333333);
+  border: 2px solid var(--portal-text, #333333);
 }
 
 .facet-filter-save-btn:hover:not(:disabled) {
-  border-color: #999;
-  color: #000;
+  border-color: var(--portal-text-muted, #999999);
+  color: var(--portal-text, #000000);
 }
 
 .facet-filter-save-btn:disabled {
@@ -950,9 +950,9 @@
   align-items: center;
   flex: 1;
   min-width: 0;
-  border: 1px solid #ddd;
+  border: 1px solid var(--portal-border, #dddddd);
   border-radius: 40px;
-  background: white;
+  background: var(--portal-elevated-bg, #ffffff);
   height: 30px;
   border-color: #85b7d9;
   box-shadow: inset 0 0 0 0 rgb(34 36 38 / 35%);
@@ -1037,7 +1037,7 @@
   font-size: 12px;
   padding-top: 10px;
   text-align: center;
-  font-family: "TCCC UnityHeadline", sans-serif;
+  font-family: var(--font-heading, "TCCC UnityHeadline", sans-serif);
 }
 
 .facet-filter-section .markets-list,

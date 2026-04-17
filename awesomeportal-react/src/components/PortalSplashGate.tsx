@@ -3,7 +3,12 @@ import SplashPage from './SplashPage';
 
 const SPLASH_SESSION_KEY = 'awesomeportal_splash_ack';
 
+function isSplashSkippedByEnv(): boolean {
+    return import.meta.env.VITE_SKIP_SPLASH === 'true';
+}
+
 function readSplashAcked(): boolean {
+    if (isSplashSkippedByEnv()) return true;
     try {
         return typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SPLASH_SESSION_KEY) === '1';
     } catch {
@@ -16,7 +21,7 @@ function readSplashAcked(): boolean {
  * Wraps the router tree in {@link App}.
  */
 const PortalSplashGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [acknowledged, setAcknowledged] = useState(readSplashAcked);
+    const [acknowledged, setAcknowledged] = useState(() => readSplashAcked());
 
     const handleContinue = useCallback(() => {
         try {
