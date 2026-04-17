@@ -3,10 +3,10 @@
 .asset-card-view-list {
     display: flex;
     flex-direction: column;
-    border: 1px solid #e1e1e1;
+    border: 1px solid var(--portal-border, #e1e1e1);
     border-radius: 8px;
     overflow: hidden;
-    background-color: white;
+    background-color: var(--portal-elevated-bg, #ffffff);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s, box-shadow 0.2s;
     padding: 0;

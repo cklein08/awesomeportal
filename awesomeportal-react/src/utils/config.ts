@@ -1,6 +1,7 @@
 // Utility to get configuration values at runtime
 // This checks window.APP_CONFIG first (runtime), then falls back to build-time env vars
 
+import { PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
 import type { AppBuilderDropIn, EntitlementPayload, ExternalParams, GridEditConfig, PortalPersonaId, PortalSkinConfig } from '../types';
 import { normalizePersistedImageUrl } from './pathUtils';
 
@@ -37,6 +38,29 @@ function sanitizePortalSkinConfig(config: PortalSkinConfig): PortalSkinConfig {
 
 function persistRoleGridsIfChanged(all: RoleGridsState): void {
     localStorage.setItem(ROLE_GRIDS_STORAGE_KEY, JSON.stringify(all));
+}
+
+/** Normalize image URLs in every saved persona layout (one pass per app load). */
+export function sanitizeAllStoredRoleGridsImageUrls(): void {
+    migrateLegacyGridToRoleGrids();
+    try {
+        const raw = localStorage.getItem(ROLE_GRIDS_STORAGE_KEY);
+        if (!raw) return;
+        const all = JSON.parse(raw) as RoleGridsState;
+        let changed = false;
+        for (const persona of PORTAL_PERSONA_ORDER) {
+            const entry = all[persona];
+            if (!entry || typeof entry !== 'object') continue;
+            const cleaned = sanitizeGridEditConfig(entry);
+            if (JSON.stringify(cleaned) !== JSON.stringify(entry)) {
+                all[persona] = cleaned;
+                changed = true;
+            }
+        }
+        if (changed) persistRoleGridsIfChanged(all);
+    } catch (e) {
+        console.warn('sanitizeAllStoredRoleGridsImageUrls failed', e);
+    }
 }
 
 function maybeRewriteGridForPersona(all: RoleGridsState, persona: PortalPersonaId): GridEditConfig | null {
