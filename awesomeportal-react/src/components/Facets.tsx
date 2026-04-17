@@ -8,6 +8,7 @@ import Markets from './Markets.js';
 import MediaChannels from './MediaChannels.js';
 import MyDatePicker from './MyDatePicker.js';
 import buildSavedSearchUrl from '../scripts/saved-search-utils.js';
+import { withBase } from '../utils/pathUtils';
 
 interface ExpandedFacetsState {
     [key: string]: boolean;
@@ -1002,7 +1003,7 @@ const Facets: React.FC<FacetsProps> = ({
                                                     <div className="facet-search-container">
                                                         <div className="facet-search-input-wrapper">
                                                             <img
-                                                                src="/icons/search.svg"
+                                                                src={withBase('/icons/search.svg')}
                                                                 alt="Search"
                                                                 className="facet-search-icon-inside"
                                                             />
@@ -1022,7 +1023,7 @@ const Facets: React.FC<FacetsProps> = ({
                                                                 }}
                                                             />
                                                             <img
-                                                                src="/icons/close-menu.svg"
+                                                                src={withBase('/icons/close-menu.svg')}
                                                                 alt="Close"
                                                                 className="facet-search-close-icon"
                                                                 onClick={(e) => toggleFacetSearch(facetTechId, e)}
@@ -1057,7 +1058,7 @@ const Facets: React.FC<FacetsProps> = ({
                                                         )}
                                                         {expandedFacets[facetTechId] && facet.type !== 'date' && (
                                                             <img
-                                                                src="/icons/search.svg"
+                                                                src={withBase('/icons/search.svg')}
                                                                 alt="Search"
                                                                 className="facet-search-trigger"
                                                                 onClick={(e) => toggleFacetSearch(facetTechId, e)}

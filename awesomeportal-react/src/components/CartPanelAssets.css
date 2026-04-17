@@ -278,7 +278,7 @@
 
 .cart-panel .delete-button {
     border: none;
-    background: url('/icons/delete-icon.svg') no-repeat center;
+    background: url('/tools/assets-browser/icons/delete-icon.svg') no-repeat center;
     background-size: contain;
     cursor: pointer;
     padding: 8px;
@@ -293,7 +293,7 @@
 
 .cart-panel .delete-button:hover {
     border: none;
-    background: url('/icons/delete-icon-hover.svg') no-repeat center;
+    background: url('/tools/assets-browser/icons/delete-icon-hover.svg') no-repeat center;
     background-size: contain;
     cursor: pointer;
     padding: 8px;

@@ -37,7 +37,7 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     // Get external params and skin from context
     const { externalParams, skinConfig } = useAppConfig();
     const isBlockIntegration = externalParams?.isBlockIntegration;
-    const logoUrl = skinConfig?.logoUrl || `${import.meta.env.BASE_URL}android-chrome-192x192.png`;
+    const logoUrl = skinConfig?.logoUrl || `${import.meta.env.BASE_URL}icons/info.svg`;
 
     useEffect(() => {
         if (window.updateCartBadge && typeof window.updateCartBadge === 'function') {

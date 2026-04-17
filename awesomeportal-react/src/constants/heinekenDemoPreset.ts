@@ -5,17 +5,14 @@
  */
 
 import type { GridEditConfig, GridTopBanner, PortalSkinConfig } from '../types';
-import { getGridLayout, setGridLayout, setSkinConfig } from '../utils/config';
 import { getDefaultSlotBlocks } from '../hooks/useSlotBlocks';
 import { PORTAL_PERSONA_ORDER } from './portalPersonas';
+import { getGridLayout, setGridLayout, setSkinConfig } from '../utils/config';
+import { withBase } from '../utils/pathUtils';
 
-/** Wordmark (Wikimedia Commons). */
-const HEINEKEN_LOGO =
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Heineken.svg/320px-Heineken.svg.png';
-
-/** Green barley / brand mood (Unsplash, free to use). */
-const HEINEKEN_HERO =
-    'https://images.unsplash.com/photo-1518176258769-fd99f815d3e0?auto=format&fit=crop&w=1800&q=80';
+/** Bundled SVGs so local dev works offline and is not blocked by hotlink/CDN limits. */
+const HEINEKEN_LOGO = withBase('/brand-demos/heineken/logo.svg');
+const HEINEKEN_HERO = withBase('/brand-demos/heineken/hero.svg');
 
 export const HEINEKEN_SKIN: PortalSkinConfig = {
     logoUrl: HEINEKEN_LOGO,

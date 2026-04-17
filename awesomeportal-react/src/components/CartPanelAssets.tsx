@@ -14,6 +14,7 @@ import type {
 } from '../types';
 import { FilteredItemsType, StepStatus, WorkflowStep } from '../types';
 import { removeBlobFromCache } from '../utils/blobCache';
+import { withBase } from '../utils/pathUtils';
 import './CartPanelAssets.css';
 import CartRequestDownload from './CartRequestDownload';
 import CartRequestRightsExtension from './CartRequestRightsExtension';
@@ -274,25 +275,25 @@ const CartPanelAssets: React.FC<CartPanelAssetsProps> = ({
                         case StepStatus.INIT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.CART]: <img src={`/icons/cart-stepper-icon.svg`} alt="Cart" />
+                                [WorkflowStep.CART]: <img src={withBase('/icons/cart-stepper-icon.svg')} alt="Cart" />
                             }));
                             break;
                         case StepStatus.CURRENT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.CART]: <img src={`/icons/cart-stepper-icon.svg`} alt="Cart Current" />
+                                [WorkflowStep.CART]: <img src={withBase('/icons/cart-stepper-icon.svg')} alt="Cart Current" />
                             }));
                             break;
                         case StepStatus.SUCCESS:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.CART]: <img src={`/icons/cart-icon-success.svg`} alt="Cart Success" />
+                                [WorkflowStep.CART]: <img src={withBase('/icons/cart-icon-success.svg')} alt="Cart Success" />
                             }));
                             break;
                         case StepStatus.FAILURE:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.CART]: <img src={`/icons/cart-icon-failure.svg`} alt="Cart Failure" />
+                                [WorkflowStep.CART]: <img src={withBase('/icons/cart-icon-failure.svg')} alt="Cart Failure" />
                             }));
                             break;
                     }
@@ -303,25 +304,25 @@ const CartPanelAssets: React.FC<CartPanelAssetsProps> = ({
                         case StepStatus.INIT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.REQUEST_DOWNLOAD]: <img src={`/icons/download-asset-grey.svg`} alt="Request Download" />
+                                [WorkflowStep.REQUEST_DOWNLOAD]: <img src={withBase('/icons/download-asset-grey.svg')} alt="Request Download" />
                             }));
                             break;
                         case StepStatus.CURRENT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.REQUEST_DOWNLOAD]: <img src={`/icons/donwload-cart-step-red.svg`} alt="Request Download Current" />
+                                [WorkflowStep.REQUEST_DOWNLOAD]: <img src={withBase('/icons/donwload-cart-step-red.svg')} alt="Request Download Current" />
                             }));
                             break;
                         case StepStatus.SUCCESS:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.REQUEST_DOWNLOAD]: <img src={`/icons/cart-icon-success.svg`} alt="Request Download Success" />
+                                [WorkflowStep.REQUEST_DOWNLOAD]: <img src={withBase('/icons/cart-icon-success.svg')} alt="Request Download Success" />
                             }));
                             break;
                         case StepStatus.FAILURE:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.REQUEST_DOWNLOAD]: <img src={`/icons/cart-icon-failure.svg`} alt="Request Download Failure" />
+                                [WorkflowStep.REQUEST_DOWNLOAD]: <img src={withBase('/icons/cart-icon-failure.svg')} alt="Request Download Failure" />
                             }));
                             break;
                     }
@@ -332,25 +333,25 @@ const CartPanelAssets: React.FC<CartPanelAssetsProps> = ({
                         case StepStatus.INIT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.RIGHTS_CHECK]: <img src={`/icons/rights-check-grey.svg`} alt="Rights Check" />
+                                [WorkflowStep.RIGHTS_CHECK]: <img src={withBase('/icons/rights-check-grey.svg')} alt="Rights Check" />
                             }));
                             break;
                         case StepStatus.CURRENT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.RIGHTS_CHECK]: <img src={`/icons/rights-check-red.svg`} alt="Rights Check Current" />
+                                [WorkflowStep.RIGHTS_CHECK]: <img src={withBase('/icons/rights-check-red.svg')} alt="Rights Check Current" />
                             }));
                             break;
                         case StepStatus.SUCCESS:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.RIGHTS_CHECK]: <img src={`/icons/cart-icon-success.svg`} alt="Rights Check Success" />
+                                [WorkflowStep.RIGHTS_CHECK]: <img src={withBase('/icons/cart-icon-success.svg')} alt="Rights Check Success" />
                             }));
                             break;
                         case StepStatus.FAILURE:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.RIGHTS_CHECK]: <img src={`/icons/cart-icon-failure.svg`} alt="Rights Check Failure" />
+                                [WorkflowStep.RIGHTS_CHECK]: <img src={withBase('/icons/cart-icon-failure.svg')} alt="Rights Check Failure" />
                             }));
                             break;
                     }
@@ -361,25 +362,25 @@ const CartPanelAssets: React.FC<CartPanelAssetsProps> = ({
                         case StepStatus.INIT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.REQUEST_RIGHTS_EXTENSION]: <img src={`/icons/request-rights-red.svg`} alt="Rights Check" />
+                                [WorkflowStep.REQUEST_RIGHTS_EXTENSION]: <img src={withBase('/icons/request-rights-red.svg')} alt="Rights Check" />
                             }));
                             break;
                         case StepStatus.CURRENT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.REQUEST_RIGHTS_EXTENSION]: <img src={`/icons/request-rights-red.svg`} alt="Rights Check Current" />
+                                [WorkflowStep.REQUEST_RIGHTS_EXTENSION]: <img src={withBase('/icons/request-rights-red.svg')} alt="Rights Check Current" />
                             }));
                             break;
                         case StepStatus.SUCCESS:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.REQUEST_RIGHTS_EXTENSION]: <img src={`/icons/cart-icon-success.svg`} alt="Rights Check Success" />
+                                [WorkflowStep.REQUEST_RIGHTS_EXTENSION]: <img src={withBase('/icons/cart-icon-success.svg')} alt="Rights Check Success" />
                             }));
                             break;
                         case StepStatus.FAILURE:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.REQUEST_RIGHTS_EXTENSION]: <img src={`/icons/cart-icon-failure.svg`} alt="Rights Check Failure" />
+                                [WorkflowStep.REQUEST_RIGHTS_EXTENSION]: <img src={withBase('/icons/cart-icon-failure.svg')} alt="Rights Check Failure" />
                             }));
                             break;
                     }
@@ -390,26 +391,26 @@ const CartPanelAssets: React.FC<CartPanelAssetsProps> = ({
                         case StepStatus.INIT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.DOWNLOAD]: <img src={`/icons/download-icon.svg`} alt="Download" />
+                                [WorkflowStep.DOWNLOAD]: <img src={withBase('/icons/download-icon.svg')} alt="Download" />
                             }));
                             break;
                         case StepStatus.CURRENT:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.DOWNLOAD]: <img src={`/icons/donwload-cart-step-red.svg`} alt="Download Current" />
+                                [WorkflowStep.DOWNLOAD]: <img src={withBase('/icons/donwload-cart-step-red.svg')} alt="Download Current" />
                             }));
                             break;
                         case StepStatus.SUCCESS:
                             // Could trigger success notification or auto-close
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.DOWNLOAD]: <img src={`/icons/cart-icon-success.svg`} alt="Download Success" />
+                                [WorkflowStep.DOWNLOAD]: <img src={withBase('/icons/cart-icon-success.svg')} alt="Download Success" />
                             }));
                             break;
                         case StepStatus.FAILURE:
                             setStepIcon(prev => ({
                                 ...prev,
-                                [WorkflowStep.DOWNLOAD]: <img src={`/icons/cart-icon-failure.svg`} alt="Download Failure" />
+                                [WorkflowStep.DOWNLOAD]: <img src={withBase('/icons/cart-icon-failure.svg')} alt="Download Failure" />
                             }));
                             break;
                     }
