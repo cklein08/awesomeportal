@@ -43,7 +43,13 @@ import {
 } from '../utils/config';
 import { decodeImsAccessTokenPayload, isPortalAdminFromToken, resolvePersonaFromAccessToken } from '../utils/imsPersona';
 import { canImpersonatePortalPersonas, setSkipAdminLandingRedirect, shouldOpenAdminActivitiesAfterSignIn } from '../utils/portalAccess';
-import { getPortalSpaRootHref, readPostLoginAdminRedirectDelayMs } from '../utils/portalSession';
+import {
+    getPortalSpaRootHref,
+    readPostLoginAdminRedirectDelayMs,
+    readPortalPersonaPreviewStripActive,
+    setPortalPersonaPreviewStripActive,
+} from '../utils/portalSession';
+import { isSpaIndexPathname } from '../utils/pathUtils';
 import { getProfilePictureUrl } from '../utils/profileImage';
 import { AppConfigProvider } from './AppConfigProvider';
 
@@ -318,21 +324,24 @@ function MainApp(): React.JSX.Element {
     const portalRailApps = useMemo(() => apps.filter((a) => a.id !== 'assets-browser'), [apps]);
     const [personaImpersonateModalOpen, setPersonaImpersonateModalOpen] = useState(false);
     const [portalWorkspacePrompt, setPortalWorkspacePrompt] = useState('');
+    /** Bumped when preview-strip session flag changes so layout re-renders even if persona state is unchanged (e.g. Admin → Admin). */
+    const [personaImpersonationUiEpoch, setPersonaImpersonationUiEpoch] = useState(0);
 
-    const applyPortalPersona = useCallback((p: PortalPersonaId) => {
-        setSelectedPersona(p);
-        setPortalPersona(p);
-        setGridConfigVersion((v) => v + 1);
-        setSelectedTileId(null);
-        setSelectedDaContentUrl(null);
-    }, []);
-
-    const handlePortalPersonaChange = useCallback(
-        (e: React.ChangeEvent<HTMLSelectElement>) => {
-            applyPortalPersona(e.target.value as PortalPersonaId);
+    const applyPortalPersona = useCallback(
+        (p: PortalPersonaId, opts?: { markPersonaPreviewStrip?: boolean }) => {
+            setSelectedPersona(p);
+            setPortalPersona(p);
+            setGridConfigVersion((v) => v + 1);
+            setSelectedTileId(null);
+            setSelectedDaContentUrl(null);
+            if (opts?.markPersonaPreviewStrip) {
+                setPortalPersonaPreviewStripActive(true);
+                setPersonaImpersonationUiEpoch((n) => n + 1);
+            }
         },
-        [applyPortalPersona]
+        []
     );
+
     const handleSelectDaContentUrl = useCallback((url: string) => {
         setSelectedDaContentUrl(url);
         setSelectedTileId(null);
@@ -360,7 +369,9 @@ function MainApp(): React.JSX.Element {
     const [selectedAemProgram, setSelectedAemProgramState] = useState<AemProgramOption | null>(() => getSelectedAemProgram());
     const [aemProgramsLoading, setAemProgramsLoading] = useState<boolean>(false);
     const [aemProgramsError, setAemProgramsError] = useState<string | null>(null);
-    const isAssetsBrowser = selectedAppId === 'assets-browser' || (!selectedAppId && window.location.pathname.includes('/tools/assets-browser/index.html'));
+    const isAssetsBrowser =
+        selectedAppId === 'assets-browser' ||
+        (!selectedAppId && isSpaIndexPathname(window.location.pathname));
     const showAemSelector = isAssetsBrowser && authenticated && viewMode === 'admin';
 
     // Expose cart functions to window for EDS header integration
@@ -410,6 +421,18 @@ function MainApp(): React.JSX.Element {
         [authenticated, accessToken]
     );
 
+    const handlePortalPersonaChange = useCallback(
+        (e: React.ChangeEvent<HTMLSelectElement>) => {
+            const next = e.target.value as PortalPersonaId;
+            if (canImpersonatePortalPersona) {
+                applyPortalPersona(next, { markPersonaPreviewStrip: true });
+            } else {
+                applyPortalPersona(next);
+            }
+        },
+        [applyPortalPersona, canImpersonatePortalPersona]
+    );
+
     const imsDerivedPersona = useMemo(
         () => (accessToken ? resolvePersonaFromAccessToken(accessToken) : null),
         [accessToken]
@@ -417,12 +440,27 @@ function MainApp(): React.JSX.Element {
 
     const handleEndPersonaImpersonation = useCallback(() => {
         if (imsDerivedPersona == null) return;
+        setPortalPersonaPreviewStripActive(false);
+        setPersonaImpersonationUiEpoch((n) => n + 1);
+        setSkipAdminLandingRedirect(true);
         applyPortalPersona(imsDerivedPersona);
         setPersonaImpersonateModalOpen(false);
-        navigate(`/admin/activities?persona=${encodeURIComponent(imsDerivedPersona)}`);
+        // Neutral admin workspace (no ?persona=) so the session is not URL-scoped to a preview role
+        navigate('/admin/activities', { replace: true });
     }, [imsDerivedPersona, applyPortalPersona, navigate]);
 
-    const goPortalHome = useCallback(() => {
+    /** Full reload of SPA root so landing, splash, and grid match the current stored persona. */
+    const reloadPortalLanding = useCallback(() => {
+        setSkipAdminLandingRedirect(true);
+        if (externalParams?.isBlockIntegration) {
+            window.location.reload();
+        } else {
+            window.location.assign(getPortalSpaRootHref());
+        }
+    }, [externalParams?.isBlockIntegration]);
+
+    /** Client-side return to portal root (app grid) without a full reload. */
+    const goPortalAppsShell = useCallback(() => {
         navigate({ pathname: '/', search: '', hash: '' });
         setSelectedAppId(null);
         setSelectedTileId(null);
@@ -1071,6 +1109,15 @@ function MainApp(): React.JSX.Element {
     // Delete mode: slots shake and show X; user can remove one to make room
     const [deleteMode, setDeleteMode] = useState(false);
     const [slotToDelete, setSlotToDelete] = useState<number | null>(null);
+
+    const showPortalGridAdminChrome = portalPersona === 'admin';
+
+    useEffect(() => {
+        if (portalPersona !== 'admin') {
+            setDeleteMode(false);
+            setSlotToDelete(null);
+        }
+    }, [portalPersona]);
     const handleRequestDeleteSlot = useCallback((index: number) => {
         setSlotToDelete(index);
     }, []);
@@ -1177,6 +1224,28 @@ function MainApp(): React.JSX.Element {
         selectedTileId !== 'experience-hub' &&
         selectedTileId !== 'ai-agents';
 
+    const headerPersonaImpersonation = useMemo(() => {
+        if (!canImpersonatePortalPersona || !accessToken?.trim() || imsDerivedPersona == null) {
+            return undefined;
+        }
+        const tokenMismatch = portalPersona !== imsDerivedPersona;
+        const explicitPreview = readPortalPersonaPreviewStripActive();
+        if (!tokenMismatch && !explicitPreview) {
+            return undefined;
+        }
+        return {
+            personaLabel: PORTAL_PERSONA_LABELS[portalPersona],
+            onEndPersona: handleEndPersonaImpersonation,
+        };
+    }, [
+        canImpersonatePortalPersona,
+        accessToken,
+        imsDerivedPersona,
+        portalPersona,
+        handleEndPersonaImpersonation,
+        personaImpersonationUiEpoch,
+    ]);
+
     return (
         <AppConfigProvider
             externalParams={externalParams}
@@ -1192,17 +1261,8 @@ function MainApp(): React.JSX.Element {
                     profile={profileWithJwtAvatar}
                     sessionActive={authenticated}
                     imsSession={Boolean(accessToken?.trim())}
-                    personaImpersonation={
-                        canImpersonatePortalPersona &&
-                        Boolean(accessToken?.trim()) &&
-                        imsDerivedPersona != null &&
-                        portalPersona !== imsDerivedPersona
-                            ? {
-                                  personaLabel: PORTAL_PERSONA_LABELS[portalPersona],
-                                  onEndPersona: handleEndPersonaImpersonation,
-                              }
-                            : undefined
-                    }
+                    personaImpersonation={headerPersonaImpersonation}
+                    onReloadPortalHome={reloadPortalLanding}
                 />
 
                 {/* Cart Container - moved from HeaderBar, now uses Portal */}
@@ -1241,7 +1301,8 @@ function MainApp(): React.JSX.Element {
                             isOpen
                             onClose={() => setPersonaImpersonateModalOpen(false)}
                             onSelectPersona={(p) => {
-                                applyPortalPersona(p);
+                                setSkipAdminLandingRedirect(true);
+                                applyPortalPersona(p, { markPersonaPreviewStrip: true });
                                 setPersonaImpersonateModalOpen(false);
                             }}
                             currentPersona={portalPersona}
@@ -1270,7 +1331,7 @@ function MainApp(): React.JSX.Element {
                 <div className="admin-shell portal-workspace-root">
                     <div className="admin-shell-body">
                         <aside className="admin-shell-rail" aria-label="Portal navigation">
-                            <button type="button" className="admin-shell-rail-item" onClick={goPortalHome} title="Home" aria-label="Home">
+                            <button type="button" className="admin-shell-rail-item" onClick={reloadPortalLanding} title="Home" aria-label="Home">
                                 <span className="admin-shell-rail-icon">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                                         <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -1279,7 +1340,7 @@ function MainApp(): React.JSX.Element {
                                 </span>
                                 <span className="admin-shell-rail-label">Home</span>
                             </button>
-                            <button type="button" className="admin-shell-rail-item" onClick={goPortalHome} title="Apps" aria-label="Apps">
+                            <button type="button" className="admin-shell-rail-item" onClick={goPortalAppsShell} title="Apps" aria-label="Apps">
                                 <span className="admin-shell-rail-icon">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                                         <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -1558,50 +1619,52 @@ function MainApp(): React.JSX.Element {
                             <AIAgents onBack={() => setSelectedTileId(null)} />
                         ) : (
                             <>
-                                <div className="app-grid-view-toggle">
-                                    <label className="portal-persona-switcher">
-                                        <span className="portal-persona-switcher-label">View as</span>
+                                {showPortalGridAdminChrome ? (
+                                    <div className="app-grid-view-toggle">
+                                        <label className="portal-persona-switcher">
+                                            <span className="portal-persona-switcher-label">View as</span>
+                                            {canImpersonatePortalPersona ? (
+                                                <select
+                                                    className="portal-persona-select"
+                                                    value={portalPersona}
+                                                    onChange={handlePortalPersonaChange}
+                                                    aria-label="Portal persona"
+                                                >
+                                                    {PORTAL_PERSONA_ORDER.map((id) => (
+                                                        <option key={id} value={id}>
+                                                            {PORTAL_PERSONA_LABELS[id]}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <span className="portal-persona-readonly" aria-live="polite">
+                                                    {PORTAL_PERSONA_LABELS[portalPersona]}
+                                                </span>
+                                            )}
+                                        </label>
                                         {canImpersonatePortalPersona ? (
-                                            <select
-                                                className="portal-persona-select"
-                                                value={portalPersona}
-                                                onChange={handlePortalPersonaChange}
-                                                aria-label="Portal persona"
-                                            >
-                                                {PORTAL_PERSONA_ORDER.map((id) => (
-                                                    <option key={id} value={id}>
-                                                        {PORTAL_PERSONA_LABELS[id]}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <span className="portal-persona-readonly" aria-live="polite">
-                                                {PORTAL_PERSONA_LABELS[portalPersona]}
-                                            </span>
-                                        )}
-                                    </label>
-                                    {canImpersonatePortalPersona ? (
-                                        <p className="portal-persona-switcher-hint">
-                                            Impersonate Marketeer, Developer, or Org admin to see that persona&apos;s rail and grid. Admin activities keeps the
-                                            same persona in sync when you change layout there.
-                                        </p>
-                                    ) : null}
-                                    <button
-                                        type="button"
-                                        className={`app-grid-customize-btn ${viewMode === 'admin' ? 'active' : ''}`}
-                                        onClick={() => setViewMode('admin')}
-                                    >
-                                        Admin
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`app-grid-customize-btn ${viewMode === 'creator' ? 'active' : ''}`}
-                                        onClick={() => setViewMode('creator')}
-                                    >
-                                        Creator
-                                    </button>
-                                </div>
-                                {viewMode === 'admin' && (
+                                            <p className="portal-persona-switcher-hint">
+                                                Impersonate Marketeer, Developer, or Org admin to see that persona&apos;s rail and grid. Admin activities keeps the
+                                                same persona in sync when you change layout there.
+                                            </p>
+                                        ) : null}
+                                        <button
+                                            type="button"
+                                            className={`app-grid-customize-btn ${viewMode === 'admin' ? 'active' : ''}`}
+                                            onClick={() => setViewMode('admin')}
+                                        >
+                                            Admin
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`app-grid-customize-btn ${viewMode === 'creator' ? 'active' : ''}`}
+                                            onClick={() => setViewMode('creator')}
+                                        >
+                                            Creator
+                                        </button>
+                                    </div>
+                                ) : null}
+                                {showPortalGridAdminChrome && viewMode === 'admin' ? (
                                     <div className="app-grid-edit-bar">
                                         <button
                                             type="button"
@@ -1619,7 +1682,7 @@ function MainApp(): React.JSX.Element {
                                         >
                                             Customize
                                         </button>
-                                        {deleteMode && (
+                                        {deleteMode ? (
                                             <button
                                                 type="button"
                                                 className="app-grid-customize-btn"
@@ -1627,17 +1690,19 @@ function MainApp(): React.JSX.Element {
                                             >
                                                 Done
                                             </button>
-                                        )}
+                                        ) : null}
                                     </div>
-                                )}
+                                ) : null}
                                 <div className="admin-shell-grid-wrap">
-                                    <div className="admin-shell-grid-persona" role="status">
-                                        <span className="admin-shell-grid-persona-label">Viewing as</span>
-                                        <span className="admin-shell-grid-persona-name">{PORTAL_PERSONA_LABELS[portalPersona]}</span>
-                                        <span className="admin-shell-grid-persona-hint">
-                                            Edit slots and navigation in <strong>Admin activities</strong>.
-                                        </span>
-                                    </div>
+                                    {showPortalGridAdminChrome ? (
+                                        <div className="admin-shell-grid-persona" role="status">
+                                            <span className="admin-shell-grid-persona-label">Viewing as</span>
+                                            <span className="admin-shell-grid-persona-name">{PORTAL_PERSONA_LABELS[portalPersona]}</span>
+                                            <span className="admin-shell-grid-persona-hint">
+                                                Edit slots and navigation in <strong>Admin activities</strong>.
+                                            </span>
+                                        </div>
+                                    ) : null}
                                     <AppGrid
                                         tiles={appTiles}
                                         onTileClick={handleTileClick}
@@ -1645,9 +1710,11 @@ function MainApp(): React.JSX.Element {
                                         topBanners={getExternalParams().gridTopBanners}
                                         slotHeight={getExternalParams().slotHeight}
                                         slotWidth={getExternalParams().slotWidth}
-                                        hideEmptySlots={viewMode === 'creator'}
-                                        deleteMode={deleteMode}
-                                        onRequestDeleteSlot={deleteMode ? handleRequestDeleteSlot : undefined}
+                                        hideEmptySlots={!showPortalGridAdminChrome || viewMode === 'creator'}
+                                        deleteMode={showPortalGridAdminChrome && deleteMode}
+                                        onRequestDeleteSlot={
+                                            showPortalGridAdminChrome && deleteMode ? handleRequestDeleteSlot : undefined
+                                        }
                                     />
                                 </div>
                                 <section className="admin-shell-bottom-slot" aria-label="Reserved for future content">

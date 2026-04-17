@@ -23,7 +23,7 @@ Use this file to record what shipped and what is next. Update it when you merge 
 - **Image URLs in storage** — `normalizePersistedImageUrl` on grid banners and skin URL fields; read/write migration + `sanitizeAllStoredRoleGridsImageUrls()` on app load.
 - **Gallery & asset cards** — `ImageGallery` / grid & list cards use `--portal-*` and heading/body font vars.
 - **Cart & facets chrome** — Cart panels (assets, download, rights extension, rights check, templates) and `Facets.css` wired to `--portal-*` / `--font-*` for neutral surfaces; primary vars for branded actions.
-- **CI-friendly build** — `SKIP_RUNTIME_CONFIG_VALIDATION=1` allows `generate-runtime-config.cjs` without full Adobe env; **`npm run build:ci`**; optional `tools/assets-browser` copy skipped if directory missing.
+- **CI-friendly build** — `SKIP_RUNTIME_CONFIG_VALIDATION=1` allows `generate-runtime-config.cjs` without full Adobe env; **`npm run build:ci`**; optional `tools/portal` copy skipped if directory missing.
 
 ## Environment quick reference
 

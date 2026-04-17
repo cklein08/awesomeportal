@@ -64,17 +64,17 @@
 }
 
 .footer-link.meet-team::before {
-    background-image: url('/tools/assets-browser/icons/meet-people.svg');
+    background-image: url('/portal/icons/meet-people.svg');
 }
 
 .footer-link.contact-us::before {
-    background-image: url('/tools/assets-browser/icons/contact-mail.svg');
+    background-image: url('/portal/icons/contact-mail.svg');
 }
 
 .footer-link.support-training::before {
-    background-image: url('/tools/assets-browser/icons/support-assistance.svg');
+    background-image: url('/portal/icons/support-assistance.svg');
 }
 
 .footer-link.faqs::before {
-    background-image: url('/tools/assets-browser/icons/faq-footer.svg');
+    background-image: url('/portal/icons/faq-footer.svg');
 }

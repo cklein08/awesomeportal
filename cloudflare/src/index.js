@@ -45,6 +45,7 @@ router
   // public content
   .get('/public/*', originHelix)
   .get('/tools/*', originHelix)
+  .get('/portal/*', originHelix)
   .get('/scripts/*', originHelix)
   .get('/styles/*', originHelix)
   .get('/blocks/*', originHelix)

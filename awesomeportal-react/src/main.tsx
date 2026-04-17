@@ -50,7 +50,7 @@ const AppWithRouter = isBlockIntegration ? (
     </BrowserRouter>
 ) : (
     // For standalone app: BrowserRouter with basename
-    <BrowserRouter basename="/tools/assets-browser">
+    <BrowserRouter basename="/portal">
         <App />
     </BrowserRouter>
 );

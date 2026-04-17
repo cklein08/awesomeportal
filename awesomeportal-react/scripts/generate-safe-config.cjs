@@ -37,8 +37,9 @@ if (typeof window !== 'undefined') {
 }
 `;
 
-// Write to tools/assets-browser/ for static deployment
-const toolsConfigPath = path.join(__dirname, '..', '..', 'tools', 'assets-browser', 'config.js');
+// Write to tools/portal/ for static deployment
+const toolsConfigPath = path.join(__dirname, '..', '..', 'tools', 'portal', 'config.js');
+fs.mkdirSync(path.dirname(toolsConfigPath), { recursive: true });
 fs.writeFileSync(toolsConfigPath, configContent);
 
 console.log('✅ Generated safe config at:', toolsConfigPath);

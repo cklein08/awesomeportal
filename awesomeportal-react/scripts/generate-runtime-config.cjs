@@ -13,7 +13,7 @@ const path = require('path');
  *
  * Strict mode (default): exits non-zero if VITE_ADOBE_CLIENT_ID or VITE_BUCKET is missing.
  * CI / packaging: set SKIP_RUNTIME_CONFIG_VALIDATION=1 to write empty placeholders and still exit 0.
- * Deployment copy under ../../tools/assets-browser/ is skipped if that directory does not exist.
+ * Deployment copy under ../../tools/portal/ is skipped if that directory does not exist.
  */
 
 // Helper function to load .env files
@@ -121,8 +121,8 @@ if (!fs.existsSync(distDir)) {
 const configPath = path.join(distDir, 'config.js');
 fs.writeFileSync(configPath, configContent);
 
-// Also write to tools/assets-browser/ for deployment (optional — dir may not exist in CI clones)
-const toolsConfigPath = path.join(__dirname, '..', '..', 'tools', 'assets-browser', 'config.js');
+// Also write to tools/portal/ for deployment (optional — dir may not exist in CI clones)
+const toolsConfigPath = path.join(__dirname, '..', '..', 'tools', 'portal', 'config.js');
 const toolsConfigDir = path.dirname(toolsConfigPath);
 if (fs.existsSync(toolsConfigDir)) {
     fs.writeFileSync(toolsConfigPath, configContent);

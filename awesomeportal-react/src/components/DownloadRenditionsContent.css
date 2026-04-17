@@ -190,7 +190,7 @@
 
 /* Toggle button for collapse/expand - now inside select-all-item */
 .select-all-item .renditions-toggle-btn {
-    background-image: url('/tools/assets-browser/icons/arrow-down-nav-menu.svg');
+    background-image: url('/portal/icons/arrow-down-nav-menu.svg');
     background-color: transparent;
     border: none;
     width: 24px;

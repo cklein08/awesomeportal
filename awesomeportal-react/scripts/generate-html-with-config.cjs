@@ -42,7 +42,7 @@ htmlContent = htmlContent.replace(/\s*<!-- Runtime configuration embedded inline
 fs.writeFileSync(htmlPath, htmlContent);
 
 console.log('✅ Development scripts removed from HTML at:', htmlPath);
-console.log('📁 File will be copied to tools/assets-browser/ in the next step');
+console.log('📁 File will be copied to tools/portal/ in the next step');
 console.log('');
 console.log('✅ Production HTML is clean and ready!');
 console.log('🚀 Configuration values are embedded in the JS bundle by Vite!'); 

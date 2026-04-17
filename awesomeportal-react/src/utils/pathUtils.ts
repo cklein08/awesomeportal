@@ -1,5 +1,5 @@
 /**
- * Prefix a site-root path with Vite `base` so public assets work under e.g. `/tools/assets-browser/`.
+ * Prefix a site-root path with Vite `base` so public assets work under a subdirectory (e.g. `/portal/`).
  * @param absoluteFromSiteRoot - Path beginning with `/`, e.g. `/icons/info.svg`
  */
 export function withBase(absoluteFromSiteRoot: string): string {
@@ -7,6 +7,16 @@ export function withBase(absoluteFromSiteRoot: string): string {
     const rawBase = import.meta.env.BASE_URL || '/';
     const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
     return `${base}${path}`;
+}
+
+/** True when `pathname` is the built SPA entry (e.g. `/portal/index.html`) for the current Vite `base`. */
+export function isSpaIndexPathname(pathname: string): boolean {
+    const rawBase = import.meta.env.BASE_URL || '/';
+    const base = rawBase.replace(/\/+$/, '');
+    if (!base) {
+        return pathname === '/index.html' || pathname.endsWith('/index.html');
+    }
+    return pathname === `${base}/index.html` || pathname.endsWith(`${base}/index.html`);
 }
 
 function normalizeImageSrcCore(raw: string): string {

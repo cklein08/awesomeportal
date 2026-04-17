@@ -35,9 +35,9 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       port: 5173,
-      open: '/tools/assets-browser/'
+      open: '/portal/'
     },
-    base: '/tools/assets-browser/',
+    base: '/portal/',
     // Load environment files in order of priority
     envDir: './', // Look for env files in the current directory
     envPrefix: 'VITE_', // Only expose variables starting with VITE_

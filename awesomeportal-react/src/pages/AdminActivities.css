@@ -14,7 +14,14 @@
     --admin-right-width: min(380px, 36vw);
     --admin-banner-height: 52px;
 
+    box-sizing: border-box;
+    /* Pin shell to the viewport so the main workspace and Drop-ins column can scroll independently */
     min-height: 100vh;
+    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     background: var(--admin-bg);
@@ -178,6 +185,7 @@
     display: flex;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
     align-items: stretch;
 }
 
@@ -272,6 +280,7 @@
 .admin-shell-main {
     flex: 1;
     min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     padding: 20px 24px 16px;
@@ -582,10 +591,12 @@
     border-left: 1px solid var(--admin-border);
     background: #000;
     min-height: 0;
+    overflow: hidden;
 }
 
 .admin-shell-right-header {
     margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 .admin-shell-right-title {
@@ -602,16 +613,21 @@
 .admin-shell-right-lede {
     font-size: 0.8rem;
     margin-bottom: 14px;
+    flex-shrink: 0;
 }
 
 .admin-shell-entitlement-list {
     flex: 1;
     min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
     gap: 10px;
     padding-right: 4px;
+    scrollbar-gutter: stable;
 }
 
 .admin-shell-entitlement-tile {

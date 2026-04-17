@@ -96,6 +96,12 @@
     color: #666;
 }
 
+.grid-edit-hint--persona-locked {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
 .grid-edit-banner-error {
     margin: 0 0 12px 0;
     font-size: 0.875rem;

@@ -358,7 +358,7 @@ const AdminActivities: React.FC = () => {
                             ) : null}
                             {workspaceTab === 'layout' ? (
                                 <div className="admin-shell-layout-panel">
-                                    <GridEditForm {...editor} showPersonaPicker />
+                                    <GridEditForm {...editor} showPersonaPicker lockPersonaSelect={personaFromUrl != null} />
                                 </div>
                             ) : null}
                             {workspaceTab === 'persona' ? (

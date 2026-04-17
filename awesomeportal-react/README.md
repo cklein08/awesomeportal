@@ -65,7 +65,7 @@ Logic lives in `src/utils/imsPersona.ts`. Curated tile targets and **`openMode`*
 - `src/components/AdobeSignInButton.tsx` - Authentication
 - `src/utils/config.ts` - Configuration utility
 - `.env.development`, `.env.production` - Environment-specific variables
-- `tools/assets-browser/DEPLOYMENT.md` - Deployment guide
+- `tools/portal/DEPLOYMENT.md` - Deployment guide (when present alongside the static deploy folder)
 
 ## Recent Changes
 
@@ -324,7 +324,7 @@ src/
 ### Getting Started
 
 1. **Start the application**: `npm run dev`
-2. **Open your browser**: Navigate to `http://localhost:5173/tools/assets-browser/index.html`
+2. **Open your browser**: Navigate to `http://localhost:5173/portal/index.html`
 3. **Sign in with Adobe**: Click the "Sign in with Adobe" button
 4. **Complete authentication**: Follow the Adobe login flow
 5. **Start browsing**: Search for assets, browse collections, and manage your cart
@@ -511,7 +511,7 @@ $env:VITE_ADOBE_CLIENT_ID="your-client-id"; $env:VITE_BUCKET="your-bucket-name";
 VITE_ADOBE_CLIENT_ID=your-client-id VITE_BUCKET=your-bucket-name npm run build:embed
 ```
 
-**Result:** Creates `tools/assets-browser/index.html` with values embedded directly in the JavaScript.
+**Result:** Creates `tools/portal/index.html` with values embedded directly in the JavaScript.
 
 **Option 2: Deployment Config**
 

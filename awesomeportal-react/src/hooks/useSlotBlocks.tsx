@@ -83,6 +83,15 @@ function slotBlockToAppTile(
     } else if (block.href) {
         const mode = resolveTileOpenMode(block);
         onClick = () => {
+            // Portal shell (MainApp) passes onSelectDaContentUrl — load every hosted tile in the same body iframe.
+            if (onSelectDaContentUrl) {
+                onSelectDaContentUrl(block.href!);
+                return;
+            }
+            if (mode === 'navigate') {
+                window.location.assign(block.href!);
+                return;
+            }
             if (mode === 'new-tab') {
                 try {
                     window.open(block.href!, '_blank', 'noopener');
@@ -91,19 +100,7 @@ function slotBlockToAppTile(
                 }
                 return;
             }
-            if (mode === 'navigate') {
-                window.location.assign(block.href!);
-                return;
-            }
-            if (onSelectDaContentUrl) {
-                onSelectDaContentUrl(block.href!);
-            } else {
-                try {
-                    window.open(block.href!, '_blank', 'noopener');
-                } catch {
-                    window.location.assign(block.href!);
-                }
-            }
+            window.location.assign(block.href!);
         };
     }
 

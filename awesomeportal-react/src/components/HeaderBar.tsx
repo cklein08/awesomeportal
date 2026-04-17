@@ -27,6 +27,8 @@ interface HeaderBarPropsSimplified {
     imsSession?: boolean;
     /** Shown top-right when an admin is viewing the portal as another persona. */
     personaImpersonation?: { personaLabel: string; onEndPersona: () => void } | null;
+    /** Full page load of the SPA entry (current stored persona); used for the header home control. */
+    onReloadPortalHome?: () => void;
 }
 
 const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
@@ -43,6 +45,7 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     sessionActive,
     imsSession,
     personaImpersonation,
+    onReloadPortalHome,
 }) => {
     // Get external params and skin from context
     const { externalParams, skinConfig } = useAppConfig();
@@ -56,11 +59,19 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     }, [cartItems.length]);
 
     const handleLogoClick = () => {
-        window.location.assign('/');
+        if (onReloadPortalHome) {
+            onReloadPortalHome();
+        } else {
+            window.location.assign('/');
+        }
     };
 
     const handleHomeClick = () => {
-        window.location.assign('/');
+        if (onReloadPortalHome) {
+            onReloadPortalHome();
+        } else {
+            window.location.assign('/');
+        }
     };
 
     const handleProfileClick = () => {

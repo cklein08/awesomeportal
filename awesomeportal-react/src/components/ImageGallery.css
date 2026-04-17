@@ -49,7 +49,7 @@
   width: 18px;
   height: 20px;
   flex-shrink: 0;
-  background-image: url('/tools/assets-browser/icons/info.svg');
+  background-image: url('/portal/icons/info.svg');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center center;
@@ -78,11 +78,11 @@
 }
 
 .gallery-title-toggle.collapsed {
-  background-image: url("/tools/assets-browser/icons/Arrow_Down.svg");
+  background-image: url("/portal/icons/Arrow_Down.svg");
 }
 
 .gallery-title-toggle.expanded {
-  background-image: url("/tools/assets-browser/icons/Arrow_up.svg");
+  background-image: url("/portal/icons/Arrow_up.svg");
 }
 
 .gallery-title-toggle:hover {

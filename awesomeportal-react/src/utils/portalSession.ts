@@ -10,7 +10,30 @@ export function clearPortalSplashAck(): void {
 }
 
 /**
- * Full URL of the SPA root including Vite `base` (e.g. `https://localhost:5173/tools/assets-browser/`).
+ * When set, the header shows "End Persona" even if the chosen portal persona matches the IMS-derived
+ * persona (e.g. org admin previewing the Admin layout after explicitly picking Admin in the modal).
+ */
+export const PORTAL_PERSONA_PREVIEW_STRIP_SESSION_KEY = 'awesomeportal_persona_preview_strip';
+
+export function setPortalPersonaPreviewStripActive(active: boolean): void {
+    try {
+        if (active) sessionStorage.setItem(PORTAL_PERSONA_PREVIEW_STRIP_SESSION_KEY, '1');
+        else sessionStorage.removeItem(PORTAL_PERSONA_PREVIEW_STRIP_SESSION_KEY);
+    } catch {
+        /* ignore */
+    }
+}
+
+export function readPortalPersonaPreviewStripActive(): boolean {
+    try {
+        return sessionStorage.getItem(PORTAL_PERSONA_PREVIEW_STRIP_SESSION_KEY) === '1';
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Full URL of the SPA root including Vite `base` (e.g. `https://localhost:5173/portal/`).
  * Use after sign-out so the next load shows the splash gate and a clean entry URL (not `index.html`).
  */
 export function getPortalSpaRootHref(): string {

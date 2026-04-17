@@ -10,6 +10,8 @@ export type GridEditorFormProps = {
     editingPersona: PortalPersonaId;
     setEditingPersona: (p: PortalPersonaId) => void;
     showPersonaPicker?: boolean;
+    /** When true, "Layout for" is fixed (e.g. `?persona=` in Admin activities) so it cannot drift from the URL. */
+    lockPersonaSelect?: boolean;
     bannerFileError: string | null;
     showAddSlotChoice: boolean;
     setShowAddSlotChoice: (v: boolean) => void;
@@ -35,6 +37,7 @@ const GridEditForm: React.FC<GridEditorFormProps> = ({
     editingPersona,
     setEditingPersona,
     showPersonaPicker = true,
+    lockPersonaSelect = false,
     bannerFileError,
     showAddSlotChoice,
     setShowAddSlotChoice,
@@ -71,6 +74,12 @@ const GridEditForm: React.FC<GridEditorFormProps> = ({
                             value={editingPersona}
                             onChange={(e) => setEditingPersona(e.target.value as PortalPersonaId)}
                             aria-label="Persona layout to edit"
+                            disabled={lockPersonaSelect}
+                            title={
+                                lockPersonaSelect
+                                    ? 'Persona is set by the page URL. Open Admin activities without ?persona= to pick a different layout scope.'
+                                    : undefined
+                            }
                         >
                             {PORTAL_PERSONA_ORDER.map((id) => (
                                 <option key={id} value={id}>
@@ -79,6 +88,12 @@ const GridEditForm: React.FC<GridEditorFormProps> = ({
                             ))}
                         </select>
                     </label>
+                    {lockPersonaSelect ? (
+                        <p className="grid-edit-hint grid-edit-hint--persona-locked">
+                            Layout scope matches <code>?persona=</code> in the URL. Open <strong>Admin activities</strong> without that query to choose a different
+                            persona here; the top bar stays <strong>Admin activities</strong> until then.
+                        </p>
+                    ) : null}
                 </section>
             ) : null}
 

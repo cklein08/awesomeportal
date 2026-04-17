@@ -251,7 +251,7 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                     setupTokenRefresh();
                     setLoading(false);
 
-                    // Redirect to clean URL (no token in hash/query); prefer app root e.g. /tools/assets-browser/
+                    // Redirect to clean URL (no token in hash/query); prefer app root (Vite `base`, e.g. /portal/)
                     const cleanTarget = (() => {
                         try {
                             sessionStorage.removeItem('postSignInRedirectApp');
@@ -316,7 +316,7 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                     setupTokenRefresh();
                     setLoading(false);
 
-                    // Redirect to clean URL; prefer app root /tools/assets-browser/
+                    // Redirect to clean URL; prefer app root from Vite `base`
                     const cleanTarget = (() => {
                         try {
                             sessionStorage.removeItem('postSignInRedirectApp');
@@ -394,7 +394,7 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                         setupTokenRefresh();
                         setLoading(false);
 
-                        // Redirect to clean URL; prefer app root /tools/assets-browser/
+                        // Redirect to clean URL; prefer app root from Vite `base`
                         const cleanTarget = (() => {
                             try {
                                 sessionStorage.removeItem('postSignInRedirectApp');
