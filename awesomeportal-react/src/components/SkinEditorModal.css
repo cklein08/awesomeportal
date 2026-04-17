@@ -48,6 +48,37 @@
     color: var(--text-color, #333);
 }
 
+.skin-editor-demo-presets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px 12px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    background: rgba(0, 124, 49, 0.06);
+}
+
+.skin-editor-demo-presets-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-color, #333);
+}
+
+.skin-editor-demo-preset-btn {
+    font-size: 0.8125rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #007c31;
+    background: #fff;
+    color: #007c31;
+    cursor: pointer;
+}
+
+.skin-editor-demo-preset-btn:hover {
+    background: #007c31;
+    color: #fff;
+}
+
 .skin-editor-modal-body {
     padding: 20px;
     overflow-y: auto;

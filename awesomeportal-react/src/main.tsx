@@ -21,7 +21,12 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
+import { applyHeinekenLocalDemo } from './constants/heinekenDemoPreset';
 import { getExternalParams } from './utils/config';
+
+if (import.meta.env.VITE_HEINEKEN_DEMO === 'true') {
+    applyHeinekenLocalDemo();
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

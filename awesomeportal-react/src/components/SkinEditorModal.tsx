@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppConfig } from '../hooks/useAppConfig';
 import type { PortalSkinConfig } from '../types';
+import { applyHeinekenGridLayouts, HEINEKEN_SKIN } from '../constants/heinekenDemoPreset';
 import './SkinEditorModal.css';
 
 interface SkinEditorModalProps {
@@ -118,6 +119,9 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
         if (fontBodyDataUrl) config.fontBodyDataUrl = fontBodyDataUrl;
         if (fontHeadingDataUrl) config.fontHeadingDataUrl = fontHeadingDataUrl;
         if (heroImageUrl.trim()) config.heroImageUrl = heroImageUrl.trim();
+        if (skinConfig?.primaryColorHover?.trim()) config.primaryColorHover = skinConfig.primaryColorHover.trim();
+        if (skinConfig?.primaryColorActive?.trim()) config.primaryColorActive = skinConfig.primaryColorActive.trim();
+        if (skinConfig?.primaryColorDisabled?.trim()) config.primaryColorDisabled = skinConfig.primaryColorDisabled.trim();
         setSkinConfig(Object.keys(config).length > 0 ? config : null);
         onClose();
     };
@@ -188,6 +192,23 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose }) =>
                         ×
                     </button>
                 </div>
+                {import.meta.env.DEV ? (
+                    <div className="skin-editor-demo-presets">
+                        <span className="skin-editor-demo-presets-label">Local demos</span>
+                        <button
+                            type="button"
+                            className="skin-editor-demo-preset-btn"
+                            onClick={() => {
+                                applyHeinekenGridLayouts();
+                                setSkinConfig(HEINEKEN_SKIN);
+                                onClose();
+                                window.location.reload();
+                            }}
+                        >
+                            Apply Heineken-style skin
+                        </button>
+                    </div>
+                ) : null}
                 <div className="skin-editor-modal-body">
                     <div className="skin-editor-field">
                         <label htmlFor="skin-logo">Logo URL</label>

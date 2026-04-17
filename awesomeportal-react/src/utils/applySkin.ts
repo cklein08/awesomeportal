@@ -29,10 +29,17 @@ const SKIN_TO_CSS_VARS: Array<{ key: keyof PortalSkinConfig; varName: string }> 
  * Removes skin overrides from document.documentElement and any skin-injected link/style nodes.
  * Used when resetting to defaults.
  */
+const EXTRA_SKIN_VARS = [
+    '--primary-color-hover',
+    '--primary-color-active',
+    '--primary-color-disabled',
+] as const;
+
 function clearSkinOverrides(): void {
     const root = document.documentElement;
     const varNames = new Set(SKIN_TO_CSS_VARS.map(({ varName }) => varName));
     varNames.forEach((varName) => root.style.removeProperty(varName));
+    EXTRA_SKIN_VARS.forEach((varName) => root.style.removeProperty(varName));
     [GOOGLE_FONTS_LINK_ID, SKIN_FONT_STYLESHEET_ID, SKIN_FONTFACE_STYLE_ID].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.remove();
@@ -160,6 +167,16 @@ export function applySkin(config: PortalSkinConfig | null = getSkinConfig()): vo
         const strValue = typeof value === 'string' ? value : undefined;
         if (strValue) root.style.setProperty(varName, strValue);
     });
+
+    if (config.primaryColorHover?.trim()) {
+        root.style.setProperty('--primary-color-hover', config.primaryColorHover.trim());
+    }
+    if (config.primaryColorActive?.trim()) {
+        root.style.setProperty('--primary-color-active', config.primaryColorActive.trim());
+    }
+    if (config.primaryColorDisabled?.trim()) {
+        root.style.setProperty('--primary-color-disabled', config.primaryColorDisabled.trim());
+    }
 
     // Stylesheet URL: inject link so custom font CSS is loaded
     const fontStylesheetUrl = config.fontStylesheetUrl?.trim();

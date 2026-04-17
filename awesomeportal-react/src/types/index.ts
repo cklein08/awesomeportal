@@ -428,6 +428,10 @@ export interface GridEditConfig {
 export interface PortalSkinConfig {
     logoUrl?: string;
     primaryColor?: string;
+    /** Optional; when unset, theme defaults remain for hover/active/disabled. */
+    primaryColorHover?: string;
+    primaryColorActive?: string;
+    primaryColorDisabled?: string;
     backgroundColor?: string;
     accentColor?: string;
     fontFamilyBody?: string;
