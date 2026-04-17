@@ -37,6 +37,7 @@ const EXTRA_SKIN_VARS = [
 
 const PORTAL_CHROME_VARS = [
     '--portal-chrome-bg',
+    '--portal-page-bg',
     '--portal-panel-bg',
     '--portal-elevated-bg',
     '--portal-search-bg',
@@ -44,6 +45,10 @@ const PORTAL_CHROME_VARS = [
     '--portal-border',
     '--portal-text',
     '--portal-text-muted',
+    '--aem-selector-bg',
+    '--aem-selector-border',
+    '--aem-selector-label',
+    '--aem-selector-field-bg',
 ] as const;
 
 function clearSkinOverrides(): void {

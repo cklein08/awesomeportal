@@ -3,7 +3,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background-color: var(--portal-chrome-bg, #ffffff);
+  background-color: var(--portal-page-bg, var(--portal-chrome-bg, #141414));
 }
 
 .image-gallery {

@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ADOBE_ENTITLEMENTS } from '../constants/adobeEntitlements';
 import { getLeftNavAppsForPersona, PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
-import type { AppItem } from '../components/LeftNav';
 import type { EntitlementPayload, ExternalParams, PortalPersonaId, SlotBlockDescriptor } from '../types';
 import { AppConfigProvider } from '../components/AppConfigProvider';
 import AppGrid, { DRAG_TYPE_ENTITLEMENT } from '../components/AppGrid';
 import GridEditForm from '../components/GridEditForm';
+import PersonaImpersonateModal from '../components/PersonaImpersonateModal';
+import { PersonaGlyph } from '../components/PersonaGlyph';
 import { useGridEditor } from '../hooks/useGridEditor';
 import { previewAppTilesFromSlotBlocks } from '../hooks/useSlotBlocks';
 import {
@@ -16,7 +18,7 @@ import {
     isPortalPersonaId,
     setSelectedPersona,
 } from '../utils/config';
-import { canAccessPortalSetup, setSkipAdminLandingRedirect } from '../utils/portalAccess';
+import { canAccessPortalSetup, canImpersonatePortalPersonas, setSkipAdminLandingRedirect } from '../utils/portalAccess';
 import './AdminActivities.css';
 
 function readAccessToken(): string {
@@ -31,17 +33,6 @@ type WorkspaceTabId = 'grid' | 'layout' | 'persona';
 
 const MODEL_PROMPTS = ['Summarize this layout', 'Suggest tiles for marketeers', 'List empty slots', 'Explain persona nav'];
 
-function navAppToHref(app: AppItem): { to: string; state?: { openSkinEditor?: boolean } } {
-    switch (app.id) {
-        case 'portal-activities':
-            return { to: '/admin/activities' };
-        case 'portal-brand':
-            return { to: '/', state: { openSkinEditor: true } };
-        default:
-            return { to: '/' };
-    }
-}
-
 const AdminActivities: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -50,6 +41,7 @@ const AdminActivities: React.FC = () => {
     const [agentPrompt, setAgentPrompt] = useState('');
 
     const [banner, setBanner] = useState<{ kind: 'success' | 'error' | 'warning'; text: string } | null>(null);
+    const [personaImpersonateModalOpen, setPersonaImpersonateModalOpen] = useState(false);
     const [externalParams, setExternalParams] = useState<ExternalParams>(() => getExternalParams());
 
     const initialPersona = useMemo((): PortalPersonaId => {
@@ -77,6 +69,7 @@ const AdminActivities: React.FC = () => {
     }, [searchParams, setEditingPersona]);
 
     const allowed = canAccessPortalSetup(readAccessToken(), getSelectedPersona());
+    const canImpersonate = allowed && canImpersonatePortalPersonas(readAccessToken());
 
     useLayoutEffect(() => {
         if (!allowed) {
@@ -192,14 +185,24 @@ const AdminActivities: React.FC = () => {
                         <button type="button" className="admin-shell-pill" onClick={backToPortal}>
                             Back to portal
                         </button>
-                        <button type="button" className="admin-shell-icon-btn" title="Notifications" aria-label="Notifications">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <button
+                            type="button"
+                            className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
+                            title="Notifications"
+                            aria-label="Notifications"
+                        >
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                             </svg>
                         </button>
-                        <button type="button" className="admin-shell-icon-btn" title="Help" aria-label="Help">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <button
+                            type="button"
+                            className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
+                            title="Help"
+                            aria-label="Help"
+                        >
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" />
                                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                                 <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -230,32 +233,28 @@ const AdminActivities: React.FC = () => {
                             </span>
                             <span className="admin-shell-rail-label">Apps</span>
                         </Link>
-                        <Link to="/" className="admin-shell-rail-item" title="Files — open portal">
-                            <span className="admin-shell-rail-icon">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                                </svg>
-                            </span>
-                            <span className="admin-shell-rail-label">Files</span>
-                        </Link>
-                        <div className="admin-shell-rail-divider" />
-                        <nav className="admin-shell-rail-secondary" aria-label="Portal apps for this persona">
-                            {navPreview.map((app) => {
-                                const { to, state } = navAppToHref(app);
-                                const isHere = app.id === 'portal-activities';
-                                return (
-                                    <Link
-                                        key={app.id}
-                                        to={to}
-                                        state={state}
-                                        className={`admin-shell-rail-item admin-shell-rail-item--compact ${isHere ? 'active' : ''}`}
-                                        title={app.name}
-                                    >
-                                        <span className="admin-shell-rail-label">{app.name}</span>
-                                    </Link>
-                                );
-                            })}
-                        </nav>
+                        <div className="admin-shell-rail-files-stack">
+                            <Link to="/" className="admin-shell-rail-item" title="Files — open portal">
+                                <span className="admin-shell-rail-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                                    </svg>
+                                </span>
+                                <span className="admin-shell-rail-label">Files</span>
+                            </Link>
+                            {canImpersonate ? (
+                                <button
+                                    type="button"
+                                    className="admin-shell-rail-persona-btn"
+                                    title="View portal as a persona"
+                                    aria-label="View portal as a persona"
+                                    onClick={() => setPersonaImpersonateModalOpen(true)}
+                                >
+                                    <PersonaGlyph size={20} />
+                                </button>
+                            ) : null}
+                        </div>
+                        <div className="admin-shell-rail-divider" aria-hidden />
                     </aside>
 
                     <main className="admin-shell-main">
@@ -436,6 +435,22 @@ const AdminActivities: React.FC = () => {
                         </button>
                     </div>
                 ) : null}
+
+                {personaImpersonateModalOpen &&
+                    createPortal(
+                        <PersonaImpersonateModal
+                            isOpen
+                            onClose={() => setPersonaImpersonateModalOpen(false)}
+                            onSelectPersona={(p) => {
+                                setSelectedPersona(p);
+                                setSkipAdminLandingRedirect(true);
+                                setPersonaImpersonateModalOpen(false);
+                                navigate('/');
+                            }}
+                            currentPersona={getSelectedPersona()}
+                        />,
+                        document.body
+                    )}
             </div>
         </AppConfigProvider>
     );

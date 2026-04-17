@@ -43,7 +43,7 @@ import {
     type AemProgramOption,
 } from '../utils/config';
 import { decodeImsAccessTokenPayload, isPortalAdminFromToken, resolvePersonaFromAccessToken } from '../utils/imsPersona';
-import { setSkipAdminLandingRedirect, shouldOpenAdminActivitiesAfterSignIn } from '../utils/portalAccess';
+import { canImpersonatePortalPersonas, setSkipAdminLandingRedirect, shouldOpenAdminActivitiesAfterSignIn } from '../utils/portalAccess';
 import { getPortalSpaRootHref, readPostLoginAdminRedirectDelayMs } from '../utils/portalSession';
 import { getProfilePictureUrl } from '../utils/profileImage';
 import { AppConfigProvider } from './AppConfigProvider';
@@ -67,6 +67,8 @@ import { calendarDateToEpoch } from '../utils/formatters';
 import CartPanel from './CartPanel';
 import Facets from './Facets';
 import HeaderBar from './HeaderBar';
+import PersonaImpersonateModal from './PersonaImpersonateModal';
+import { PersonaGlyph } from './PersonaGlyph';
 import ImageGallery from './ImageGallery';
 import SearchBar from './SearchBar';
 import LeftNav from './LeftNav';
@@ -314,15 +316,22 @@ function MainApp(): React.JSX.Element {
     const [iframeCannotDisplay, setIframeCannotDisplay] = useState(false);
     const [portalPersona, setPortalPersona] = useState<PortalPersonaId>(() => getSelectedPersona());
     const apps = useMemo(() => getLeftNavAppsForPersona(portalPersona), [portalPersona]);
+    const [personaImpersonateModalOpen, setPersonaImpersonateModalOpen] = useState(false);
 
-    const handlePortalPersonaChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-        const p = e.target.value as PortalPersonaId;
+    const applyPortalPersona = useCallback((p: PortalPersonaId) => {
         setSelectedPersona(p);
         setPortalPersona(p);
         setGridConfigVersion((v) => v + 1);
         setSelectedTileId(null);
         setSelectedDaContentUrl(null);
     }, []);
+
+    const handlePortalPersonaChange = useCallback(
+        (e: React.ChangeEvent<HTMLSelectElement>) => {
+            applyPortalPersona(e.target.value as PortalPersonaId);
+        },
+        [applyPortalPersona]
+    );
     const handleSelectDaContentUrl = useCallback((url: string) => {
         setSelectedDaContentUrl(url);
         setSelectedTileId(null);
@@ -416,22 +425,22 @@ function MainApp(): React.JSX.Element {
         localStorage.setItem('cartItems', JSON.stringify(cartItems));
     }, [cartItems]);
 
-    const canOverridePortalPersona = useMemo(() => {
-        if (!authenticated) return false;
-        if (isCookieAuth()) return true;
-        return isPortalAdminFromToken(accessToken);
-    }, [authenticated, accessToken]);
+    const canImpersonatePortalPersona = useMemo(
+        () => authenticated && canImpersonatePortalPersonas(accessToken),
+        [authenticated, accessToken]
+    );
 
     const imsDerivedPersona = useMemo(
         () => (accessToken ? resolvePersonaFromAccessToken(accessToken) : null),
         [accessToken]
     );
 
-    const showPersonaImpersonationBar =
-        canOverridePortalPersona &&
-        Boolean(accessToken) &&
-        imsDerivedPersona != null &&
-        portalPersona !== imsDerivedPersona;
+    const handleEndPersonaImpersonation = useCallback(() => {
+        if (imsDerivedPersona == null) return;
+        applyPortalPersona(imsDerivedPersona);
+        setPersonaImpersonateModalOpen(false);
+        navigate(`/admin/activities?persona=${encodeURIComponent(imsDerivedPersona)}`);
+    }, [imsDerivedPersona, applyPortalPersona, navigate]);
 
     const prevAccessTokenRef = useRef('');
     useEffect(() => {
@@ -1245,17 +1254,18 @@ function MainApp(): React.JSX.Element {
                     profile={profileWithJwtAvatar}
                     sessionActive={authenticated}
                     imsSession={Boolean(accessToken?.trim())}
+                    personaImpersonation={
+                        canImpersonatePortalPersona &&
+                        Boolean(accessToken?.trim()) &&
+                        imsDerivedPersona != null &&
+                        portalPersona !== imsDerivedPersona
+                            ? {
+                                  personaLabel: PORTAL_PERSONA_LABELS[portalPersona],
+                                  onEndPersona: handleEndPersonaImpersonation,
+                              }
+                            : undefined
+                    }
                 />
-
-                {showPersonaImpersonationBar && imsDerivedPersona ? (
-                    <div className="portal-persona-impersonation-bar" role="status">
-                        <p>
-                            You are viewing the portal as <strong>{PORTAL_PERSONA_LABELS[portalPersona]}</strong>. Your IMS session maps to{' '}
-                            <strong>{PORTAL_PERSONA_LABELS[imsDerivedPersona]}</strong>. Use <strong>View as</strong> to impersonate each persona, edit their
-                            grid in Admin activities, and confirm left navigation and tiles match expectations.
-                        </p>
-                    </div>
-                ) : null}
 
                 {/* Cart Container - moved from HeaderBar, now uses Portal */}
                 {createPortal(
@@ -1286,6 +1296,20 @@ function MainApp(): React.JSX.Element {
                     isOpen={showSkinEditor}
                     onClose={() => setShowSkinEditor(false)}
                 />
+
+                {personaImpersonateModalOpen &&
+                    createPortal(
+                        <PersonaImpersonateModal
+                            isOpen
+                            onClose={() => setPersonaImpersonateModalOpen(false)}
+                            onSelectPersona={(p) => {
+                                applyPortalPersona(p);
+                                setPersonaImpersonateModalOpen(false);
+                            }}
+                            currentPersona={portalPersona}
+                        />,
+                        document.body
+                    )}
 
                 {removeSlotDialogOpen && createPortal(
                     <div className="grid-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="remove-slot-dialog-title">
@@ -1329,6 +1353,20 @@ function MainApp(): React.JSX.Element {
                         apps={apps}
                         selectedAppId={selectedAppId}
                         onAppSelect={handleAppSelect}
+                        afterAppId="assets-browser"
+                        afterAppSlot={
+                            canImpersonatePortalPersona ? (
+                                <button
+                                    type="button"
+                                    className="left-nav-persona-btn"
+                                    onClick={() => setPersonaImpersonateModalOpen(true)}
+                                    aria-label="View portal as another persona"
+                                    title="View portal as another persona"
+                                >
+                                    <PersonaGlyph size={22} />
+                                </button>
+                            ) : undefined
+                        }
                     />
                     <div className="right-content-area">
                         {isAssetsBrowser && !authenticated ? (
@@ -1517,7 +1555,7 @@ function MainApp(): React.JSX.Element {
                                 <div className="app-grid-view-toggle">
                                     <label className="portal-persona-switcher">
                                         <span className="portal-persona-switcher-label">View as</span>
-                                        {canOverridePortalPersona ? (
+                                        {canImpersonatePortalPersona ? (
                                             <select
                                                 className="portal-persona-select"
                                                 value={portalPersona}
@@ -1536,7 +1574,7 @@ function MainApp(): React.JSX.Element {
                                             </span>
                                         )}
                                     </label>
-                                    {canOverridePortalPersona ? (
+                                    {canImpersonatePortalPersona ? (
                                         <p className="portal-persona-switcher-hint">
                                             Impersonate Marketeer, Developer, or Org admin to see that persona&apos;s left nav and grid. Admin activities keeps
                                             the same persona in sync when you change layout there.

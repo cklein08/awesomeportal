@@ -53,10 +53,10 @@
   min-width: 180px;
   padding: 6px 10px;
   font-size: 0.875rem;
-  border: 1px solid var(--aem-selector-border, #ccc);
-  border-radius: 6px;
-  background-color: var(--aem-selector-field-bg, #fafafa);
-  color: #333;
+  border: 1px solid var(--aem-selector-border, #333);
+  border-radius: 8px;
+  background-color: var(--aem-selector-field-bg, #252525);
+  color: var(--portal-text, #f5f5f5);
 }
 
 .aem-instance-selector-loading {
@@ -107,9 +107,10 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 10px 20px;
+  padding: 12px 20px;
   background-color: var(--portal-search-bg, #000000);
-  min-height: 90px;
+  min-height: 88px;
+  border-bottom: 1px solid var(--portal-border, #333);
 }
 
 .profile-icon-btn-search {
@@ -258,13 +259,13 @@
 }
 
 .app-grid-customize-btn.secondary {
-  background: #f0f0f0;
-  border-color: #ccc;
-  color: #333;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--portal-border, #444);
+  color: var(--portal-text, #f5f5f5);
 }
 
 .app-grid-customize-btn.secondary:hover {
-  background: #e5e5e5;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .app-grid-view-toggle {
@@ -282,7 +283,7 @@
   gap: 8px;
   margin-right: 12px;
   font-size: 0.875rem;
-  color: #333;
+  color: var(--portal-text-muted, #a3a3a3);
 }
 
 .portal-persona-switcher-label {
@@ -292,20 +293,21 @@
 .portal-persona-select {
   min-width: 9rem;
   padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  border-radius: 8px;
+  border: 1px solid var(--portal-border, #333);
   font-size: 0.875rem;
-  background: #fff;
+  background: var(--portal-elevated-bg, #2a2a2a);
+  color: var(--portal-text, #f5f5f5);
 }
 
 .portal-persona-readonly {
   min-width: 9rem;
   padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid transparent;
+  border-radius: 8px;
+  border: 1px solid var(--portal-border, #333);
   font-size: 0.875rem;
-  color: #333;
-  background: rgba(0, 0, 0, 0.04);
+  color: var(--portal-text-muted, #a3a3a3);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .app-grid-edit-bar {
@@ -333,7 +335,7 @@
 }
 
 .app-grid-customize-btn:hover {
-  background: var(--highlight-hover, rgba(0, 0, 0, 0.05));
+  background: var(--highlight-hover, rgba(255, 255, 255, 0.08));
 }
 
 .app-grid-customize-btn.active:hover {
@@ -419,7 +421,7 @@ button {
 .tccc-metadata-value {
   font-family: var(--font-heading), sans-serif;
   text-transform: uppercase;
-  color: #0e202e;
+  color: var(--portal-text, #f5f5f5);
   font-size: 12px;
   font-weight: 600;
   line-height: normal;
@@ -427,7 +429,7 @@ button {
 
 .tccc-tag {
   background: rgba(247, 153, 0, .3);
-  color: #1e1e1e;
+  color: var(--portal-text, #f5f5f5);
   font-family: var(--font-heading), sans-serif;
   font-size: 10px;
   font-weight: 600;
@@ -512,14 +514,16 @@ button {
 
 /* Breadcrumb navigation styles */
 .breadcrumbs {
-  padding: 10px;
-  background-color: #f5f5f5;
+  padding: 10px 16px;
+  background-color: var(--portal-panel-bg, #1a1a1a);
   margin-bottom: 10px;
+  border-bottom: 1px solid var(--portal-border, #333);
+  color: var(--portal-text-muted, #a3a3a3);
 }
 
 .breadcrumb-link {
   cursor: pointer;
-  color: #f81c04;
+  color: var(--primary-color, #f40000);
 }
 
 .breadcrumb-separator {
@@ -718,21 +722,6 @@ button:disabled:hover {
   font-size: 0.95rem;
   line-height: 1.5;
   color: #555;
-}
-
-.portal-persona-impersonation-bar {
-  margin: 0 20px 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: rgba(244, 0, 0, 0.06);
-  border: 1px solid rgba(244, 0, 0, 0.2);
-}
-
-.portal-persona-impersonation-bar p {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.45;
-  color: #333;
 }
 
 .portal-persona-switcher-hint {

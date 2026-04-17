@@ -4,6 +4,7 @@ import type { CartItem } from '../types/index.js';
 // import type { HeaderBarProps } from '../types'; // COMMENTED OUT
 import { getProfilePictureUrl } from '../utils/profileImage.js';
 import AdobeSignInButton from './AdobeSignInButton.js';
+import { PersonaGlyph } from './PersonaGlyph';
 // import CartPanel from './CartPanel'; // REMOVED - moved to MainApp
 import './HeaderBar.css';
 
@@ -24,6 +25,8 @@ interface HeaderBarPropsSimplified {
     sessionActive?: boolean;
     /** When true with sessionActive, sign-out label is "Sign Out with Adobe". */
     imsSession?: boolean;
+    /** Shown top-right when an admin is viewing the portal as another persona. */
+    personaImpersonation?: { personaLabel: string; onEndPersona: () => void } | null;
 }
 
 const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
@@ -39,6 +42,7 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     profile,
     sessionActive,
     imsSession,
+    personaImpersonation,
 }) => {
     // Get external params and skin from context
     const { externalParams, skinConfig } = useAppConfig();
@@ -97,8 +101,19 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
                 />
             )}
 
-            {/* Header right controls: Sign In and Profile */}
+            {/* Header right controls: impersonation strip, Sign In, Profile */}
             <div className="header-controls">
+                {personaImpersonation ? (
+                    <div className="header-persona-impersonation" role="status">
+                        <span className="header-persona-impersonation-icon" aria-hidden>
+                            <PersonaGlyph size={20} />
+                        </span>
+                        <span className="header-persona-impersonation-name">{personaImpersonation.personaLabel}</span>
+                        <button type="button" className="header-persona-impersonation-end" onClick={personaImpersonation.onEndPersona}>
+                            End Persona
+                        </button>
+                    </div>
+                ) : null}
                 <div className="auth-container">
                     <AdobeSignInButton
                         onAuthenticated={handleAuthenticated}

@@ -31,8 +31,8 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    min-height: 56px;
-    padding: 0 20px 0 12px;
+    min-height: 88px;
+    padding: 10px 20px 10px 12px;
     border-bottom: 1px solid var(--admin-border);
     background: #000;
     flex-shrink: 0;
@@ -135,6 +135,18 @@
     color: var(--admin-text);
 }
 
+.admin-shell-icon-btn--header-actions {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+}
+
+.admin-shell-icon-btn--header-actions svg {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
 /* --- Body: rail + main + right --- */
 .admin-shell-body {
     display: flex;
@@ -153,6 +165,33 @@
     border-right: 1px solid var(--admin-border);
     background: #000;
     gap: 4px;
+}
+
+.admin-shell-rail-files-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+
+.admin-shell-rail-persona-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 6px;
+    padding: 8px 4px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--admin-muted);
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.admin-shell-rail-persona-btn:hover {
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
 }
 
 .admin-shell-rail-item {
@@ -197,24 +236,10 @@
     text-overflow: ellipsis;
 }
 
-.admin-shell-rail-item--compact {
-    padding: 8px 4px;
-    font-size: 0.6rem;
-}
-
 .admin-shell-rail-divider {
     height: 1px;
     margin: 8px 10px;
     background: var(--admin-border);
-}
-
-.admin-shell-rail-secondary {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
 }
 
 /* --- Main column --- */
@@ -663,17 +688,6 @@
         border-right: none;
         border-bottom: 1px solid var(--admin-border);
         padding: 8px;
-    }
-
-    .admin-shell-rail-secondary {
-        flex-direction: row;
-        flex-wrap: wrap;
-        width: 100%;
-    }
-
-    .admin-shell-rail-item--compact {
-        flex: 1 1 auto;
-        min-width: 72px;
     }
 
     .admin-shell-right {

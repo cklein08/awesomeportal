@@ -2,6 +2,12 @@ import type { PortalPersonaId } from '../types';
 import { getSelectedPersona } from './config';
 import { isPortalAdminFromToken, resolvePersonaFromAccessToken } from './imsPersona';
 
+/** Org admins (and legacy cookie hosts) may impersonate personas in the main portal UI. */
+export function canImpersonatePortalPersonas(accessToken: string | null | undefined): boolean {
+    if (isLegacyCookiePortalHost()) return true;
+    return isPortalAdminFromToken(accessToken);
+}
+
 export const SKIP_ADMIN_LANDING_SESSION_KEY = 'awesomeportal_skip_admin_landing';
 
 export function isLegacyCookiePortalHost(): boolean {
