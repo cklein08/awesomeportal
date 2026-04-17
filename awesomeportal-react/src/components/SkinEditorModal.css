@@ -227,3 +227,109 @@
 .skin-editor-btn-secondary:hover {
     background: var(--highlight-hover, rgba(0, 0, 0, 0.05));
 }
+
+.skin-editor-preset-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.skin-editor-skin-my-site-launch {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.skin-editor-skin-my-site-btn {
+    align-self: flex-start;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #007c31;
+    background: #fff;
+    color: #007c31;
+}
+
+.skin-editor-skin-my-site-btn:hover {
+    background: #007c31;
+    color: #fff;
+}
+
+.skin-editor-skin-my-site-caption {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--text-color-placeholder, #717171);
+}
+
+.skin-editor-skin-my-site-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.skin-editor-skin-my-site-dialog {
+    width: 100%;
+    max-width: 420px;
+    max-height: min(90vh, 520px);
+    overflow: auto;
+    padding: 18px 20px 16px;
+    border-radius: 12px;
+    background: var(--background-color, #f8f8f8);
+    border: 1px solid var(--border-color, #e0e0e0);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.skin-editor-skin-my-site-title {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color, #333);
+}
+
+.skin-editor-skin-my-site-intro {
+    margin: 0 0 14px 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--text-color-base, #555);
+}
+
+.skin-editor-skin-my-site-field {
+    margin-bottom: 12px;
+}
+
+.skin-editor-skin-my-site-error {
+    margin: 0 0 10px 0;
+    font-size: 0.8125rem;
+    color: #b91c1c;
+}
+
+.skin-editor-skin-my-site-notes {
+    margin: 0 0 10px 0;
+    padding-left: 1.1rem;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-color-base, #555);
+}
+
+.skin-editor-skin-my-site-success {
+    margin: 0 0 12px 0;
+    font-size: 0.8125rem;
+    color: #166534;
+}
+
+.skin-editor-skin-my-site-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}

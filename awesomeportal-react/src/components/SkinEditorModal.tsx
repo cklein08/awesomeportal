@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAppConfig } from '../hooks/useAppConfig';
 import type { PortalSkinConfig } from '../types';
 import { applyHeinekenGridLayouts, HEINEKEN_SKIN } from '../constants/heinekenDemoPreset';
+import { importSkinHintsFromSite } from '../utils/skinSiteImport';
 import './SkinEditorModal.css';
 import '../pages/GridEdit.css';
 
@@ -56,6 +57,11 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose, embe
     const [borderSubtleColor, setBorderSubtleColor] = useState(skinConfig?.borderSubtleColor ?? '');
     const [portalTextColor, setPortalTextColor] = useState(skinConfig?.portalTextColor ?? '');
     const [portalTextMutedColor, setPortalTextMutedColor] = useState(skinConfig?.portalTextMutedColor ?? '');
+    const [skinMySiteOpen, setSkinMySiteOpen] = useState(false);
+    const [skinMySiteUrl, setSkinMySiteUrl] = useState('');
+    const [skinMySiteBusy, setSkinMySiteBusy] = useState(false);
+    const [skinMySiteError, setSkinMySiteError] = useState<string | null>(null);
+    const [skinMySiteNotes, setSkinMySiteNotes] = useState<string[]>([]);
 
     const syncFromConfig = useCallback(() => {
         if (skinConfig) {
@@ -127,6 +133,19 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose, embe
         document.addEventListener('keydown', handleEscape, { capture: true });
         return () => document.removeEventListener('keydown', handleEscape, { capture: true });
     }, [isOpen, embedded, handleEscape]);
+
+    useEffect(() => {
+        if (!skinMySiteOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!skinMySiteBusy) setSkinMySiteOpen(false);
+            }
+        };
+        document.addEventListener('keydown', onKey, { capture: true });
+        return () => document.removeEventListener('keydown', onKey, { capture: true });
+    }, [skinMySiteOpen, skinMySiteBusy]);
 
     const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (e.target === e.currentTarget) onClose();
@@ -223,6 +242,43 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose, embe
         setPortalTextMutedColor('');
         if (!embedded) onClose();
     };
+
+    const applyImportedSkin = useCallback((partial: Partial<PortalSkinConfig>) => {
+        if (partial.logoUrl != null) setLogoUrl(partial.logoUrl);
+        if (partial.primaryColor != null) setPrimaryColor(partial.primaryColor);
+        if (partial.backgroundColor != null) setBackgroundColor(partial.backgroundColor);
+        if (partial.accentColor != null) setAccentColor(partial.accentColor);
+        if (partial.fontFamilyBody != null) setFontFamilyBody(partial.fontFamilyBody);
+        if (partial.fontFamilyHeading != null) setFontFamilyHeading(partial.fontFamilyHeading);
+        if (partial.fontStylesheetUrl != null) setFontStylesheetUrl(partial.fontStylesheetUrl);
+        if (partial.fontFileUrlBody != null) setFontFileUrlBody(partial.fontFileUrlBody);
+        if (partial.fontFileUrlHeading != null) setFontFileUrlHeading(partial.fontFileUrlHeading);
+        if (partial.heroImageUrl != null) setHeroImageUrl(partial.heroImageUrl);
+        if (partial.pageBackgroundColor != null) setPageBackgroundColor(partial.pageBackgroundColor);
+        if (partial.panelBackgroundColor != null) setPanelBackgroundColor(partial.panelBackgroundColor);
+        if (partial.elevatedSurfaceColor != null) setElevatedSurfaceColor(partial.elevatedSurfaceColor);
+        if (partial.searchBarBackgroundColor != null) setSearchBarBackgroundColor(partial.searchBarBackgroundColor);
+        if (partial.searchBarForegroundColor != null) setSearchBarForegroundColor(partial.searchBarForegroundColor);
+        if (partial.borderSubtleColor != null) setBorderSubtleColor(partial.borderSubtleColor);
+        if (partial.portalTextColor != null) setPortalTextColor(partial.portalTextColor);
+        if (partial.portalTextMutedColor != null) setPortalTextMutedColor(partial.portalTextMutedColor);
+    }, []);
+
+    const handleSkinMySiteReview = useCallback(async () => {
+        setSkinMySiteError(null);
+        setSkinMySiteNotes([]);
+        setSkinMySiteBusy(true);
+        try {
+            const { config, notes } = await importSkinHintsFromSite(skinMySiteUrl);
+            applyImportedSkin(config);
+            setSkinMySiteNotes(notes);
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Could not read that URL.';
+            setSkinMySiteError(msg);
+        } finally {
+            setSkinMySiteBusy(false);
+        }
+    }, [skinMySiteUrl, applyImportedSkin]);
 
     function skinFields(): React.ReactNode {
         return (
@@ -509,10 +565,106 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose, embe
             </div>
         ) : null;
 
+    const skinMySiteDialog =
+        skinMySiteOpen ? (
+            <div
+                className="skin-editor-skin-my-site-backdrop"
+                onClick={(e) => {
+                    if (e.target === e.currentTarget && !skinMySiteBusy) setSkinMySiteOpen(false);
+                }}
+                role="presentation"
+            >
+                <div
+                    className="skin-editor-skin-my-site-dialog"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="skin-my-site-title"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <h3 id="skin-my-site-title" className="skin-editor-skin-my-site-title">
+                        Skin My Site
+                    </h3>
+                    <p className="skin-editor-skin-my-site-intro">
+                        Paste a public site URL. We read its HTML and linked CSS (through a read-only CORS helper) and copy colors, fonts, favicon/logo, and social
+                        preview image into the skin fields when we can detect them. Edit anything before Save.
+                    </p>
+                    <div className="skin-editor-field skin-editor-skin-my-site-field">
+                        <label htmlFor="skin-my-site-url">Site URL</label>
+                        <input
+                            id="skin-my-site-url"
+                            type="url"
+                            value={skinMySiteUrl}
+                            onChange={(e) => setSkinMySiteUrl(e.target.value)}
+                            placeholder="https://www.example.com"
+                            disabled={skinMySiteBusy}
+                            autoComplete="url"
+                        />
+                    </div>
+                    {skinMySiteError ? (
+                        <p className="skin-editor-skin-my-site-error" role="alert">
+                            {skinMySiteError}
+                        </p>
+                    ) : null}
+                    {skinMySiteNotes.length > 0 ? (
+                        <ul className="skin-editor-skin-my-site-notes">
+                            {skinMySiteNotes.map((n, i) => (
+                                <li key={i}>{n}</li>
+                            ))}
+                        </ul>
+                    ) : null}
+                    {skinMySiteNotes.length > 0 && !skinMySiteError ? (
+                        <p className="skin-editor-skin-my-site-success">Imported into the form below. Adjust and use Save changes.</p>
+                    ) : null}
+                    <div className="skin-editor-skin-my-site-actions">
+                        <button
+                            type="button"
+                            className="skin-editor-btn skin-editor-btn-secondary"
+                            onClick={() => {
+                                if (!skinMySiteBusy) setSkinMySiteOpen(false);
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="skin-editor-btn skin-editor-btn-primary"
+                            onClick={() => void handleSkinMySiteReview()}
+                            disabled={skinMySiteBusy || !skinMySiteUrl.trim()}
+                        >
+                            {skinMySiteBusy ? 'Reviewing…' : 'Review site'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        ) : null;
+
+    const presetAndSkinAgentStack = (
+        <div className="skin-editor-preset-stack">
+            {devDemoPresets}
+            <div className="skin-editor-skin-my-site-launch">
+                <button
+                    type="button"
+                    className="skin-editor-skin-my-site-btn"
+                    onClick={() => {
+                        setSkinMySiteOpen(true);
+                        setSkinMySiteError(null);
+                        setSkinMySiteNotes([]);
+                    }}
+                >
+                    Skin My Site
+                </button>
+                <p className="skin-editor-skin-my-site-caption">
+                    Run the skin agent on any public URL to pull style hints into this form (best-effort; some sites block automated fetches).
+                </p>
+            </div>
+            {skinMySiteDialog}
+        </div>
+    );
+
     if (embedded) {
         return (
             <div className="skin-editor-form-root grid-edit-form-root">
-                {devDemoPresets}
+                {presetAndSkinAgentStack}
                 <section className="grid-edit-section">
                     <h2>Portal skin</h2>
                     <p className="grid-edit-hint">
@@ -548,7 +700,7 @@ const SkinEditorModal: React.FC<SkinEditorModalProps> = ({ isOpen, onClose, embe
                     ×
                 </button>
             </div>
-            {devDemoPresets}
+            {presetAndSkinAgentStack}
             <div className="skin-editor-modal-body">{skinFields()}</div>
             <div className="skin-editor-modal-footer">
                 <button type="button" className="skin-editor-btn skin-editor-btn-secondary" onClick={handleReset}>

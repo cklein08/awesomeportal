@@ -1,5 +1,10 @@
 /* CSS Variables */
 
+/* When a tile app or workspace iframe is open, hide host shell top bar in the same document (e.g. EXC). */
+html.portal-suppress-host-top-app-bar .top-app-bar-content-container {
+  display: none !important;
+}
+
 /* Main layout */
 .container {
   display: flex;

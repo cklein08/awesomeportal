@@ -798,6 +798,54 @@
     background: var(--admin-surface-2);
 }
 
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-btn {
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
+    border: 1px solid var(--admin-border);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #555;
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-caption {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-dialog {
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
+    border: 1px solid var(--admin-border);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-title {
+    color: var(--admin-text);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-intro {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-field input[type="url"] {
+    background: var(--admin-surface-2);
+    color: var(--admin-text);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-notes {
+    color: var(--admin-muted);
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-success {
+    color: #86efac;
+}
+
+.admin-shell-layout-panel .skin-editor-form-root .skin-editor-skin-my-site-error {
+    color: #f87171;
+}
+
 .admin-shell-persona-panel {
     padding: 20px 22px;
     max-width: 40rem;

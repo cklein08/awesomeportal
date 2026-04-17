@@ -375,6 +375,19 @@ function MainApp(): React.JSX.Element {
         const t = setTimeout(() => setIframeCannotDisplay(true), 5000);
         return () => clearTimeout(t);
     }, [showWorkspaceIframe]);
+
+    /** Hide EXC / host shell chrome (same document) while a tile or iframe fills the workspace body. */
+    const suppressHostTopAppBar =
+        Boolean(selectedDaContentUrl) ||
+        selectedAppId === PORTAL_EMBED_ADOBE_FILES_APP_ID ||
+        selectedTileId != null;
+    useEffect(() => {
+        if (!suppressHostTopAppBar) return undefined;
+        document.documentElement.classList.add('portal-suppress-host-top-app-bar');
+        return () => {
+            document.documentElement.classList.remove('portal-suppress-host-top-app-bar');
+        };
+    }, [suppressHostTopAppBar]);
     // Slots from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__), externalParams.slotBlocks, or default tiles.
     // gridConfigVersion is bumped when we save grid config so useSlotBlocks recomputes and shows new tiles.
     const [gridConfigVersion, setGridConfigVersion] = useState(0);
