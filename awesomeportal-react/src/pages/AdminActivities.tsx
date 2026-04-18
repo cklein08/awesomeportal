@@ -109,13 +109,13 @@ const AdminActivities: React.FC = () => {
         return pic ? { picture: pic as string } : null;
     }, [searchParams, impersonationUiRev]);
 
+    /** Persist token only. Do not reload: `AdobeSignInButton` calls this on mount when a token already exists, which would loop reloads. */
     const handleAdminAuthenticated = useCallback((token: string) => {
         try {
             localStorage.setItem('accessToken', token);
         } catch {
             /* ignore */
         }
-        window.location.reload();
     }, []);
 
     const handleAdminSignOut = useCallback(() => {
