@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="48" viewBox="0 0 200 48" role="img" aria-label="Brand demo logo">
+  <rect width="200" height="48" rx="6" fill="#007c31"/>
+  <text x="100" y="31" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="18" font-weight="700" letter-spacing="0.08em">BRAND PORTAL</text>
+  <circle cx="178" cy="14" r="6" fill="#e60012"/>
+</svg>

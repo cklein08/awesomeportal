@@ -12,16 +12,18 @@
 
 import { error, Router, withCookies } from 'itty-router';
 import { authRouter, withAuthentication } from './auth';
-import { originDynamicMedia } from './origin-dm';
-import { originHelix } from './origin-helix';
-import { cors } from './utils-itty';
+import { originDynamicMedia } from './origin/dm';
+import { originHelix } from './origin/helix';
+import { originFadel } from './origin/fadel';
+import { listAemPrograms } from './origin/cloudmanager.js';
+import { cors } from './util/itty';
 
 const { preflight, corsify } = cors({
   origin: [
-    'https://assetsDashboard.adobeaem.workers.dev',
+    'https://awesomeportal.adobeaem.workers.dev',
     // development URLs
-    /https:\/\/.*-assetsDashboard\.adobeaem\.workers\.dev$/,
-    /https:\/\/.*-assetsDashboard--aemsites\.aem\.(live|page)$/,
+    /https:\/\/.*-awesomeportal\.adobeaem\.workers\.dev$/,
+    /https:\/\/.*-awesomeportal--aemsites\.aem\.(live|page)$/,
     /http:\/\/localhost:(3000|8787)/
   ],
   allowMethods: ['GET', 'POST'],
@@ -43,6 +45,7 @@ router
   // public content
   .get('/public/*', originHelix)
   .get('/tools/*', originHelix)
+  .get('/portal/*', originHelix)
   .get('/scripts/*', originHelix)
   .get('/styles/*', originHelix)
   .get('/blocks/*', originHelix)
@@ -61,7 +64,13 @@ router
   .all('*', withAuthentication)
 
   // dynamic media
-  .all('/api/assets/*', originDynamicMedia)
+  .all('/api/adobe/assets/*', originDynamicMedia)
+
+  // fadel
+  .all('/api/fadel/*', originFadel)
+
+  // AEM instance selector: list Cloud Manager programs (requires auth)
+  .get('/api/aem-programs', listAemPrograms)
 
   // future API routes
   .all('/api/*', () => error(404))

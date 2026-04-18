@@ -1,0 +1,88 @@
+.persona-impersonate-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.55);
+    box-sizing: border-box;
+}
+
+.persona-impersonate-dialog {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 14px;
+    padding: 22px 22px 18px;
+    background: var(--portal-elevated-bg, #2a2a2a);
+    border: 1px solid var(--portal-border, #444);
+    color: var(--portal-text, #f5f5f5);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.persona-impersonate-title {
+    margin: 0 0 6px 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.persona-impersonate-lede {
+    margin: 0 0 18px 0;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--portal-text-muted, #a3a3a3);
+}
+
+.persona-impersonate-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.persona-impersonate-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--portal-border, #444);
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.persona-impersonate-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary-color, #f40000);
+}
+
+.persona-impersonate-current {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--portal-text-muted, #a3a3a3);
+}
+
+.persona-impersonate-cancel {
+    margin-top: 16px;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--portal-border, #444);
+    background: transparent;
+    color: var(--portal-text-muted, #a3a3a3);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.persona-impersonate-cancel:hover {
+    color: var(--portal-text, #f5f5f5);
+    background: rgba(255, 255, 255, 0.06);
+}

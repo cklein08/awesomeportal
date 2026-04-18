@@ -1,0 +1,234 @@
+.app-grid-container {
+    width: 70%;
+    padding: 20px;
+    overflow-y: auto;
+    height: 100%;
+    background-color: var(--portal-page-bg, var(--portal-chrome-bg, #141414));
+    --app-tile-min-height: 120px;
+    --app-tile-min-width: 140px;
+}
+
+.app-grid-top {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.app-grid-hero {
+    width: 100%;
+    min-height: 120px;
+    max-height: 240px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.app-grid-top-banners {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.app-grid-top-banner-link,
+.app-grid-top-banner-wrap {
+    display: block;
+    max-width: 100%;
+}
+
+.app-grid-top-banner-missing {
+    display: none;
+}
+
+.app-grid-top-banner-img {
+    max-width: 100%;
+    max-height: 120px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid var(--portal-border, #e0e0e0);
+}
+
+.app-grid-top-content {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--portal-text, #333);
+}
+
+.app-grid-top-content p {
+    margin: 0 0 0.5em 0;
+}
+
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(var(--app-tile-min-width, 140px), 1fr));
+    grid-template-rows: repeat(6, 1fr);
+    gap: 16px;
+    height: 100%;
+    min-height: 600px;
+}
+
+.app-grid.hide-empty-slots {
+    grid-template-rows: none;
+    grid-auto-rows: minmax(var(--app-tile-min-height, 120px), auto);
+    min-height: 0;
+}
+
+.app-grid-tile {
+    background-color: var(--portal-elevated-bg, #ffffff);
+    border: 2px solid var(--portal-border, #e0e0e0);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: var(--app-tile-min-height, 120px);
+    min-width: 0;
+    overflow: hidden;
+}
+
+.app-grid-tile.filled {
+    border-color: var(--portal-border, #444);
+}
+
+.app-grid-tile.filled:hover {
+    border-color: var(--primary-color, #f40000);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    transform: translateY(-2px);
+}
+
+.app-grid-tile.empty {
+    border-style: dashed;
+    border-color: var(--portal-border, #444);
+    background-color: rgba(255, 255, 255, 0.03);
+    cursor: default;
+}
+
+.app-grid-tile.drag-over {
+    border-color: var(--primary-color, #f40000);
+    background-color: rgba(244, 0, 0, 0.12);
+    border-style: solid;
+}
+
+@keyframes slot-shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.app-grid-tile.shake {
+    animation: slot-shake 0.5s ease-in-out infinite;
+    position: relative;
+}
+
+.slot-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-color, #f40000);
+    background: var(--portal-elevated-bg, #ffffff);
+    color: var(--primary-color, #f40000);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    z-index: 1;
+    transition: background 0.2s, color 0.2s;
+}
+
+.slot-delete-btn:hover {
+    background: var(--primary-color, #f40000);
+    color: white;
+}
+
+.app-grid-tile.has-inline-remove {
+    position: relative;
+}
+
+.slot-delete-btn--inline {
+    animation: none;
+    border-color: var(--portal-border, #555);
+    color: var(--portal-text-muted, #a3a3a3);
+}
+
+.slot-delete-btn--inline:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--portal-text, #f5f5f5);
+}
+
+.app-tile-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    color: var(--primary-color, #f40000);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-tile-icon-img {
+    object-fit: contain;
+    width: 48px;
+    height: 48px;
+}
+
+.app-tile-content {
+    text-align: center;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.app-tile-title {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--portal-text, #333);
+    word-break: break-word;
+    overflow-wrap: break-word;
+    overflow: hidden;
+}
+
+.app-tile-description {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--portal-text-muted, #666);
+    line-height: 1.4;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    overflow: hidden;
+}
+
+.app-tile-placeholder {
+    color: var(--portal-text-muted, #999);
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+@media (max-width: 1200px) {
+    .app-grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+    }
+    .app-grid.hide-empty-slots {
+        grid-template-rows: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(12, 1fr);
+    }
+    .app-grid.hide-empty-slots {
+        grid-template-rows: none;
+    }
+}
+
