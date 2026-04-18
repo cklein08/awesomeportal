@@ -1319,7 +1319,16 @@ function MainApp(): React.JSX.Element {
                         onReloadPortalHome={reloadPortalLanding}
                     />
                     {portalPersonaImpersonationUi ? (
-                        <PersonaActivitiesTopbar personaId={portalPersonaImpersonationUi.effectivePersonaId} />
+                        <PersonaActivitiesTopbar
+                            personaId={portalPersonaImpersonationUi.effectivePersonaId}
+                            authChrome={{
+                                sessionActive: authenticated,
+                                imsSession: Boolean(accessToken?.trim()),
+                                onAuthenticated: handleIMSAccessToken,
+                                onSignOut: handleSignOut,
+                                profile: profileWithJwtAvatar,
+                            }}
+                        />
                     ) : null}
                 </div>
 

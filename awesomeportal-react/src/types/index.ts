@@ -562,6 +562,8 @@ export interface AdobeSignInButtonProps {
     sessionActive?: boolean;
     /** When true with an active session, sign-out label is "Sign Out with Adobe" (bearer token from IMS). */
     imsSession?: boolean;
+    /** Overrides the IMS bearer sign-out button label (default: "Sign Out with Adobe"). */
+    imsBearerSignOutLabel?: string;
 }
 
 // Cart Panel Assets types (complex workflow)

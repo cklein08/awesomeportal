@@ -18,7 +18,13 @@ interface IMSConfig {
  *   - onAuthenticated: function(token) => void (called with Bearer token on success)
  *   - onSignOut: function() => void (called when user signs out)
  */
-const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, onSignOut, sessionActive, imsSession }) => {
+const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({
+    onAuthenticated,
+    onSignOut,
+    sessionActive,
+    imsSession,
+    imsBearerSignOutLabel,
+}) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -501,7 +507,7 @@ const AdobeSignInButton: React.FC<AdobeSignInButtonProps> = ({ onAuthenticated, 
                         : 'Signing in...'
                     : signedIn
                         ? imsBearerSession
-                            ? 'Sign Out with Adobe'
+                            ? imsBearerSignOutLabel?.trim() || 'Sign Out with Adobe'
                             : 'Sign out'
                         : 'Sign in with Adobe'}
             </button>

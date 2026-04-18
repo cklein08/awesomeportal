@@ -42,6 +42,10 @@ html.portal-suppress-host-top-app-bar .top-app-bar-content-container {
   min-height: 72px;
 }
 
+.portal-sticky-header-stack .portal-persona-activities-topbar-actions .profile-icon-btn {
+  color: var(--admin-muted, #a3a3a3);
+}
+
 /* Portal workspace: reuse admin-shell CSS variables below HeaderBar (not full-viewport admin-shell). */
 .portal-workspace-root.admin-shell {
   min-height: 0;
