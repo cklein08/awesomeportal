@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
             if (mode === 'development') {
               return html.replace(
                 '<div id="root"></div>',
-                '<div id="root"></div>\n  <script src="/config.local.js" onerror="console.log(\'No local config found\')"></script>'
+                '<div id="root"></div>\n  <script src="/portal/config.local.js" onerror="console.log(\'No local config found\')"></script>'
               );
             }
             return html;
@@ -34,6 +34,9 @@ export default defineConfig(({ mode }) => {
       }
     ],
     server: {
+      // Bind IPv4 explicitly: default "localhost" can be IPv6-only (::1), so browsers/tools
+      // using 127.0.0.1 never connect, and some stuck servers only accept but never respond.
+      host: '127.0.0.1',
       port: 5173,
       open: '/portal/'
     },
