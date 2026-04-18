@@ -12,7 +12,6 @@ import { AppConfigProvider } from '../components/AppConfigProvider';
 import AppGrid, { DRAG_TYPE_ENTITLEMENT } from '../components/AppGrid';
 import GridEditForm from '../components/GridEditForm';
 import PersonaImpersonateModal from '../components/PersonaImpersonateModal';
-import PersonaImpersonationStrip from '../components/PersonaImpersonationStrip';
 import { PersonaGlyph } from '../components/PersonaGlyph';
 import { PortalAppRailIcon } from '../components/PortalAppRailIcon';
 import { useGridEditor } from '../hooks/useGridEditor';
@@ -27,8 +26,6 @@ import {
     setPersonaLeftNavForPersona,
     setSelectedPersona,
 } from '../utils/config';
-import { resolvePersonaFromAccessToken } from '../utils/imsPersona';
-import { endPersonaImpersonationPersist, getPortalPersonaImpersonationUi } from '../utils/portalPersonaImpersonation';
 import { canAccessPortalSetup, canImpersonatePortalPersonas, setSkipAdminLandingRedirect } from '../utils/portalAccess';
 import './AdminActivities.css';
 
@@ -45,7 +42,6 @@ type WorkspaceTabId = 'grid' | 'layout' | 'personas' | 'skin';
 const AdminActivities: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const [impersonationUiRev, setImpersonationUiRev] = useState(0);
     const [storedPersona, setStoredPersona] = useState<PortalPersonaId>(() => getSelectedPersona());
     const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>('grid');
     const [agentPrompt, setAgentPrompt] = useState('');
@@ -55,11 +51,10 @@ const AdminActivities: React.FC = () => {
     const [externalParams, setExternalParams] = useState<ExternalParams>(() => getExternalParams());
 
     const initialPersona = useMemo((): PortalPersonaId => {
-        void impersonationUiRev;
         const q = searchParams.get('persona');
         if (q && isPortalPersonaId(q)) return q;
         return getSelectedPersona();
-    }, [searchParams, impersonationUiRev]);
+    }, [searchParams]);
 
     /** When set, header shows "{Persona} Activities" and layout is scoped to that URL (does not follow the in-form picker). */
     const personaFromUrl = useMemo((): PortalPersonaId | null => {
@@ -67,29 +62,6 @@ const AdminActivities: React.FC = () => {
         if (q && isPortalPersonaId(q)) return q;
         return null;
     }, [searchParams]);
-
-    const impersonationUi = useMemo(() => {
-        void impersonationUiRev;
-        void searchParams;
-        const token = readAccessToken();
-        return getPortalPersonaImpersonationUi(token, getSelectedPersona());
-    }, [searchParams, impersonationUiRev]);
-
-    const topbarScopePersona = useMemo((): PortalPersonaId | null => {
-        if (personaFromUrl) return personaFromUrl;
-        if (impersonationUi) return impersonationUi.effectivePersonaId;
-        return null;
-    }, [personaFromUrl, impersonationUi]);
-
-    const handleEndPersonaImpersonationAdmin = useCallback(() => {
-        const token = readAccessToken();
-        const ims = resolvePersonaFromAccessToken(token);
-        if (ims == null) return;
-        endPersonaImpersonationPersist(ims);
-        setStoredPersona(ims);
-        setImpersonationUiRev((n) => n + 1);
-        navigate('/admin/activities', { replace: true });
-    }, [navigate]);
 
     const editor = useGridEditor(initialPersona, { syncGlobalPersona: false });
     const {
@@ -261,20 +233,18 @@ const AdminActivities: React.FC = () => {
     return (
         <AppConfigProvider externalParams={externalParams} dynamicMediaClient={null}>
             <div className={`admin-shell${banner ? ' admin-shell--banner-visible' : ''}`}>
-                <header className="admin-shell-topbar admin-shell-topbar--sticky">
+                <header className="admin-shell-topbar">
                     <div
                         className={`admin-shell-topbar-brand${
-                            topbarScopePersona
-                                ? ` admin-shell-topbar-brand--persona-${topbarScopePersona}`
-                                : ' admin-shell-topbar-brand--persona-admin'
+                            personaFromUrl ? ` admin-shell-topbar-brand--persona-${personaFromUrl}` : ' admin-shell-topbar-brand--persona-admin'
                         }`}
-                        aria-label={topbarScopePersona ? `${PORTAL_PERSONA_LABELS[topbarScopePersona]} activities` : 'Admin activities'}
+                        aria-label={personaFromUrl ? `${PORTAL_PERSONA_LABELS[personaFromUrl]} activities` : 'Admin activities'}
                     >
                         <span className="admin-shell-logo-mark" aria-hidden>
-                            {topbarScopePersona ? PORTAL_PERSONA_TOPBAR_MARK[topbarScopePersona] : 'A'}
+                            {personaFromUrl ? PORTAL_PERSONA_TOPBAR_MARK[personaFromUrl] : 'A'}
                         </span>
                         <span className="admin-shell-brand-text">
-                            {topbarScopePersona ? `${PORTAL_PERSONA_LABELS[topbarScopePersona]} Activities` : 'Admin activities'}
+                            {personaFromUrl ? `${PORTAL_PERSONA_LABELS[personaFromUrl]} Activities` : 'Admin activities'}
                         </span>
                     </div>
                     <div className="admin-shell-search" role="search">
@@ -286,24 +256,14 @@ const AdminActivities: React.FC = () => {
                         </span>
                         <input type="search" placeholder="Search admin tools (coming soon)" className="admin-shell-search-input" disabled />
                     </div>
-                    <div
-                        className={`admin-shell-topbar-actions${
-                            impersonationUi ? ' admin-shell-topbar-actions--with-impersonation' : ''
-                        }`}
-                    >
-                        {impersonationUi ? (
-                            <PersonaImpersonationStrip
-                                personaLabel={impersonationUi.personaLabel}
-                                onEndPersona={handleEndPersonaImpersonationAdmin}
-                            />
-                        ) : null}
+                    <div className="admin-shell-topbar-actions">
                         <button
                             type="button"
                             className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
                             title="Notifications"
                             aria-label="Notifications"
                         >
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                             </svg>
@@ -314,7 +274,7 @@ const AdminActivities: React.FC = () => {
                             title="Help"
                             aria-label="Help"
                         >
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" />
                                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                                 <line x1="12" y1="17" x2="12.01" y2="17" />

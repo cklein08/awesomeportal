@@ -11,7 +11,10 @@ export type PersonaActivitiesTopbarProps = {
  */
 const PersonaActivitiesTopbar: React.FC<PersonaActivitiesTopbarProps> = ({ personaId }) => (
     <header className="admin-shell-topbar portal-persona-activities-topbar" aria-label={`${PORTAL_PERSONA_LABELS[personaId]} activities`}>
-        <div className={`admin-shell-topbar-brand admin-shell-topbar-brand--persona-${personaId}`}>
+        <div
+            className={`admin-shell-topbar-brand admin-shell-topbar-brand--persona-${personaId}`}
+            aria-label={`${PORTAL_PERSONA_LABELS[personaId]} activities`}
+        >
             <span className="admin-shell-logo-mark" aria-hidden>
                 {PORTAL_PERSONA_TOPBAR_MARK[personaId]}
             </span>

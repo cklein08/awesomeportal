@@ -48,8 +48,12 @@ import {
 } from '../utils/config';
 import { decodeImsAccessTokenPayload, isPortalAdminFromToken, resolvePersonaFromAccessToken } from '../utils/imsPersona';
 import { canImpersonatePortalPersonas, setSkipAdminLandingRedirect, shouldOpenAdminActivitiesAfterSignIn } from '../utils/portalAccess';
-import { endPersonaImpersonationPersist, getPortalPersonaImpersonationUi } from '../utils/portalPersonaImpersonation';
-import { getPortalSpaRootHref, readPostLoginAdminRedirectDelayMs, setPortalPersonaPreviewStripActive } from '../utils/portalSession';
+import {
+    getPortalSpaRootHref,
+    readPostLoginAdminRedirectDelayMs,
+    readPortalPersonaPreviewStripActive,
+    setPortalPersonaPreviewStripActive,
+} from '../utils/portalSession';
 import { isSpaIndexPathname } from '../utils/pathUtils';
 import { getProfilePictureUrl } from '../utils/profileImage';
 import { AppConfigProvider } from './AppConfigProvider';
@@ -73,7 +77,6 @@ import { calendarDateToEpoch } from '../utils/formatters';
 import CartPanel from './CartPanel';
 import Facets from './Facets';
 import HeaderBar from './HeaderBar';
-import PersonaActivitiesTopbar from './PersonaActivitiesTopbar';
 import PersonaImpersonateModal from './PersonaImpersonateModal';
 import { PersonaGlyph } from './PersonaGlyph';
 import ImageGallery from './ImageGallery';
@@ -470,8 +473,9 @@ function MainApp(): React.JSX.Element {
 
     const handleEndPersonaImpersonation = useCallback(() => {
         if (imsDerivedPersona == null) return;
-        endPersonaImpersonationPersist(imsDerivedPersona);
+        setPortalPersonaPreviewStripActive(false);
         setPersonaImpersonationUiEpoch((n) => n + 1);
+        setSkipAdminLandingRedirect(true);
         applyPortalPersona(imsDerivedPersona);
         setPersonaImpersonateModalOpen(false);
         // Neutral admin workspace (no ?persona=) so the session is not URL-scoped to a preview role
@@ -563,9 +567,6 @@ function MainApp(): React.JSX.Element {
         if (location.pathname !== '/' && location.pathname !== '/index.html') return;
         const delayMs = readPostLoginAdminRedirectDelayMs();
         const id = window.setTimeout(() => {
-            if (!shouldOpenAdminActivitiesAfterSignIn(accessToken)) return;
-            const path = typeof window !== 'undefined' ? window.location.pathname : '';
-            if (path !== '/' && path !== '/index.html' && !path.endsWith('/index.html')) return;
             navigate('/admin/activities', { replace: true });
         }, delayMs);
         return () => window.clearTimeout(id);
@@ -1284,20 +1285,27 @@ function MainApp(): React.JSX.Element {
         selectedTileId !== 'experience-hub' &&
         selectedTileId !== 'ai-agents';
 
-    const portalPersonaImpersonationUi = useMemo(() => {
-        void personaImpersonationUiEpoch;
-        return canImpersonatePortalPersona && accessToken?.trim()
-            ? getPortalPersonaImpersonationUi(accessToken, portalPersona)
-            : null;
-    }, [canImpersonatePortalPersona, accessToken, portalPersona, personaImpersonationUiEpoch]);
-
     const headerPersonaImpersonation = useMemo(() => {
-        if (!portalPersonaImpersonationUi) return undefined;
+        if (!canImpersonatePortalPersona || !accessToken?.trim() || imsDerivedPersona == null) {
+            return undefined;
+        }
+        const tokenMismatch = portalPersona !== imsDerivedPersona;
+        const explicitPreview = readPortalPersonaPreviewStripActive();
+        if (!tokenMismatch && !explicitPreview) {
+            return undefined;
+        }
         return {
-            personaLabel: portalPersonaImpersonationUi.personaLabel,
+            personaLabel: PORTAL_PERSONA_LABELS[portalPersona],
             onEndPersona: handleEndPersonaImpersonation,
         };
-    }, [portalPersonaImpersonationUi, handleEndPersonaImpersonation]);
+    }, [
+        canImpersonatePortalPersona,
+        accessToken,
+        imsDerivedPersona,
+        portalPersona,
+        handleEndPersonaImpersonation,
+        personaImpersonationUiEpoch,
+    ]);
 
     return (
         <AppConfigProvider
@@ -1307,21 +1315,16 @@ function MainApp(): React.JSX.Element {
             imagePresets={imagePresets}
         >
             <div className="container">
-                <div className="portal-sticky-header-stack">
-                    <HeaderBar
-                        cartItems={cartItems}
-                        handleAuthenticated={handleIMSAccessToken}
-                        handleSignOut={handleSignOut}
-                        profile={profileWithJwtAvatar}
-                        sessionActive={authenticated}
-                        imsSession={Boolean(accessToken?.trim())}
-                        personaImpersonation={headerPersonaImpersonation}
-                        onReloadPortalHome={reloadPortalLanding}
-                    />
-                    {portalPersonaImpersonationUi ? (
-                        <PersonaActivitiesTopbar personaId={portalPersonaImpersonationUi.effectivePersonaId} />
-                    ) : null}
-                </div>
+                <HeaderBar
+                    cartItems={cartItems}
+                    handleAuthenticated={handleIMSAccessToken}
+                    handleSignOut={handleSignOut}
+                    profile={profileWithJwtAvatar}
+                    sessionActive={authenticated}
+                    imsSession={Boolean(accessToken?.trim())}
+                    personaImpersonation={headerPersonaImpersonation}
+                    onReloadPortalHome={reloadPortalLanding}
+                />
 
                 {/* Cart Container - moved from HeaderBar, now uses Portal */}
                 {createPortal(

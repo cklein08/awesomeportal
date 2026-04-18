@@ -4,19 +4,19 @@ overview: Fix the stale post-login admin redirect timer during impersonation; ke
 todos:
   - id: guard-timeout
     content: In MainApp.tsx post-login admin redirect useEffect, re-call shouldOpenAdminActivitiesAfterSignIn (and optionally pathname check) inside setTimeout before navigate('/admin/activities').
-    status: completed
+    status: in_progress
   - id: sticky-global-chrome
     content: Keep impersonation + persona activities top chrome visible (sticky top + z-index); ensure it survives rail navigation and route changes to /admin/activities.
-    status: completed
+    status: pending
   - id: persona-topbar-mainapp
     content: When impersonation is active in MainApp, render admin-shell-topbar-equivalent (PORTAL_PERSONA_TOPBAR_MARK + Activities label + search row) below HeaderBar; reuse or extract shared markup/styles from AdminActivities.
-    status: completed
+    status: pending
   - id: impersonation-admin-activities
     content: On AdminActivities, show the same impersonation strip + End Persona and align topbar title/search with effective impersonated persona when an admin is previewing a persona (shared detection helper).
-    status: completed
+    status: pending
   - id: verify-flows
     content: "Manually verify: impersonate from / before delay; chrome on Home/Apps/Files/Assets/grid; open Admin activities while impersonating; End Persona restores IMS persona."
-    status: completed
+    status: pending
 isProject: false
 ---
 

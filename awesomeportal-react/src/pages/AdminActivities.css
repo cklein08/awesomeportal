@@ -45,25 +45,6 @@
     flex-shrink: 0;
 }
 
-.admin-shell-topbar--sticky {
-    position: sticky;
-    top: 0;
-    z-index: 40;
-}
-
-.admin-shell-topbar-actions--with-impersonation {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    row-gap: 8px;
-    column-gap: 10px;
-}
-
-.admin-shell-topbar-actions--with-impersonation .header-persona-impersonation {
-    flex: 1 1 220px;
-    min-width: 0;
-    max-width: 100%;
-}
-
 .admin-shell-topbar-brand {
     display: flex;
     align-items: center;
@@ -188,15 +169,14 @@
 }
 
 .admin-shell-icon-btn--header-actions {
-    /* Match default icon button + rail glyph size (Home uses 22×22 SVG). */
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
 }
 
 .admin-shell-icon-btn--header-actions svg {
-    width: 22px;
-    height: 22px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
 }
 
