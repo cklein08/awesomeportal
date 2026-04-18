@@ -9,7 +9,6 @@ import { PORTAL_EMBED_ADOBE_FILES_APP_ID } from '../constants/adobeFilesEmbed';
 import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER, PORTAL_PERSONA_TOPBAR_MARK } from '../constants/portalPersonas';
 import type { EntitlementPayload, ExternalParams, PortalPersonaId, SlotBlockDescriptor } from '../types';
 import { AppConfigProvider } from '../components/AppConfigProvider';
-import AdminShellTopbarHelpAuth from '../components/AdminShellTopbarHelpAuth';
 import AppGrid, { DRAG_TYPE_ENTITLEMENT } from '../components/AppGrid';
 import GridEditForm from '../components/GridEditForm';
 import PersonaImpersonateModal from '../components/PersonaImpersonateModal';
@@ -20,7 +19,6 @@ import { useGridEditor } from '../hooks/useGridEditor';
 import { previewAppTilesFromSlotBlocks } from '../hooks/useSlotBlocks';
 import {
     appBuilderDropInsToEntitlements,
-    clearEphemeralLocalStorageOnSignOut,
     clearPersonaLeftNavOverride,
     getEffectiveLeftNavForPersona,
     getExternalParams,
@@ -29,10 +27,9 @@ import {
     setPersonaLeftNavForPersona,
     setSelectedPersona,
 } from '../utils/config';
-import { decodeImsAccessTokenPayload, resolvePersonaFromAccessToken } from '../utils/imsPersona';
+import { resolvePersonaFromAccessToken } from '../utils/imsPersona';
 import { endPersonaImpersonationPersist, getPortalPersonaImpersonationUi } from '../utils/portalPersonaImpersonation';
 import { canAccessPortalSetup, canImpersonatePortalPersonas, setSkipAdminLandingRedirect } from '../utils/portalAccess';
-import { getPortalSpaRootHref } from '../utils/portalSession';
 import './AdminActivities.css';
 
 function readAccessToken(): string {
@@ -93,43 +90,6 @@ const AdminActivities: React.FC = () => {
         setImpersonationUiRev((n) => n + 1);
         navigate('/admin/activities', { replace: true });
     }, [navigate]);
-
-    const adminProfileForTopbar = useMemo(() => {
-        void impersonationUiRev;
-        void searchParams;
-        const t = readAccessToken();
-        if (!t.trim()) return null;
-        const payload = decodeImsAccessTokenPayload(t);
-        if (!payload) return null;
-        const r = payload as Record<string, unknown>;
-        const pic =
-            (typeof payload.picture === 'string' && payload.picture) ||
-            (typeof r.avatar === 'string' ? r.avatar : '') ||
-            '';
-        return pic ? { picture: pic as string } : null;
-    }, [searchParams, impersonationUiRev]);
-
-    const handleAdminAuthenticated = useCallback((token: string) => {
-        try {
-            localStorage.setItem('accessToken', token);
-        } catch {
-            /* ignore */
-        }
-        window.location.reload();
-    }, []);
-
-    const handleAdminSignOut = useCallback(() => {
-        setSkipAdminLandingRedirect(false);
-        try {
-            clearEphemeralLocalStorageOnSignOut();
-            sessionStorage.clear();
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('tokenExpiresAt');
-        } catch {
-            /* ignore */
-        }
-        window.location.assign(getPortalSpaRootHref());
-    }, []);
 
     const editor = useGridEditor(initialPersona, { syncGlobalPersona: false });
     const {
@@ -337,13 +297,29 @@ const AdminActivities: React.FC = () => {
                                 onEndPersona={handleEndPersonaImpersonationAdmin}
                             />
                         ) : null}
-                        <AdminShellTopbarHelpAuth
-                            sessionActive={Boolean(readAccessToken().trim())}
-                            imsSession={Boolean(readAccessToken().trim())}
-                            onAuthenticated={handleAdminAuthenticated}
-                            onSignOut={handleAdminSignOut}
-                            profile={adminProfileForTopbar}
-                        />
+                        <button
+                            type="button"
+                            className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
+                            title="Notifications"
+                            aria-label="Notifications"
+                        >
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
+                            title="Help"
+                            aria-label="Help"
+                        >
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                        </button>
                     </div>
                 </header>
 
