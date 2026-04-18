@@ -18,6 +18,30 @@ html.portal-suppress-host-top-app-bar .top-app-bar-content-container {
   background-color: var(--portal-chrome-bg, #ffffff);
 }
 
+/* Sticky stack: global header + persona Activities bar (impersonation) stay above scrolling workspace */
+.portal-sticky-header-stack {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  width: 100%;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.portal-sticky-header-stack .app-header {
+  position: relative;
+  z-index: 1;
+}
+
+.portal-sticky-header-stack .portal-persona-activities-topbar.admin-shell-topbar {
+  --admin-border: #333;
+  --admin-surface-2: #252525;
+  --admin-muted: #a3a3a3;
+  --admin-text: #f5f5f5;
+  border-top: 1px solid var(--admin-border);
+  min-height: 72px;
+}
+
 /* Portal workspace: reuse admin-shell CSS variables below HeaderBar (not full-viewport admin-shell). */
 .portal-workspace-root.admin-shell {
   min-height: 0;
