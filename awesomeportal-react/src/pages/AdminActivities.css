@@ -122,20 +122,15 @@
     color: #ccfbf1;
 }
 
+/* Legacy `admin` slug + org_admin share portal-admin chrome (see `portalPersonaCssSlug`). */
 .admin-shell-topbar-brand--persona-admin .admin-shell-logo-mark,
-.admin-shell-topbar-brand--persona-org-admin .admin-shell-logo-mark {
-    background: linear-gradient(135deg, #fa0f00, #ff6b35);
-}
-
-.admin-shell-topbar-brand--persona-admin .admin-shell-brand-text,
-.admin-shell-topbar-brand--persona-org-admin .admin-shell-brand-text {
-    color: #ffedd5;
-}
-
+.admin-shell-topbar-brand--persona-org-admin .admin-shell-logo-mark,
 .admin-shell-topbar-brand--persona-portal-admin .admin-shell-logo-mark {
     background: linear-gradient(135deg, #7f1d1d, #dc2626);
 }
 
+.admin-shell-topbar-brand--persona-admin .admin-shell-brand-text,
+.admin-shell-topbar-brand--persona-org-admin .admin-shell-brand-text,
 .admin-shell-topbar-brand--persona-portal-admin .admin-shell-brand-text {
     color: #fecaca;
 }

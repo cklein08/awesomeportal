@@ -22,7 +22,8 @@ const ALL_PERSONA_IDS = new Set<PortalPersonaId>(PORTAL_PERSONA_POWER_ORDER);
 
 export const PORTAL_PERSONA_LABELS: Record<PortalPersonaId, string> = {
     portal_admin: 'Admin',
-    org_admin: 'Org admin',
+    /** Same product surface as portal_admin (admin activities, grid chrome, rail). */
+    org_admin: 'Admin',
     developer: 'Developer',
     creative: 'Creative',
     marketeer: 'Marketeer',
@@ -36,7 +37,7 @@ export const PORTAL_PERSONA_LABELS: Record<PortalPersonaId, string> = {
 /** Single-letter mark in the Admin activities top bar (persona-colored tile). */
 export const PORTAL_PERSONA_TOPBAR_MARK: Record<PortalPersonaId, string> = {
     portal_admin: 'A',
-    org_admin: 'O',
+    org_admin: 'A',
     developer: 'D',
     creative: 'C',
     marketeer: 'M',
@@ -47,8 +48,12 @@ export const PORTAL_PERSONA_TOPBAR_MARK: Record<PortalPersonaId, string> = {
     agent: 'G',
 };
 
-/** CSS modifier: `admin-shell-topbar-brand--persona-${slug}`. */
+/**
+ * CSS modifier: `admin-shell-topbar-brand--persona-${slug}`.
+ * Org admin uses the same chrome as portal admin (single “Admin” experience).
+ */
 export function portalPersonaCssSlug(persona: PortalPersonaId): string {
+    if (persona === 'org_admin') return 'portal-admin';
     return persona.replace(/_/g, '-');
 }
 

@@ -1,11 +1,18 @@
 import type { PortalPersonaId } from '../types';
 import { getSelectedPersona } from './config';
-import { isPortalAdminFromToken, resolvePersonaFromAccessToken, resolvePersonasFromAccessToken } from './imsPersona';
+import { isPortalAdminFromToken, resolvePersonasFromAccessToken } from './imsPersona';
 
-/** Org admins (and legacy cookie hosts) may impersonate personas in the main portal UI. */
+/** True when the token implies portal-level admin (same surface as IMS org-admin gate). */
+function hasJwtPortalAdminPersona(accessToken: string | null | undefined): boolean {
+    if (!accessToken?.trim()) return false;
+    return resolvePersonasFromAccessToken(accessToken).some((p) => p === 'portal_admin' || p === 'org_admin');
+}
+
+/** Org admins (IMS gate or JWT portal/org admin persona) and legacy cookie hosts may impersonate. */
 export function canImpersonatePortalPersonas(accessToken: string | null | undefined): boolean {
     if (isLegacyCookiePortalHost()) return true;
-    return isPortalAdminFromToken(accessToken);
+    if (isPortalAdminFromToken(accessToken)) return true;
+    return hasJwtPortalAdminPersona(accessToken);
 }
 
 export const SKIP_ADMIN_LANDING_SESSION_KEY = 'awesomeportal_skip_admin_landing';
