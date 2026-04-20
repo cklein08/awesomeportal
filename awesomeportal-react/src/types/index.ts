@@ -409,7 +409,21 @@ export interface GridTopBanner {
 }
 
 /** Persona used for distinct tile layouts and left navigation (IMS group mapping comes later). */
-export type PortalPersonaId = 'marketeer' | 'developer' | 'admin';
+/**
+ * Portal personas / roles (power order for stacking is defined in `portalPersonas.ts`).
+ * Legacy persisted value `admin` is normalized to `org_admin` at read time.
+ */
+export type PortalPersonaId =
+    | 'portal_admin'
+    | 'org_admin'
+    | 'developer'
+    | 'creative'
+    | 'marketeer'
+    | 'content_creator'
+    | 'approver'
+    | 'reviewer'
+    | 'editor'
+    | 'agent';
 
 /** Admin-registered App Builder (or other) hosted URLs surfaced in the entitlements panel. */
 export interface AppBuilderDropIn {

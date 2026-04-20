@@ -8,12 +8,24 @@ interface ImportMetaEnv {
     readonly VITE_HEINEKEN_DEMO?: string
     /** Comma-separated substrings matched (case-insensitive) against JWT JSON to treat user as org admin (persona switcher). Unset = permissive for demos. */
     readonly VITE_IMS_ADMIN_GROUP_SUBSTRINGS?: string
-    /** Comma-separated substrings → `admin` persona when matched in JWT. */
+    /** Legacy: substrings → org admin persona when matched (see VITE_IMS_PERSONA_ORG_ADMIN_SUBSTRINGS). */
     readonly VITE_IMS_PERSONA_ADMIN_SUBSTRINGS?: string
-    /** Comma-separated substrings → `developer` persona when matched in JWT. */
+    readonly VITE_IMS_PERSONA_PORTAL_ADMIN_SUBSTRINGS?: string
+    readonly VITE_IMS_PERSONA_ORG_ADMIN_SUBSTRINGS?: string
     readonly VITE_IMS_PERSONA_DEVELOPER_SUBSTRINGS?: string
-    /** Force persona after sign-in: `marketeer` | `developer` | `admin`. */
+    readonly VITE_IMS_PERSONA_CREATIVE_SUBSTRINGS?: string
+    readonly VITE_IMS_PERSONA_MARKETEER_SUBSTRINGS?: string
+    readonly VITE_IMS_PERSONA_CONTENT_CREATOR_SUBSTRINGS?: string
+    readonly VITE_IMS_PERSONA_APPROVER_SUBSTRINGS?: string
+    readonly VITE_IMS_PERSONA_REVIEWER_SUBSTRINGS?: string
+    readonly VITE_IMS_PERSONA_EDITOR_SUBSTRINGS?: string
+    readonly VITE_IMS_PERSONA_AGENT_SUBSTRINGS?: string
+    /** Force persona after sign-in (single id; `admin` in URL is normalized to org_admin). */
     readonly VITE_PORTAL_PERSONA_AFTER_SIGNIN?: string
+    /** Comma-separated persona ids to simulate multiple entitled roles (e.g. org_admin,developer). */
+    readonly VITE_PORTAL_SIMULATED_ROLES?: string
+    /** Set to `false` to disable auto-pairing org admin + developer for IMS org admins (see imsPersona). */
+    readonly VITE_PORTAL_DUAL_ROLE_ORG_ADMIN_DEVELOPER?: string
     /** Dev only: treat every signed-in user as portal admin. */
     readonly VITE_PORTAL_ALL_USERS_ARE_ADMINS?: string
     /** Shown in splash title as "{name} Portal" (e.g. your client or program name). */

@@ -1,6 +1,6 @@
 import type { PortalPersonaId } from '../types';
 import { getSelectedPersona } from './config';
-import { isPortalAdminFromToken, resolvePersonaFromAccessToken } from './imsPersona';
+import { isPortalAdminFromToken, resolvePersonaFromAccessToken, resolvePersonasFromAccessToken } from './imsPersona';
 
 /** Org admins (and legacy cookie hosts) may impersonate personas in the main portal UI. */
 export function canImpersonatePortalPersonas(accessToken: string | null | undefined): boolean {
@@ -21,13 +21,20 @@ export function isLegacyCookiePortalHost(): boolean {
  * Users who may open Admin activities (layout, skin entry, entitlements drag): IMS org admins,
  * developer or admin persona from the token, or legacy cookie hosts. Marketeer-only users do not.
  */
+const PERSONAS_ALLOWED_PORTAL_SETUP: ReadonlySet<PortalPersonaId> = new Set([
+    'portal_admin',
+    'org_admin',
+    'developer',
+    'editor',
+]);
+
 export function canAccessPortalSetup(accessToken: string | null | undefined, storedPersona: PortalPersonaId): boolean {
     if (isLegacyCookiePortalHost()) return true;
     if (!accessToken?.trim()) return false;
     if (isPortalAdminFromToken(accessToken)) return true;
-    const fromToken = resolvePersonaFromAccessToken(accessToken);
-    if (fromToken === 'developer' || fromToken === 'admin') return true;
-    if (storedPersona === 'developer' || storedPersona === 'admin') return true;
+    const fromTokenList = resolvePersonasFromAccessToken(accessToken);
+    if (fromTokenList.some((p) => PERSONAS_ALLOWED_PORTAL_SETUP.has(p))) return true;
+    if (PERSONAS_ALLOWED_PORTAL_SETUP.has(storedPersona)) return true;
     return false;
 }
 

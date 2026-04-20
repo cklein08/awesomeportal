@@ -2,7 +2,12 @@
 // This checks window.APP_CONFIG first (runtime), then falls back to build-time env vars
 
 import type { AppItem } from '../components/LeftNav';
-import { getLeftNavAppsForPersona, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
+import {
+    getLeftNavAppsForPersona,
+    isPortalPersonaId,
+    parsePortalPersonaId,
+    PORTAL_PERSONA_POWER_ORDER,
+} from '../constants/portalPersonas';
 import type { AppBuilderDropIn, EntitlementPayload, ExternalParams, GridEditConfig, PortalPersonaId, PortalSkinConfig } from '../types';
 import { normalizePersistedImageUrl } from './pathUtils';
 
@@ -49,7 +54,7 @@ export function sanitizeAllStoredRoleGridsImageUrls(): void {
         if (!raw) return;
         const all = JSON.parse(raw) as RoleGridsState;
         let changed = false;
-        for (const persona of PORTAL_PERSONA_ORDER) {
+        for (const persona of PORTAL_PERSONA_POWER_ORDER) {
             const entry = all[persona];
             if (!entry || typeof entry !== 'object') continue;
             const cleaned = sanitizeGridEditConfig(entry);
@@ -158,8 +163,45 @@ export const getBucket = (): string => getConfig().BUCKET;
 
 type RoleGridsState = Partial<Record<PortalPersonaId, GridEditConfig>>;
 
-export function isPortalPersonaId(v: string): v is PortalPersonaId {
-    return v === 'marketeer' || v === 'developer' || v === 'admin';
+export {
+    isPortalPersonaId,
+    parsePortalPersonaId,
+    PORTAL_PERSONA_ORDER,
+    PORTAL_PERSONA_POWER_ORDER,
+} from '../constants/portalPersonas';
+
+let personaStorageMigrationDone = false;
+
+/** One-time: legacy `admin` persona key → `org_admin` in localStorage. */
+export function runPersonaStorageMigrationOnce(): void {
+    if (personaStorageMigrationDone) return;
+    personaStorageMigrationDone = true;
+    try {
+        const sp = localStorage.getItem(PERSONA_STORAGE_KEY);
+        if (sp === 'admin') {
+            localStorage.setItem(PERSONA_STORAGE_KEY, 'org_admin');
+        }
+        const rawGrids = localStorage.getItem(ROLE_GRIDS_STORAGE_KEY);
+        if (rawGrids) {
+            const grids = JSON.parse(rawGrids) as Record<string, unknown>;
+            if (grids && typeof grids === 'object' && grids.admin != null && grids.org_admin == null) {
+                grids.org_admin = grids.admin;
+                delete grids.admin;
+                localStorage.setItem(ROLE_GRIDS_STORAGE_KEY, JSON.stringify(grids));
+            }
+        }
+        const rawNav = localStorage.getItem(PERSONA_LEFT_NAV_STORAGE_KEY);
+        if (rawNav) {
+            const nav = JSON.parse(rawNav) as Record<string, unknown>;
+            if (nav && typeof nav === 'object' && nav.admin != null && nav.org_admin == null) {
+                nav.org_admin = nav.admin;
+                delete nav.admin;
+                localStorage.setItem(PERSONA_LEFT_NAV_STORAGE_KEY, JSON.stringify(nav));
+            }
+        }
+    } catch (e) {
+        console.warn('runPersonaStorageMigrationOnce failed', e);
+    }
 }
 
 /** Window-only external params (no merged grid). Used when editing a persona layout other than the live selection. */
@@ -186,7 +228,7 @@ function migrateLegacyGridToRoleGrids(): void {
         const initial: RoleGridsState = {
             marketeer: legacy,
             developer: legacy,
-            admin: legacy,
+            org_admin: legacy,
         };
         localStorage.setItem(ROLE_GRIDS_STORAGE_KEY, JSON.stringify(initial));
     } catch (e) {
@@ -196,6 +238,7 @@ function migrateLegacyGridToRoleGrids(): void {
 
 /** Layout saved for a specific persona (independent of the current persona switcher). */
 export const getGridLayout = (persona: PortalPersonaId): GridEditConfig | null => {
+    runPersonaStorageMigrationOnce();
     migrateLegacyGridToRoleGrids();
     try {
         const raw = localStorage.getItem(ROLE_GRIDS_STORAGE_KEY);
@@ -233,9 +276,11 @@ export const setGridLayout = (persona: PortalPersonaId, config: GridEditConfig):
 };
 
 export const getSelectedPersona = (): PortalPersonaId => {
+    runPersonaStorageMigrationOnce();
     try {
         const v = localStorage.getItem(PERSONA_STORAGE_KEY);
-        if (v && isPortalPersonaId(v)) return v;
+        const parsed = v ? parsePortalPersonaId(v) : null;
+        if (parsed) return parsed;
     } catch {
         /* ignore */
     }
@@ -257,19 +302,21 @@ export const setSelectedPersona = (persona: PortalPersonaId): void => {
 export function syncStoredPersonaFromUrlIfPresent(): void {
     try {
         const q = new URLSearchParams(window.location.search).get('persona');
-        if (q && isPortalPersonaId(q)) {
-            setSelectedPersona(q);
+        const parsed = q ? parsePortalPersonaId(q) : null;
+        if (parsed) {
+            setSelectedPersona(parsed);
         }
     } catch {
         /* ignore */
     }
 }
 
-/** URL `?persona=marketeer|developer|admin` overrides for the grid editor; otherwise current switcher value. */
+/** URL `?persona=` overrides for the grid editor; otherwise current switcher value. */
 export const readPersonaFromLocation = (): PortalPersonaId => {
     try {
         const q = new URLSearchParams(window.location.search).get('persona');
-        if (q && isPortalPersonaId(q)) return q;
+        const parsed = q ? parsePortalPersonaId(q) : null;
+        if (parsed) return parsed;
     } catch {
         /* ignore */
     }

@@ -108,12 +108,105 @@
     color: #ccfbf1;
 }
 
-.admin-shell-topbar-brand--persona-admin .admin-shell-logo-mark {
+.admin-shell-topbar-brand--persona-admin .admin-shell-logo-mark,
+.admin-shell-topbar-brand--persona-org-admin .admin-shell-logo-mark {
     background: linear-gradient(135deg, #fa0f00, #ff6b35);
 }
 
-.admin-shell-topbar-brand--persona-admin .admin-shell-brand-text {
+.admin-shell-topbar-brand--persona-admin .admin-shell-brand-text,
+.admin-shell-topbar-brand--persona-org-admin .admin-shell-brand-text {
     color: #ffedd5;
+}
+
+.admin-shell-topbar-brand--persona-portal-admin .admin-shell-logo-mark {
+    background: linear-gradient(135deg, #7f1d1d, #dc2626);
+}
+
+.admin-shell-topbar-brand--persona-portal-admin .admin-shell-brand-text {
+    color: #fecaca;
+}
+
+.admin-shell-topbar-brand--persona-creative .admin-shell-logo-mark {
+    background: linear-gradient(135deg, #c026d3, #e879f9);
+}
+
+.admin-shell-topbar-brand--persona-creative .admin-shell-brand-text {
+    color: #fae8ff;
+}
+
+.admin-shell-topbar-brand--persona-content-creator .admin-shell-logo-mark {
+    background: linear-gradient(135deg, #0369a1, #38bdf8);
+}
+
+.admin-shell-topbar-brand--persona-content-creator .admin-shell-brand-text {
+    color: #e0f2fe;
+}
+
+.admin-shell-topbar-brand--persona-approver .admin-shell-logo-mark {
+    background: linear-gradient(135deg, #a16207, #eab308);
+}
+
+.admin-shell-topbar-brand--persona-approver .admin-shell-brand-text {
+    color: #fef9c3;
+}
+
+.admin-shell-topbar-brand--persona-reviewer .admin-shell-logo-mark {
+    background: linear-gradient(135deg, #4d7c0f, #84cc16);
+}
+
+.admin-shell-topbar-brand--persona-reviewer .admin-shell-brand-text {
+    color: #ecfccb;
+}
+
+.admin-shell-topbar-brand--persona-editor .admin-shell-logo-mark {
+    background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+}
+
+.admin-shell-topbar-brand--persona-editor .admin-shell-brand-text {
+    color: #dbeafe;
+}
+
+.admin-shell-topbar-brand--persona-agent .admin-shell-logo-mark {
+    background: linear-gradient(135deg, #334155, #94a3b8);
+}
+
+.admin-shell-topbar-brand--persona-agent .admin-shell-brand-text {
+    color: #f1f5f9;
+}
+
+/* Multi-role: active title + links to other entitled activities contexts */
+.admin-shell-topbar-brand-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    flex-shrink: 0;
+    max-width: min(340px, 42vw);
+}
+
+.admin-shell-brand-active-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-shell-brand-link-row {
+    align-self: stretch;
+    background: none;
+    border: none;
+    padding: 2px 0 2px 42px;
+    margin: 0;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--admin-blue);
+    cursor: pointer;
+    text-align: left;
+    text-decoration: underline;
+}
+
+.admin-shell-brand-link-row:hover {
+    color: var(--admin-blue-hover);
 }
 
 .admin-shell-search {

@@ -6,7 +6,14 @@ import SkinEditorModal from '../components/SkinEditorModal';
 import { ADOBE_ENTITLEMENTS } from '../constants/adobeEntitlements';
 import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
 import { PORTAL_EMBED_ADOBE_FILES_APP_ID } from '../constants/adobeFilesEmbed';
-import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER, PORTAL_PERSONA_TOPBAR_MARK } from '../constants/portalPersonas';
+import {
+    activitiesTitleForPersona,
+    PORTAL_PERSONA_LABELS,
+    PORTAL_PERSONA_ORDER,
+    PORTAL_PERSONA_TOPBAR_MARK,
+    portalPersonaCssSlug,
+    sortPersonasByPower,
+} from '../constants/portalPersonas';
 import type { EntitlementPayload, ExternalParams, PortalPersonaId, SlotBlockDescriptor } from '../types';
 import { AppConfigProvider } from '../components/AppConfigProvider';
 import AppGrid, { DRAG_TYPE_ENTITLEMENT } from '../components/AppGrid';
@@ -23,11 +30,11 @@ import {
     getEffectiveLeftNavForPersona,
     getExternalParams,
     getSelectedPersona,
-    isPortalPersonaId,
+    parsePortalPersonaId,
     setPersonaLeftNavForPersona,
     setSelectedPersona,
 } from '../utils/config';
-import { resolvePersonaFromAccessToken } from '../utils/imsPersona';
+import { resolvePersonaFromAccessToken, resolvePersonasFromAccessToken } from '../utils/imsPersona';
 import { endPersonaImpersonationPersist, getPortalPersonaImpersonationUi } from '../utils/portalPersonaImpersonation';
 import { canAccessPortalSetup, canImpersonatePortalPersonas, setSkipAdminLandingRedirect } from '../utils/portalAccess';
 import './AdminActivities.css';
@@ -57,15 +64,15 @@ const AdminActivities: React.FC = () => {
     const initialPersona = useMemo((): PortalPersonaId => {
         void impersonationUiRev;
         const q = searchParams.get('persona');
-        if (q && isPortalPersonaId(q)) return q;
+        const parsed = q ? parsePortalPersonaId(q) : null;
+        if (parsed) return parsed;
         return getSelectedPersona();
     }, [searchParams, impersonationUiRev]);
 
     /** When set, header shows "{Persona} Activities" and layout is scoped to that URL (does not follow the in-form picker). */
     const personaFromUrl = useMemo((): PortalPersonaId | null => {
         const q = searchParams.get('persona');
-        if (q && isPortalPersonaId(q)) return q;
-        return null;
+        return q ? parsePortalPersonaId(q) : null;
     }, [searchParams]);
 
     const impersonationUi = useMemo(() => {
@@ -88,7 +95,8 @@ const AdminActivities: React.FC = () => {
         endPersonaImpersonationPersist(ims);
         setStoredPersona(ims);
         setImpersonationUiRev((n) => n + 1);
-        navigate('/admin/activities', { replace: true });
+        const primary = resolvePersonaFromAccessToken(token) ?? 'marketeer';
+        navigate(`/admin/activities?persona=${encodeURIComponent(primary)}`, { replace: true });
     }, [navigate]);
 
     const editor = useGridEditor(initialPersona, { syncGlobalPersona: false });
@@ -104,15 +112,36 @@ const AdminActivities: React.FC = () => {
 
     useEffect(() => {
         const q = searchParams.get('persona');
-        if (q && isPortalPersonaId(q)) {
-            setEditingPersona(q);
+        const parsed = q ? parsePortalPersonaId(q) : null;
+        if (parsed) {
+            setEditingPersona(parsed);
         } else {
             setEditingPersona(getSelectedPersona());
         }
     }, [searchParams, setEditingPersona]);
 
+    const matchedRoles = useMemo(() => resolvePersonasFromAccessToken(readAccessToken()), [impersonationUiRev, searchParams]);
+
+    useEffect(() => {
+        const p = parsePortalPersonaId(searchParams.get('persona') ?? '');
+        if (!p) return;
+        setSelectedPersona(p);
+        setStoredPersona(p);
+    }, [searchParams]);
+
     const allowed = canAccessPortalSetup(readAccessToken(), getSelectedPersona());
     const canImpersonate = allowed && canImpersonatePortalPersonas(readAccessToken());
+
+    /** Default Admin activities scope to the user’s highest entitled persona. */
+    useEffect(() => {
+        if (!allowed) return;
+        if (impersonationUi) return;
+        const raw = searchParams.get('persona');
+        if (raw && parsePortalPersonaId(raw)) return;
+        const primary = matchedRoles[0];
+        if (!primary) return;
+        navigate(`/admin/activities?persona=${encodeURIComponent(primary)}`, { replace: true });
+    }, [allowed, impersonationUi, searchParams, matchedRoles, navigate]);
 
     useLayoutEffect(() => {
         if (!allowed) {
@@ -251,6 +280,12 @@ const AdminActivities: React.FC = () => {
         return null;
     }
 
+    const activeBrandPersona = topbarScopePersona ?? editingPersona;
+    const showMultiRoleStack = !impersonationUi && matchedRoles.length > 1;
+    const inactiveRoleLinks = showMultiRoleStack
+        ? sortPersonasByPower(matchedRoles.filter((id) => id !== activeBrandPersona))
+        : [];
+
     const workspaceTabs: { id: WorkspaceTabId; label: string }[] = [
         { id: 'grid', label: 'Grid' },
         { id: 'layout', label: 'Layout & URLs' },
@@ -262,21 +297,57 @@ const AdminActivities: React.FC = () => {
         <AppConfigProvider externalParams={externalParams} dynamicMediaClient={null}>
             <div className={`admin-shell${banner ? ' admin-shell--banner-visible' : ''}`}>
                 <header className="admin-shell-topbar admin-shell-topbar--sticky">
-                    <div
-                        className={`admin-shell-topbar-brand${
-                            topbarScopePersona
-                                ? ` admin-shell-topbar-brand--persona-${topbarScopePersona}`
-                                : ' admin-shell-topbar-brand--persona-admin'
-                        }`}
-                        aria-label={topbarScopePersona ? `${PORTAL_PERSONA_LABELS[topbarScopePersona]} activities` : 'Admin activities'}
-                    >
-                        <span className="admin-shell-logo-mark" aria-hidden>
-                            {topbarScopePersona ? PORTAL_PERSONA_TOPBAR_MARK[topbarScopePersona] : 'A'}
-                        </span>
-                        <span className="admin-shell-brand-text">
-                            {topbarScopePersona ? `${PORTAL_PERSONA_LABELS[topbarScopePersona]} Activities` : 'Admin activities'}
-                        </span>
-                    </div>
+                    {showMultiRoleStack ? (
+                        <div
+                            className={`admin-shell-topbar-brand-stack admin-shell-topbar-brand admin-shell-topbar-brand--persona-${portalPersonaCssSlug(activeBrandPersona)}`}
+                            aria-label={activitiesTitleForPersona(activeBrandPersona)}
+                        >
+                            <div className="admin-shell-brand-active-row">
+                                <span className="admin-shell-logo-mark" aria-hidden>
+                                    {PORTAL_PERSONA_TOPBAR_MARK[activeBrandPersona]}
+                                </span>
+                                <span className="admin-shell-brand-text">{activitiesTitleForPersona(activeBrandPersona)}</span>
+                            </div>
+                            {inactiveRoleLinks.map((pid) => (
+                                <button
+                                    key={pid}
+                                    type="button"
+                                    className={`admin-shell-brand-link-row admin-shell-brand-link-row--persona-${portalPersonaCssSlug(pid)}`}
+                                    onClick={() => {
+                                        setSkipAdminLandingRedirect(true);
+                                        setSelectedPersona(pid);
+                                        navigate(`/admin/activities?persona=${encodeURIComponent(pid)}`);
+                                    }}
+                                >
+                                    {activitiesTitleForPersona(pid)}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div
+                            className={`admin-shell-topbar-brand${
+                                topbarScopePersona
+                                    ? ` admin-shell-topbar-brand--persona-${portalPersonaCssSlug(topbarScopePersona)}`
+                                    : ` admin-shell-topbar-brand--persona-${portalPersonaCssSlug(activeBrandPersona)}`
+                            }`}
+                            aria-label={
+                                topbarScopePersona
+                                    ? activitiesTitleForPersona(topbarScopePersona)
+                                    : activitiesTitleForPersona(activeBrandPersona)
+                            }
+                        >
+                            <span className="admin-shell-logo-mark" aria-hidden>
+                                {topbarScopePersona
+                                    ? PORTAL_PERSONA_TOPBAR_MARK[topbarScopePersona]
+                                    : PORTAL_PERSONA_TOPBAR_MARK[activeBrandPersona]}
+                            </span>
+                            <span className="admin-shell-brand-text">
+                                {topbarScopePersona
+                                    ? activitiesTitleForPersona(topbarScopePersona)
+                                    : activitiesTitleForPersona(activeBrandPersona)}
+                            </span>
+                        </div>
+                    )}
                     <div className="admin-shell-search" role="search">
                         <span className="admin-shell-search-icon" aria-hidden>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

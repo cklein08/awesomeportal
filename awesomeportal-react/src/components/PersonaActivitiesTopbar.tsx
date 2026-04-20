@@ -1,5 +1,5 @@
 import React from 'react';
-import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_TOPBAR_MARK } from '../constants/portalPersonas';
+import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_TOPBAR_MARK, portalPersonaCssSlug } from '../constants/portalPersonas';
 import type { PortalPersonaId } from '../types';
 
 export type PersonaActivitiesTopbarProps = {
@@ -11,7 +11,7 @@ export type PersonaActivitiesTopbarProps = {
  */
 const PersonaActivitiesTopbar: React.FC<PersonaActivitiesTopbarProps> = ({ personaId }) => (
     <header className="admin-shell-topbar portal-persona-activities-topbar" aria-label={`${PORTAL_PERSONA_LABELS[personaId]} activities`}>
-        <div className={`admin-shell-topbar-brand admin-shell-topbar-brand--persona-${personaId}`}>
+        <div className={`admin-shell-topbar-brand admin-shell-topbar-brand--persona-${portalPersonaCssSlug(personaId)}`}>
             <span className="admin-shell-logo-mark" aria-hidden>
                 {PORTAL_PERSONA_TOPBAR_MARK[personaId]}
             </span>

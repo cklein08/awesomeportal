@@ -1,7 +1,7 @@
 import { PORTAL_PERSONA_LABELS } from '../constants/portalPersonas';
 import type { PortalPersonaId } from '../types';
 import { setSelectedPersona } from './config';
-import { resolvePersonaFromAccessToken } from './imsPersona';
+import { resolvePersonasFromAccessToken } from './imsPersona';
 import { canImpersonatePortalPersonas, setSkipAdminLandingRedirect } from './portalAccess';
 import { readPortalPersonaPreviewStripActive, setPortalPersonaPreviewStripActive } from './portalSession';
 
@@ -20,11 +20,10 @@ export function getPortalPersonaImpersonationUi(
 ): PortalPersonaImpersonationUi | null {
     if (!accessToken?.trim()) return null;
     if (!canImpersonatePortalPersonas(accessToken)) return null;
-    const imsPersona = resolvePersonaFromAccessToken(accessToken);
-    if (imsPersona == null) return null;
-    const tokenMismatch = activeStoredPersona !== imsPersona;
+    const entitled = new Set(resolvePersonasFromAccessToken(accessToken));
     const explicitPreview = readPortalPersonaPreviewStripActive();
-    if (!tokenMismatch && !explicitPreview) return null;
+    const outsideEntitlements = !entitled.has(activeStoredPersona);
+    if (!outsideEntitlements && !explicitPreview) return null;
     return {
         effectivePersonaId: activeStoredPersona,
         personaLabel: PORTAL_PERSONA_LABELS[activeStoredPersona],

@@ -10,7 +10,7 @@ import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
 
 import { DynamicMediaClient } from '../clients/dynamicmedia-client';
 import { DEFAULT_FACETS, type ExcFacets } from '../constants/facets';
-import { PORTAL_PERSONA_LABELS } from '../constants/portalPersonas';
+import { personaHasPortalGridAdminChrome, PORTAL_PERSONA_LABELS } from '../constants/portalPersonas';
 import type {
     Asset,
     CartItem,
@@ -38,7 +38,7 @@ import {
     getGridEditConfig,
     getSelectedAemProgram,
     getSelectedPersona,
-    isPortalPersonaId,
+    parsePortalPersonaId,
     PERSONA_LEFT_NAV_STORAGE_KEY,
     PERSONA_LEFT_NAV_UPDATED_EVENT,
     setGridEditConfig,
@@ -467,7 +467,8 @@ function MainApp(): React.JSX.Element {
         applyPortalPersona(imsDerivedPersona);
         setPersonaImpersonateModalOpen(false);
         // Neutral admin workspace (no ?persona=) so the session is not URL-scoped to a preview role
-        navigate('/admin/activities', { replace: true });
+        const primary = imsDerivedPersona ?? 'marketeer';
+        navigate(`/admin/activities?persona=${encodeURIComponent(primary)}`, { replace: true });
     }, [imsDerivedPersona, applyPortalPersona, navigate]);
 
     /** Full reload of SPA root so landing, splash, and grid match the current stored persona. */
@@ -495,9 +496,10 @@ function MainApp(): React.JSX.Element {
         if (prevPersonaSearchRef.current === cur) return;
         prevPersonaSearchRef.current = cur;
         const q = new URLSearchParams(cur).get('persona');
-        if (!q || !isPortalPersonaId(q)) return;
-        if (q === portalPersona) return;
-        applyPortalPersona(q);
+        const parsed = q ? parsePortalPersonaId(q) : null;
+        if (!parsed) return;
+        if (parsed === portalPersona) return;
+        applyPortalPersona(parsed);
     }, [location.search, portalPersona, applyPortalPersona]);
 
     const prevAccessTokenRef = useRef('');
@@ -558,7 +560,8 @@ function MainApp(): React.JSX.Element {
             if (!shouldOpenAdminActivitiesAfterSignIn(accessToken)) return;
             const path = typeof window !== 'undefined' ? window.location.pathname : '';
             if (path !== '/' && path !== '/index.html' && !path.endsWith('/index.html')) return;
-            navigate('/admin/activities', { replace: true });
+            const primary = resolvePersonaFromAccessToken(accessToken) ?? 'marketeer';
+            navigate(`/admin/activities?persona=${encodeURIComponent(primary)}`, { replace: true });
         }, delayMs);
         return () => window.clearTimeout(id);
     }, [accessToken, location.pathname, navigate]);
@@ -1158,10 +1161,10 @@ function MainApp(): React.JSX.Element {
     const [deleteMode, setDeleteMode] = useState(false);
     const [slotToDelete, setSlotToDelete] = useState<number | null>(null);
 
-    const showPortalGridAdminChrome = portalPersona === 'admin';
+    const showPortalGridAdminChrome = personaHasPortalGridAdminChrome(portalPersona);
 
     useEffect(() => {
-        if (portalPersona !== 'admin') {
+        if (!personaHasPortalGridAdminChrome(portalPersona)) {
             setDeleteMode(false);
             setSlotToDelete(null);
         }
