@@ -1,0 +1,314 @@
+.experience-hub-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.experience-hub-back-btn {
+    margin-bottom: 20px;
+    padding: 8px 16px;
+    background: none;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.experience-hub-back-btn:hover {
+    border-color: var(--primary-color, #f40000);
+    color: var(--primary-color, #f40000);
+}
+
+.experience-hub-header {
+    margin-bottom: 32px;
+    text-align: center;
+}
+
+.experience-hub-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 8px 0;
+}
+
+.experience-hub-subtitle {
+    color: #666;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.experience-hub-controls {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.experience-hub-search-form {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.experience-hub-search-input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.experience-hub-search-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #f40000);
+}
+
+.experience-hub-search-btn {
+    padding: 12px 24px;
+    background-color: var(--primary-color, #f40000);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.experience-hub-search-btn:hover {
+    background-color: var(--primary-color-hover, #d40000);
+}
+
+.experience-hub-filters {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.experience-hub-filter-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.experience-hub-filter-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.experience-hub-filter-group select {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    background-color: white;
+}
+
+.experience-hub-filter-group select:focus {
+    outline: none;
+    border-color: var(--primary-color, #f40000);
+}
+
+.experience-hub-error {
+    margin-top: 16px;
+    padding: 12px;
+    background-color: #fee;
+    border: 1px solid #fcc;
+    border-radius: 8px;
+    color: #c33;
+    font-size: 0.9rem;
+}
+
+.experience-hub-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+}
+
+.experience-hub-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color, #f40000);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.experience-hub-content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.experience-hub-content-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.experience-hub-content-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.experience-hub-thumbnail {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    background-color: #f5f5f5;
+}
+
+.experience-hub-content-info {
+    padding: 16px;
+}
+
+.experience-hub-content-type {
+    display: inline-block;
+    padding: 4px 8px;
+    background-color: #e9ecef;
+    color: #495057;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.experience-hub-content-title {
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.experience-hub-content-description {
+    margin: 0 0 12px 0;
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.4;
+}
+
+.experience-hub-content-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.experience-hub-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.experience-hub-status-published {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.experience-hub-status-draft {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.experience-hub-status-archived {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.experience-hub-author {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.experience-hub-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.experience-hub-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 32px;
+}
+
+.experience-hub-pagination-btn {
+    padding: 10px 20px;
+    background-color: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.experience-hub-pagination-btn:hover:not(:disabled) {
+    border-color: var(--primary-color, #f40000);
+    color: var(--primary-color, #f40000);
+}
+
+.experience-hub-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.experience-hub-pagination-info {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .experience-hub-container {
+        padding: 16px;
+    }
+
+    .experience-hub-search-form {
+        flex-direction: column;
+    }
+
+    .experience-hub-filters {
+        flex-direction: column;
+    }
+
+    .experience-hub-filter-group {
+        min-width: 100%;
+    }
+
+    .experience-hub-content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+

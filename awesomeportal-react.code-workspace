@@ -1,0 +1,34 @@
+{
+	"folders": [
+		{
+			"path": "awesomeportal-react"
+		},
+		{
+			"path": "blocks"
+		},
+		{
+			"path": "fonts"
+		},
+		{
+			"path": "icons"
+		},
+		{
+			"path": "node_modules"
+		},
+		{
+			"path": "scripts"
+		},
+		{
+			"path": "styles"
+		},
+		{
+			"path": "tools"
+		},
+		{
+			"path": "ue"
+		},
+		{
+			"path": "cloudflare"
+		}
+	]
+}
