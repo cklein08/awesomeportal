@@ -33,6 +33,20 @@
     padding-bottom: var(--admin-banner-height);
 }
 
+/* Global HeaderBar as first row of full-page admin (variables + sticky). */
+.admin-shell > .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    flex-shrink: 0;
+}
+
+.app-header .admin-shell-topbar-actions {
+    --admin-muted: var(--portal-text-muted, #a3a3a3);
+    --admin-surface-2: rgba(255, 255, 255, 0.08);
+    --admin-text: var(--portal-text, #f5f5f5);
+}
+
 /* --- Top bar --- */
 .admin-shell-topbar {
     display: flex;

@@ -46,7 +46,12 @@ import {
     setSelectedPersona,
     type AemProgramOption,
 } from '../utils/config';
-import { decodeImsAccessTokenPayload, isPortalAdminFromToken, resolvePersonaFromAccessToken } from '../utils/imsPersona';
+import {
+    decodeImsAccessTokenPayload,
+    isPortalAdminFromToken,
+    resolvePersonaFromAccessToken,
+    resolvePersonasFromAccessToken,
+} from '../utils/imsPersona';
 import { canImpersonatePortalPersonas, setSkipAdminLandingRedirect, shouldOpenAdminActivitiesAfterSignIn } from '../utils/portalAccess';
 import { endPersonaImpersonationPersist, getPortalPersonaImpersonationUi } from '../utils/portalPersonaImpersonation';
 import { getPortalSpaRootHref, readPostLoginAdminRedirectDelayMs, setPortalPersonaPreviewStripActive } from '../utils/portalSession';
@@ -74,6 +79,7 @@ import CartPanel from './CartPanel';
 import Facets from './Facets';
 import HeaderBar from './HeaderBar';
 import PersonaActivitiesTopbar from './PersonaActivitiesTopbar';
+import PortalMultiRoleActivitiesBar from './PortalMultiRoleActivitiesBar';
 import PersonaImpersonateModal from './PersonaImpersonateModal';
 import ImageGallery from './ImageGallery';
 import SearchBar from './SearchBar';
@@ -341,6 +347,15 @@ function MainApp(): React.JSX.Element {
     /** Bumped when preview-strip session flag changes so layout re-renders even if persona state is unchanged (e.g. Admin → Admin). */
     const [personaImpersonationUiEpoch, setPersonaImpersonationUiEpoch] = useState(0);
 
+    /** Persona from `?persona=` — does not clear an active impersonation preview strip. */
+    const syncPortalPersonaFromUrl = useCallback((p: PortalPersonaId) => {
+        setSelectedPersona(p);
+        setPortalPersona(p);
+        setGridConfigVersion((v) => v + 1);
+        setSelectedTileId(null);
+        setSelectedDaContentUrl(null);
+    }, []);
+
     const applyPortalPersona = useCallback(
         (p: PortalPersonaId, opts?: { markPersonaPreviewStrip?: boolean }) => {
             setSelectedPersona(p);
@@ -348,8 +363,9 @@ function MainApp(): React.JSX.Element {
             setGridConfigVersion((v) => v + 1);
             setSelectedTileId(null);
             setSelectedDaContentUrl(null);
-            if (opts?.markPersonaPreviewStrip) {
-                setPortalPersonaPreviewStripActive(true);
+            const showPreviewStrip = opts?.markPersonaPreviewStrip === true;
+            setPortalPersonaPreviewStripActive(showPreviewStrip);
+            if (showPreviewStrip) {
                 setPersonaImpersonationUiEpoch((n) => n + 1);
             }
         },
@@ -499,8 +515,8 @@ function MainApp(): React.JSX.Element {
         const parsed = q ? parsePortalPersonaId(q) : null;
         if (!parsed) return;
         if (parsed === portalPersona) return;
-        applyPortalPersona(parsed);
-    }, [location.search, portalPersona, applyPortalPersona]);
+        syncPortalPersonaFromUrl(parsed);
+    }, [location.search, portalPersona, syncPortalPersonaFromUrl]);
 
     const prevAccessTokenRef = useRef('');
     useEffect(() => {
@@ -1266,6 +1282,11 @@ function MainApp(): React.JSX.Element {
         selectedTileId !== 'experience-hub' &&
         selectedTileId !== 'ai-agents';
 
+    const entitledPortalPersonas = useMemo(
+        () => (accessToken?.trim() ? resolvePersonasFromAccessToken(accessToken) : []),
+        [accessToken]
+    );
+
     const portalPersonaImpersonationUi = useMemo(() => {
         void personaImpersonationUiEpoch;
         return canImpersonatePortalPersona && accessToken?.trim()
@@ -1299,10 +1320,21 @@ function MainApp(): React.JSX.Element {
                         imsSession={Boolean(accessToken?.trim())}
                         personaImpersonation={headerPersonaImpersonation}
                         onReloadPortalHome={reloadPortalLanding}
+                        portalContextSlot={
+                            portalPersonaImpersonationUi ? (
+                                <PersonaActivitiesTopbar
+                                    embedded
+                                    personaId={portalPersonaImpersonationUi.effectivePersonaId}
+                                />
+                            ) : authenticated && entitledPortalPersonas.length > 1 ? (
+                                <PortalMultiRoleActivitiesBar
+                                    embedded
+                                    activePersona={portalPersona}
+                                    matchedRoles={entitledPortalPersonas}
+                                />
+                            ) : null
+                        }
                     />
-                    {portalPersonaImpersonationUi ? (
-                        <PersonaActivitiesTopbar personaId={portalPersonaImpersonationUi.effectivePersonaId} />
-                    ) : null}
                 </div>
 
                 {/* Cart Container - moved from HeaderBar, now uses Portal */}
@@ -1342,8 +1374,21 @@ function MainApp(): React.JSX.Element {
                             onClose={() => setPersonaImpersonateModalOpen(false)}
                             onSelectPersona={(p) => {
                                 setSkipAdminLandingRedirect(true);
-                                applyPortalPersona(p, { markPersonaPreviewStrip: true });
+                                const entitled = new Set(
+                                    accessToken?.trim() ? resolvePersonasFromAccessToken(accessToken) : []
+                                );
+                                if (entitled.has(p)) {
+                                    setPortalPersonaPreviewStripActive(false);
+                                } else {
+                                    setPortalPersonaPreviewStripActive(true);
+                                    setPersonaImpersonationUiEpoch((n) => n + 1);
+                                }
                                 setPersonaImpersonateModalOpen(false);
+                                navigate({
+                                    pathname: '/',
+                                    search: `?persona=${encodeURIComponent(p)}`,
+                                    hash: '',
+                                });
                             }}
                             currentPersona={portalPersona}
                         />,

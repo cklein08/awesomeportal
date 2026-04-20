@@ -29,6 +29,11 @@ interface HeaderBarPropsSimplified {
     personaImpersonation?: { personaLabel: string; onEndPersona: () => void } | null;
     /** Full page load of the SPA entry (current stored persona); used for the header home control. */
     onReloadPortalHome?: () => void;
+    /**
+     * Global portal chrome between logo and account controls: persona Activities + search
+     * (same strip on home and Admin activities).
+     */
+    portalContextSlot?: React.ReactNode;
 }
 
 const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
@@ -46,6 +51,7 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     imsSession,
     personaImpersonation,
     onReloadPortalHome,
+    portalContextSlot,
 }) => {
     // Get external params and skin from context
     const { externalParams, skinConfig } = useAppConfig();
@@ -59,14 +65,6 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
     }, [cartItems.length]);
 
     const handleLogoClick = () => {
-        if (onReloadPortalHome) {
-            onReloadPortalHome();
-        } else {
-            window.location.assign('/');
-        }
-    };
-
-    const handleHomeClick = () => {
         if (onReloadPortalHome) {
             onReloadPortalHome();
         } else {
@@ -91,18 +89,6 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
 
     return (
         <div className="app-header">
-            {/* Home icon on far left */}
-            <button 
-                className="home-icon-btn" 
-                onClick={handleHomeClick}
-                aria-label="Home"
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
-            </button>
-
             {!isBlockIntegration && (
                 <img
                     className="app-logo"
@@ -111,6 +97,8 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
                     onClick={handleLogoClick}
                 />
             )}
+
+            {portalContextSlot ? <div className="app-header-portal-context">{portalContextSlot}</div> : null}
 
             {/* Header right controls: impersonation strip, Sign In, Profile */}
             <div className="header-controls">

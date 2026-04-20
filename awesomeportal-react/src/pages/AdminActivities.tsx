@@ -6,26 +6,22 @@ import SkinEditorModal from '../components/SkinEditorModal';
 import { ADOBE_ENTITLEMENTS } from '../constants/adobeEntitlements';
 import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
 import { PORTAL_EMBED_ADOBE_FILES_APP_ID } from '../constants/adobeFilesEmbed';
-import {
-    activitiesTitleForPersona,
-    PORTAL_PERSONA_LABELS,
-    PORTAL_PERSONA_ORDER,
-    PORTAL_PERSONA_TOPBAR_MARK,
-    portalPersonaCssSlug,
-    sortPersonasByPower,
-} from '../constants/portalPersonas';
-import type { EntitlementPayload, ExternalParams, PortalPersonaId, SlotBlockDescriptor } from '../types';
+import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
+import type { CartItem, EntitlementPayload, ExternalParams, PortalPersonaId, SlotBlockDescriptor } from '../types';
 import { AppConfigProvider } from '../components/AppConfigProvider';
 import AppGrid, { DRAG_TYPE_ENTITLEMENT } from '../components/AppGrid';
 import GridEditForm from '../components/GridEditForm';
+import HeaderBar from '../components/HeaderBar';
+import PersonaActivitiesTopbar from '../components/PersonaActivitiesTopbar';
 import PersonaImpersonateModal from '../components/PersonaImpersonateModal';
-import PersonaImpersonationStrip from '../components/PersonaImpersonationStrip';
+import PortalMultiRoleActivitiesBar from '../components/PortalMultiRoleActivitiesBar';
 import { PersonaGlyph } from '../components/PersonaGlyph';
 import { PortalAppRailIcon } from '../components/PortalAppRailIcon';
 import { useGridEditor } from '../hooks/useGridEditor';
 import { previewAppTilesFromSlotBlocks } from '../hooks/useSlotBlocks';
 import {
     appBuilderDropInsToEntitlements,
+    clearEphemeralLocalStorageOnSignOut,
     clearPersonaLeftNavOverride,
     getEffectiveLeftNavForPersona,
     getExternalParams,
@@ -34,9 +30,10 @@ import {
     setPersonaLeftNavForPersona,
     setSelectedPersona,
 } from '../utils/config';
-import { resolvePersonaFromAccessToken, resolvePersonasFromAccessToken } from '../utils/imsPersona';
+import { decodeImsAccessTokenPayload, resolvePersonaFromAccessToken, resolvePersonasFromAccessToken } from '../utils/imsPersona';
 import { endPersonaImpersonationPersist, getPortalPersonaImpersonationUi } from '../utils/portalPersonaImpersonation';
 import { canAccessPortalSetup, canImpersonatePortalPersonas, setSkipAdminLandingRedirect } from '../utils/portalAccess';
+import { getPortalSpaRootHref, setPortalPersonaPreviewStripActive } from '../utils/portalSession';
 import './AdminActivities.css';
 
 function readAccessToken(): string {
@@ -45,6 +42,12 @@ function readAccessToken(): string {
     } catch {
         return '';
     }
+}
+
+function isCookieAuth(): boolean {
+    return (
+        window.location.origin.endsWith('adobeaem.workers.dev') || window.location.origin === 'http://localhost:8787'
+    );
 }
 
 type WorkspaceTabId = 'grid' | 'layout' | 'personas' | 'skin';
@@ -60,6 +63,54 @@ const AdminActivities: React.FC = () => {
     const [banner, setBanner] = useState<{ kind: 'success' | 'error' | 'warning'; text: string } | null>(null);
     const [personaImpersonateModalOpen, setPersonaImpersonateModalOpen] = useState(false);
     const [externalParams, setExternalParams] = useState<ExternalParams>(() => getExternalParams());
+    const [headerEpoch, setHeaderEpoch] = useState(0);
+    const [cartItems] = useState<CartItem[]>(() => {
+        try {
+            const stored = localStorage.getItem('cartItems');
+            return stored ? JSON.parse(stored) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    const adminProfile = useMemo(() => {
+        void headerEpoch;
+        const t = readAccessToken();
+        if (!t.trim()) return null;
+        const payload = decodeImsAccessTokenPayload(t);
+        const pic =
+            (payload && typeof payload.picture === 'string' && payload.picture) ||
+            (payload &&
+            typeof (payload as Record<string, unknown>).avatar === 'string' &&
+                ((payload as Record<string, unknown>).avatar as string)) ||
+            '';
+        return pic ? { picture: pic } : null;
+    }, [headerEpoch]);
+
+    const handleAdminAuthenticated = useCallback((token: string) => {
+        try {
+            localStorage.setItem('accessToken', token);
+        } catch {
+            /* ignore */
+        }
+        setHeaderEpoch((n) => n + 1);
+    }, []);
+
+    const handleAdminSignOut = useCallback(() => {
+        setSkipAdminLandingRedirect(false);
+        try {
+            localStorage.removeItem('accessToken');
+        } catch {
+            /* ignore */
+        }
+        try {
+            clearEphemeralLocalStorageOnSignOut();
+            sessionStorage.clear();
+        } catch {
+            /* ignore */
+        }
+        window.location.assign(getPortalSpaRootHref());
+    }, []);
 
     const initialPersona = useMemo((): PortalPersonaId => {
         void impersonationUiRev;
@@ -120,7 +171,7 @@ const AdminActivities: React.FC = () => {
         }
     }, [searchParams, setEditingPersona]);
 
-    const matchedRoles = useMemo(() => resolvePersonasFromAccessToken(readAccessToken()), [impersonationUiRev, searchParams]);
+    const matchedRoles = resolvePersonasFromAccessToken(readAccessToken());
 
     useEffect(() => {
         const p = parsePortalPersonaId(searchParams.get('persona') ?? '');
@@ -282,9 +333,8 @@ const AdminActivities: React.FC = () => {
 
     const activeBrandPersona = topbarScopePersona ?? editingPersona;
     const showMultiRoleStack = !impersonationUi && matchedRoles.length > 1;
-    const inactiveRoleLinks = showMultiRoleStack
-        ? sortPersonasByPower(matchedRoles.filter((id) => id !== activeBrandPersona))
-        : [];
+    const adminAuthToken = readAccessToken();
+    const adminSessionActive = Boolean(adminAuthToken.trim()) || isCookieAuth();
 
     const workspaceTabs: { id: WorkspaceTabId; label: string }[] = [
         { id: 'grid', label: 'Grid' },
@@ -293,106 +343,71 @@ const AdminActivities: React.FC = () => {
         { id: 'skin', label: 'Skin' },
     ];
 
+    const adminSearchPlaceholder = 'Search admin tools (coming soon)';
+
     return (
         <AppConfigProvider externalParams={externalParams} dynamicMediaClient={null}>
             <div className={`admin-shell${banner ? ' admin-shell--banner-visible' : ''}`}>
-                <header className="admin-shell-topbar admin-shell-topbar--sticky">
-                    {showMultiRoleStack ? (
-                        <div
-                            className={`admin-shell-topbar-brand-stack admin-shell-topbar-brand admin-shell-topbar-brand--persona-${portalPersonaCssSlug(activeBrandPersona)}`}
-                            aria-label={activitiesTitleForPersona(activeBrandPersona)}
-                        >
-                            <div className="admin-shell-brand-active-row">
-                                <span className="admin-shell-logo-mark" aria-hidden>
-                                    {PORTAL_PERSONA_TOPBAR_MARK[activeBrandPersona]}
-                                </span>
-                                <span className="admin-shell-brand-text">{activitiesTitleForPersona(activeBrandPersona)}</span>
-                            </div>
-                            {inactiveRoleLinks.map((pid) => (
+                <HeaderBar
+                    cartItems={cartItems}
+                    handleAuthenticated={handleAdminAuthenticated}
+                    handleSignOut={handleAdminSignOut}
+                    profile={adminProfile}
+                    sessionActive={adminSessionActive}
+                    imsSession={Boolean(adminAuthToken.trim())}
+                    personaImpersonation={
+                        impersonationUi
+                            ? {
+                                  personaLabel: impersonationUi.personaLabel,
+                                  onEndPersona: handleEndPersonaImpersonationAdmin,
+                              }
+                            : undefined
+                    }
+                    onReloadPortalHome={() => window.location.assign(getPortalSpaRootHref())}
+                    portalContextSlot={
+                        <>
+                            {showMultiRoleStack ? (
+                                <PortalMultiRoleActivitiesBar
+                                    embedded
+                                    activePersona={activeBrandPersona}
+                                    matchedRoles={matchedRoles}
+                                    searchPlaceholder={adminSearchPlaceholder}
+                                />
+                            ) : (
+                                <PersonaActivitiesTopbar
+                                    embedded
+                                    personaId={activeBrandPersona}
+                                    searchPlaceholder={adminSearchPlaceholder}
+                                />
+                            )}
+                            <div className="admin-shell-topbar-actions">
                                 <button
-                                    key={pid}
                                     type="button"
-                                    className={`admin-shell-brand-link-row admin-shell-brand-link-row--persona-${portalPersonaCssSlug(pid)}`}
-                                    onClick={() => {
-                                        setSkipAdminLandingRedirect(true);
-                                        setSelectedPersona(pid);
-                                        navigate(`/admin/activities?persona=${encodeURIComponent(pid)}`);
-                                    }}
+                                    className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
+                                    title="Notifications"
+                                    aria-label="Notifications"
                                 >
-                                    {activitiesTitleForPersona(pid)}
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                    </svg>
                                 </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <div
-                            className={`admin-shell-topbar-brand${
-                                topbarScopePersona
-                                    ? ` admin-shell-topbar-brand--persona-${portalPersonaCssSlug(topbarScopePersona)}`
-                                    : ` admin-shell-topbar-brand--persona-${portalPersonaCssSlug(activeBrandPersona)}`
-                            }`}
-                            aria-label={
-                                topbarScopePersona
-                                    ? activitiesTitleForPersona(topbarScopePersona)
-                                    : activitiesTitleForPersona(activeBrandPersona)
-                            }
-                        >
-                            <span className="admin-shell-logo-mark" aria-hidden>
-                                {topbarScopePersona
-                                    ? PORTAL_PERSONA_TOPBAR_MARK[topbarScopePersona]
-                                    : PORTAL_PERSONA_TOPBAR_MARK[activeBrandPersona]}
-                            </span>
-                            <span className="admin-shell-brand-text">
-                                {topbarScopePersona
-                                    ? activitiesTitleForPersona(topbarScopePersona)
-                                    : activitiesTitleForPersona(activeBrandPersona)}
-                            </span>
-                        </div>
-                    )}
-                    <div className="admin-shell-search" role="search">
-                        <span className="admin-shell-search-icon" aria-hidden>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8" />
-                                <path d="m21 21-4.35-4.35" />
-                            </svg>
-                        </span>
-                        <input type="search" placeholder="Search admin tools (coming soon)" className="admin-shell-search-input" disabled />
-                    </div>
-                    <div
-                        className={`admin-shell-topbar-actions${
-                            impersonationUi ? ' admin-shell-topbar-actions--with-impersonation' : ''
-                        }`}
-                    >
-                        {impersonationUi ? (
-                            <PersonaImpersonationStrip
-                                personaLabel={impersonationUi.personaLabel}
-                                onEndPersona={handleEndPersonaImpersonationAdmin}
-                            />
-                        ) : null}
-                        <button
-                            type="button"
-                            className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
-                            title="Notifications"
-                            aria-label="Notifications"
-                        >
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                            </svg>
-                        </button>
-                        <button
-                            type="button"
-                            className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
-                            title="Help"
-                            aria-label="Help"
-                        >
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                                <line x1="12" y1="17" x2="12.01" y2="17" />
-                            </svg>
-                        </button>
-                    </div>
-                </header>
+                                <button
+                                    type="button"
+                                    className="admin-shell-icon-btn admin-shell-icon-btn--header-actions"
+                                    title="Help"
+                                    aria-label="Help"
+                                >
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </>
+                    }
+                />
 
                 <div className="admin-shell-body">
                     <aside className="admin-shell-rail" aria-label="Primary navigation">
@@ -713,10 +728,19 @@ const AdminActivities: React.FC = () => {
                             isOpen
                             onClose={() => setPersonaImpersonateModalOpen(false)}
                             onSelectPersona={(p) => {
-                                setSelectedPersona(p);
+                                const entitled = new Set(resolvePersonasFromAccessToken(readAccessToken()));
+                                if (entitled.has(p)) {
+                                    setPortalPersonaPreviewStripActive(false);
+                                } else {
+                                    setPortalPersonaPreviewStripActive(true);
+                                }
                                 setSkipAdminLandingRedirect(true);
                                 setPersonaImpersonateModalOpen(false);
-                                navigate('/');
+                                navigate({
+                                    pathname: '/',
+                                    search: `?persona=${encodeURIComponent(p)}`,
+                                    hash: '',
+                                });
                             }}
                             currentPersona={getSelectedPersona()}
                         />,
