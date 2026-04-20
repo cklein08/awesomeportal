@@ -11,12 +11,12 @@
  */
 
 import { error, Router, withCookies } from 'itty-router';
-import { authRouter, withAuthentication } from './auth';
-import { originDynamicMedia } from './origin/dm';
-import { originHelix } from './origin/helix';
-import { originFadel } from './origin/fadel';
+import { authRouter, withAuthentication } from './auth.js';
+import { originDynamicMedia } from './origin/dm.js';
+import { originHelix } from './origin/helix.js';
+import { originFadel } from './origin/fadel.js';
 import { listAemPrograms } from './origin/cloudmanager.js';
-import { cors } from './util/itty';
+import { cors } from './util/itty.js';
 
 const { preflight, corsify } = cors({
   origin: [
@@ -24,7 +24,7 @@ const { preflight, corsify } = cors({
     // development URLs
     /https:\/\/.*-awesomeportal\.adobeaem\.workers\.dev$/,
     /https:\/\/.*-awesomeportal--aemsites\.aem\.(live|page)$/,
-    /http:\/\/localhost:(3000|8787)/
+    /http:\/\/localhost:(3000|8787)/,
   ],
   allowMethods: ['GET', 'POST'],
   credentials: true,
@@ -77,4 +77,4 @@ router
 
   .all('*', originHelix);
 
-export default { ...router }
+export default { ...router };

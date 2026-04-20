@@ -1,5 +1,5 @@
 import { json, Router } from 'itty-router';
-import { createRemoteJWKSet, jwtVerify, SignJWT } from "jose";
+import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import {
   createSignedCookie,
   deleteCookie,
@@ -43,7 +43,7 @@ async function createSessionJWT(request, idToken, env) {
     // use same audience as MS entra IDP app
     .setAudience(env.MICROSOFT_ENTRA_CLIENT_ID)
     .setExpirationTime(env.SESSION_COOKIE_EXPIRATION || '6h')
-    .setNotBefore("0m")
+    .setNotBefore('0m')
     .sign(key);
 
   return jwt;
@@ -59,7 +59,6 @@ async function validateSessionJWT(request, env, sessionJWT) {
       clockTolerance: 5,
     });
     return payload;
-
   } catch (error) {
     request.error = `Invalid ${COOKIE_SESSION} cookie: ${error.message}`;
     return null;
@@ -110,7 +109,6 @@ async function validateIdToken(request, rawIdToken, env, nonce) {
       return null;
     }
     return payload;
-
   } catch (error) {
     request.error = `OIDC error: Invalid id_token: ${error.message}`;
     return null;
@@ -129,30 +127,6 @@ function redirect(url, status = 302) {
   const response = new Response(null, { status });
   response.headers.set('Location', url);
   return response;
-
-  // TODO: use one of these redirect tricks below to get the original page into the browser history?
-
-  // also redirect() which does HTTP 302 redirect
-
-  // const page = `<meta http-equiv="refresh" content="1;url=${targetUrl}">`;
-  // // const page = `<script>window.location.href = "${targetUrl}";</script>`;
-  // // const redirectPage = `
-  // // <html>
-  // //   <head>
-  // //     <title>${request.url}</title>
-  // //   </head>
-  // //   <body>
-  // //     <script>
-  // //       window.location.assign("${targetUrl}");
-  // //     </script>
-  // //   </body>
-  // // </html>
-  // // `;
-  // return new Response(page, {
-  //   headers: {
-  //     'Content-Type': 'text/html',
-  //   },
-  // });
 }
 
 function redirectToLoginPage(request, env, page = env.LOGIN_PAGE) {
@@ -182,7 +156,7 @@ export async function withAuthentication(request, env) {
   if (env.DISABLE_AUTHENTICATION) {
     request.session = {};
     console.warn('Authentication is disabled because DISABLE_AUTHENTICATION is set');
-    return;
+    return undefined;
   }
 
   const sessionJWT = request.cookies[COOKIE_SESSION];
@@ -201,6 +175,7 @@ export async function withAuthentication(request, env) {
 
   // authenticated
   request.session = session;
+  return undefined;
 }
 
 // router for dedicated login & logout flows
@@ -216,7 +191,8 @@ export const authRouter = Router({
         console.error(`Missing required environment variables: ${missing.join(', ')}`);
         return new Response('Service Unavailable', { status: 503 });
       }
-    }
+      return undefined;
+    },
   ],
 });
 
