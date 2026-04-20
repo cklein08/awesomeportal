@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import type { AppTile } from '../components/AppGrid';
-import type { SlotBlockDescriptor } from '../types';
-import { getExternalParams } from '../utils/config';
-import { GRID_SLOT_COUNT, ensureSlots24 } from '../utils/gridSlots';
+import type { PortalPersonaId, SlotBlockDescriptor } from '../types';
+import { personaHasPortalGridAdminChrome } from '../constants/portalPersonas';
+import { buildGridConfigForPersona, GRID_SLOT_COUNT, ensureSlots24 } from '../utils/gridSlots';
 import { resolveTileOpenMode } from '../utils/tileNavigation';
 
 /**
@@ -134,6 +134,17 @@ export function getDefaultSlotBlocks(): SlotBlockDescriptor[] {
 /**
  * Preview tiles for a fixed 24-slot descriptor array (no navigation side effects).
  */
+/** App Builder drop-ins are admin-only; hide from portal grid for developer and other non–grid-admin personas. */
+export function stripAppBuilderSlotsForViewer(
+    blocks: (SlotBlockDescriptor | null)[],
+    persona: PortalPersonaId
+): (SlotBlockDescriptor | null)[] {
+    if (personaHasPortalGridAdminChrome(persona)) return blocks;
+    return blocks.map((b) =>
+        b != null && typeof b === 'object' && typeof b.id === 'string' && b.id.startsWith('appbuilder-') ? null : b
+    );
+}
+
 export function previewAppTilesFromSlotBlocks(blocks: (SlotBlockDescriptor | null)[] | undefined): (AppTile | null)[] {
     const noop = (): void => {};
     const slots = ensureSlots24(blocks);
@@ -145,31 +156,27 @@ export function previewAppTilesFromSlotBlocks(blocks: (SlotBlockDescriptor | nul
 }
 
 /**
- * Resolves grid slot tiles from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__),
- * externalParams.slotBlocks, or default tiles.
- * Always returns 24 slots (AppTile | null) so empty slots are honored and drag-and-drop only targets empty slots.
+ * Resolves the 24-slot grid for the **active portal persona**: saved role layout (see `buildGridConfigForPersona`),
+ * optional DA live blocks only when that layout is empty, then defaults.
+ * App Builder (`appbuilder-*`) tiles are omitted for personas without grid-admin chrome (e.g. developer view).
  */
 export function useSlotBlocks(
     onSelectTileId: (tileId: string) => void,
-    onSelectDaContentUrl?: (url: string) => void,
-    configVersion?: number
+    activePersona: PortalPersonaId,
+    configVersion: number,
+    onSelectDaContentUrl?: (url: string) => void
 ): (AppTile | null)[] {
     return useMemo(() => {
-        const daBlocks = typeof window !== 'undefined' ? window.__AWESOMEPORTAL_DA_BLOCKS__ : undefined;
-        const externalParams = getExternalParams();
-        const externalBlocks = externalParams.slotBlocks;
+        const cfg = buildGridConfigForPersona(activePersona);
+        let slots = ensureSlots24(cfg.slotBlocks);
+        slots = stripAppBuilderSlotsForViewer(slots, activePersona);
 
-        let slots: (SlotBlockDescriptor | null)[];
-        if (Array.isArray(daBlocks) && daBlocks.length > 0) {
+        const daBlocks = typeof window !== 'undefined' ? window.__AWESOMEPORTAL_DA_BLOCKS__ : undefined;
+        if (slots.every((s) => s == null) && Array.isArray(daBlocks) && daBlocks.length > 0) {
             slots = ensureSlots24(daBlocks);
-        } else if (externalBlocks != null && externalBlocks.length > 0) {
-            slots = ensureSlots24(externalBlocks);
-        } else {
-            const defaultTiles = getDefaultTiles(onSelectTileId);
-            return Array.from({ length: GRID_SLOT_COUNT }, (_, i) => defaultTiles[i] ?? null);
+            slots = stripAppBuilderSlotsForViewer(slots, activePersona);
         }
 
-        // If saved config has no blocks (all empty slots), show default apps so the grid is not blank
         if (slots.every((s) => s == null)) {
             const defaultTiles = getDefaultTiles(onSelectTileId);
             return Array.from({ length: GRID_SLOT_COUNT }, (_, i) => defaultTiles[i] ?? null);
@@ -178,5 +185,5 @@ export function useSlotBlocks(
         return slots.map((block) =>
             block ? slotBlockToAppTile(block, onSelectTileId, onSelectDaContentUrl) : null
         );
-    }, [onSelectTileId, onSelectDaContentUrl, configVersion]);
+    }, [onSelectTileId, onSelectDaContentUrl, configVersion, activePersona]);
 }

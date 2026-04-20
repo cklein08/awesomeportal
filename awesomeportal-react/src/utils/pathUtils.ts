@@ -9,6 +9,33 @@ export function withBase(absoluteFromSiteRoot: string): string {
     return `${base}${path}`;
 }
 
+/**
+ * Strip {@link import.meta.env.BASE_URL} from the start of a pathname so it matches React Router’s
+ * basename-relative paths (e.g. `/portal/` → `/`, `/portal/admin/activities` → `/admin/activities`).
+ */
+export function stripViteBaseFromPathname(pathname: string): string {
+    const p = pathname.startsWith('/') ? pathname : `/${pathname}`;
+    const rawBase = import.meta.env.BASE_URL || '/';
+    const base = rawBase.replace(/\/+$/, '');
+    if (!base) {
+        return p;
+    }
+    if (p === base || p === `${base}/`) {
+        return '/';
+    }
+    if (p.startsWith(`${base}/`)) {
+        const rest = p.slice(base.length);
+        return rest.startsWith('/') ? rest : `/${rest}`;
+    }
+    return p;
+}
+
+/** True when the path is the SPA home (`/` or `index.html`) after applying {@link stripViteBaseFromPathname}. */
+export function isSpaRootPathname(pathname: string): boolean {
+    const inner = stripViteBaseFromPathname(pathname);
+    return inner === '/' || inner === '/index.html' || inner.endsWith('/index.html');
+}
+
 /** True when `pathname` is the built SPA entry (e.g. `/portal/index.html`) for the current Vite `base`. */
 export function isSpaIndexPathname(pathname: string): boolean {
     const rawBase = import.meta.env.BASE_URL || '/';

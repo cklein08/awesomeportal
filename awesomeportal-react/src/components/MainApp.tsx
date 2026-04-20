@@ -10,7 +10,11 @@ import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
 
 import { DynamicMediaClient } from '../clients/dynamicmedia-client';
 import { DEFAULT_FACETS, type ExcFacets } from '../constants/facets';
-import { personaHasPortalGridAdminChrome, PORTAL_PERSONA_LABELS } from '../constants/portalPersonas';
+import {
+    personaHasPortalGridAdminChrome,
+    personaShowsPortalActivitiesStrip,
+    PORTAL_PERSONA_LABELS,
+} from '../constants/portalPersonas';
 import type {
     Asset,
     CartItem,
@@ -29,6 +33,7 @@ import { CURRENT_VIEW, LOADING, QUERY_TYPES } from '../types';
 import { populateAssetFromHit } from '../utils/assetTransformers';
 import { fetchOptimizedDeliveryBlob, removeBlobFromCache } from '../utils/blobCache';
 import { getDefaultSlotBlocks, useSlotBlocks } from '../hooks/useSlotBlocks';
+import { buildGridConfigForPersona } from '../utils/gridSlots';
 import {
     clearEphemeralLocalStorageOnSignOut,
     getAdobeClientId,
@@ -55,7 +60,7 @@ import {
 import { canImpersonatePortalPersonas, setSkipAdminLandingRedirect, shouldOpenAdminActivitiesAfterSignIn } from '../utils/portalAccess';
 import { endPersonaImpersonationPersist, getPortalPersonaImpersonationUi } from '../utils/portalPersonaImpersonation';
 import { getPortalSpaRootHref, readPostLoginAdminRedirectDelayMs, setPortalPersonaPreviewStripActive } from '../utils/portalSession';
-import { isSpaIndexPathname } from '../utils/pathUtils';
+import { isSpaIndexPathname, isSpaRootPathname } from '../utils/pathUtils';
 import { getProfilePictureUrl } from '../utils/profileImage';
 import { AppConfigProvider } from './AppConfigProvider';
 
@@ -408,11 +413,21 @@ function MainApp(): React.JSX.Element {
     // Slots from DA live (window.__AWESOMEPORTAL_DA_BLOCKS__), externalParams.slotBlocks, or default tiles.
     // gridConfigVersion is bumped when we save grid config so useSlotBlocks recomputes and shows new tiles.
     const [gridConfigVersion, setGridConfigVersion] = useState(0);
-    const appTiles = useSlotBlocks(setSelectedTileId, handleSelectDaContentUrl, gridConfigVersion);
+    const appTiles = useSlotBlocks(setSelectedTileId, portalPersona, gridConfigVersion, handleSelectDaContentUrl);
+    const portalGridLayout = useMemo(
+        () => buildGridConfigForPersona(portalPersona),
+        [portalPersona, gridConfigVersion]
+    );
     const navigate = useNavigate();
     const location = useLocation();
     const prevLocationPathRef = useRef<string>('');
-    const [viewMode, setViewMode] = useState<'admin' | 'creator'>('admin');
+    const [viewMode, setViewMode] = useState<'admin' | 'creator'>(() =>
+        personaHasPortalGridAdminChrome(getSelectedPersona()) ? 'admin' : 'creator'
+    );
+
+    useEffect(() => {
+        setViewMode(personaHasPortalGridAdminChrome(portalPersona) ? 'admin' : 'creator');
+    }, [portalPersona]);
 
     // AEM instance selector (Assets Browser, admin view)
     const [aemPrograms, setAemPrograms] = useState<AemProgramOption[] | null>(null);
@@ -574,8 +589,8 @@ function MainApp(): React.JSX.Element {
         const delayMs = readPostLoginAdminRedirectDelayMs();
         const id = window.setTimeout(() => {
             if (!shouldOpenAdminActivitiesAfterSignIn(accessToken)) return;
-            const path = typeof window !== 'undefined' ? window.location.pathname : '';
-            if (path !== '/' && path !== '/index.html' && !path.endsWith('/index.html')) return;
+            const browserPath = typeof window !== 'undefined' ? window.location.pathname : '';
+            if (!isSpaRootPathname(browserPath)) return;
             const primary = resolvePersonaFromAccessToken(accessToken) ?? 'marketeer';
             navigate(`/admin/activities?persona=${encodeURIComponent(primary)}`, { replace: true });
         }, delayMs);
@@ -1287,6 +1302,26 @@ function MainApp(): React.JSX.Element {
         [accessToken]
     );
 
+    /**
+     * When IMS implies exactly one “activities” persona and the URL does not pin `?persona=`,
+     * align stored/grid persona with that role so the left rail matches the Developer Activities strip
+     * (avoids stale org_admin / marketeer in localStorage after switching roles).
+     */
+    useEffect(() => {
+        if (!authenticated || !accessToken?.trim()) return;
+        if (entitledPortalPersonas.length !== 1) return;
+        const only = entitledPortalPersonas[0];
+        if (!personaShowsPortalActivitiesStrip(only)) return;
+        const q = new URLSearchParams(location.search).get('persona');
+        if (q?.trim() && parsePortalPersonaId(q.trim())) return;
+        if (portalPersona === only) return;
+        setSelectedPersona(only);
+        setPortalPersona(only);
+        setGridConfigVersion((v) => v + 1);
+        setSelectedTileId(null);
+        setSelectedDaContentUrl(null);
+    }, [authenticated, accessToken, entitledPortalPersonas, location.search, portalPersona]);
+
     const portalPersonaImpersonationUi = useMemo(() => {
         void personaImpersonationUiEpoch;
         return canImpersonatePortalPersona && accessToken?.trim()
@@ -1332,6 +1367,11 @@ function MainApp(): React.JSX.Element {
                                     activePersona={portalPersona}
                                     matchedRoles={entitledPortalPersonas}
                                 />
+                            ) : authenticated &&
+                              entitledPortalPersonas.length === 1 &&
+                              entitledPortalPersonas[0] === portalPersona &&
+                              personaShowsPortalActivitiesStrip(portalPersona) ? (
+                                <PersonaActivitiesTopbar embedded personaId={portalPersona} />
                             ) : null
                         }
                     />
@@ -1855,11 +1895,13 @@ function MainApp(): React.JSX.Element {
                                     <AppGrid
                                         tiles={appTiles}
                                         onTileClick={handleTileClick}
-                                        topContent={getExternalParams().gridTopContent}
-                                        topBanners={getExternalParams().gridTopBanners}
-                                        slotHeight={getExternalParams().slotHeight}
-                                        slotWidth={getExternalParams().slotWidth}
-                                        hideEmptySlots={!showPortalGridAdminChrome || viewMode === 'creator'}
+                                        topContent={portalGridLayout.gridTopContent ?? ''}
+                                        topBanners={portalGridLayout.gridTopBanners ?? []}
+                                        slotHeight={portalGridLayout.slotHeight}
+                                        slotWidth={portalGridLayout.slotWidth}
+                                        hideEmptySlots={
+                                            !showPortalGridAdminChrome ? true : viewMode === 'creator'
+                                        }
                                         deleteMode={showPortalGridAdminChrome && deleteMode}
                                         onRequestDeleteSlot={
                                             showPortalGridAdminChrome && deleteMode ? handleRequestDeleteSlot : undefined

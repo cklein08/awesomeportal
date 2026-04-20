@@ -17,6 +17,11 @@ export type PortalMultiRoleActivitiesBarProps = {
     /** When true (default), renders as a slot inside {@link HeaderBar} `portalContextSlot` (no outer `<header>`). */
     embedded?: boolean;
     searchPlaceholder?: string;
+    /**
+     * Route to use when switching entitled roles (default `/` = main portal grid).
+     * Admin activities must use `/admin/activities` so the workspace stays mounted and persona URL state stays in sync.
+     */
+    personaSwitchPathname?: string;
 };
 
 /**
@@ -27,6 +32,7 @@ const PortalMultiRoleActivitiesBar: React.FC<PortalMultiRoleActivitiesBarProps> 
     matchedRoles,
     embedded = true,
     searchPlaceholder = 'Search portal (coming soon)',
+    personaSwitchPathname = '/',
 }) => {
     const navigate = useNavigate();
     const inactiveRoleLinks = useMemo(
@@ -38,7 +44,11 @@ const PortalMultiRoleActivitiesBar: React.FC<PortalMultiRoleActivitiesBarProps> 
         setSkipAdminLandingRedirect(true);
         setPortalPersonaPreviewStripActive(false);
         setSelectedPersona(p);
-        navigate({ pathname: '/', search: `?persona=${encodeURIComponent(p)}`, hash: '' });
+        navigate({
+            pathname: personaSwitchPathname || '/',
+            search: `?persona=${encodeURIComponent(p)}`,
+            hash: '',
+        });
     };
 
     const inner = (

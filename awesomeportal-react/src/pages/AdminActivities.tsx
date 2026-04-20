@@ -1,12 +1,16 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { AppItem } from '../components/LeftNav';
 import SkinEditorModal from '../components/SkinEditorModal';
 import { ADOBE_ENTITLEMENTS } from '../constants/adobeEntitlements';
 import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
 import { PORTAL_EMBED_ADOBE_FILES_APP_ID } from '../constants/adobeFilesEmbed';
-import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
+import {
+    PORTAL_PERSONA_LABELS,
+    PORTAL_PERSONA_ORDER,
+    personaHasPortalGridAdminChrome,
+} from '../constants/portalPersonas';
 import type { CartItem, EntitlementPayload, ExternalParams, PortalPersonaId, SlotBlockDescriptor } from '../types';
 import { AppConfigProvider } from '../components/AppConfigProvider';
 import AppGrid, { DRAG_TYPE_ENTITLEMENT } from '../components/AppGrid';
@@ -18,7 +22,7 @@ import PortalMultiRoleActivitiesBar from '../components/PortalMultiRoleActivitie
 import { PersonaGlyph } from '../components/PersonaGlyph';
 import { PortalAppRailIcon } from '../components/PortalAppRailIcon';
 import { useGridEditor } from '../hooks/useGridEditor';
-import { previewAppTilesFromSlotBlocks } from '../hooks/useSlotBlocks';
+import { previewAppTilesFromSlotBlocks, stripAppBuilderSlotsForViewer } from '../hooks/useSlotBlocks';
 import {
     appBuilderDropInsToEntitlements,
     clearEphemeralLocalStorageOnSignOut,
@@ -27,9 +31,12 @@ import {
     getExternalParams,
     getSelectedPersona,
     parsePortalPersonaId,
+    PERSONA_LEFT_NAV_STORAGE_KEY,
+    PERSONA_LEFT_NAV_UPDATED_EVENT,
     setPersonaLeftNavForPersona,
     setSelectedPersona,
 } from '../utils/config';
+import { ensureSlots24 } from '../utils/gridSlots';
 import { decodeImsAccessTokenPayload, resolvePersonaFromAccessToken, resolvePersonasFromAccessToken } from '../utils/imsPersona';
 import { endPersonaImpersonationPersist, getPortalPersonaImpersonationUi } from '../utils/portalPersonaImpersonation';
 import { canAccessPortalSetup, canImpersonatePortalPersonas, setSkipAdminLandingRedirect } from '../utils/portalAccess';
@@ -54,6 +61,7 @@ type WorkspaceTabId = 'grid' | 'layout' | 'personas' | 'skin';
 
 const AdminActivities: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams] = useSearchParams();
     const [impersonationUiRev, setImpersonationUiRev] = useState(0);
     const [storedPersona, setStoredPersona] = useState<PortalPersonaId>(() => getSelectedPersona());
@@ -161,6 +169,32 @@ const AdminActivities: React.FC = () => {
         editingPersona,
     } = editor;
 
+    const [leftNavRev, setLeftNavRev] = useState(0);
+    useEffect(() => {
+        const bump = (): void => setLeftNavRev((n) => n + 1);
+        window.addEventListener(PERSONA_LEFT_NAV_UPDATED_EVENT, bump);
+        const onStorage = (e: StorageEvent): void => {
+            if (e.key === PERSONA_LEFT_NAV_STORAGE_KEY) bump();
+        };
+        window.addEventListener('storage', onStorage);
+        return () => {
+            window.removeEventListener(PERSONA_LEFT_NAV_UPDATED_EVENT, bump);
+            window.removeEventListener('storage', onStorage);
+        };
+    }, []);
+
+    const showPortalAdminChrome = personaHasPortalGridAdminChrome(editor.editingPersona);
+    const personaRailApps = useMemo(
+        () => getEffectiveLeftNavForPersona(editor.editingPersona).filter((a) => a.id !== 'assets-browser'),
+        [editor.editingPersona, leftNavRev]
+    );
+
+    useEffect(() => {
+        if (!showPortalAdminChrome) {
+            setWorkspaceTab('grid');
+        }
+    }, [showPortalAdminChrome, editor.editingPersona]);
+
     useEffect(() => {
         const q = searchParams.get('persona');
         const parsed = q ? parsePortalPersonaId(q) : null;
@@ -204,7 +238,10 @@ const AdminActivities: React.FC = () => {
         setExternalParams(getExternalParams());
     }, [editor.config, editor.editingPersona, appBuilderApps]);
 
-    const previewTiles = useMemo(() => previewAppTilesFromSlotBlocks(slotBlocks24), [slotBlocks24]);
+    const previewTiles = useMemo(() => {
+        const stripped = stripAppBuilderSlotsForViewer(ensureSlots24(slotBlocks24), editor.editingPersona);
+        return previewAppTilesFromSlotBlocks(stripped);
+    }, [slotBlocks24, editor.editingPersona]);
 
     useEffect(() => {
         if (saved) {
@@ -372,6 +409,7 @@ const AdminActivities: React.FC = () => {
                                     activePersona={activeBrandPersona}
                                     matchedRoles={matchedRoles}
                                     searchPlaceholder={adminSearchPlaceholder}
+                                    personaSwitchPathname="/admin/activities"
                                 />
                             ) : (
                                 <PersonaActivitiesTopbar
@@ -411,7 +449,11 @@ const AdminActivities: React.FC = () => {
 
                 <div className="admin-shell-body">
                     <aside className="admin-shell-rail" aria-label="Primary navigation">
-                        <Link to="/" className="admin-shell-rail-item" title="Home">
+                        <Link
+                            to={{ pathname: '/', search: `?persona=${encodeURIComponent(editor.editingPersona)}` }}
+                            className="admin-shell-rail-item"
+                            title="Home"
+                        >
                             <span className="admin-shell-rail-icon">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -421,9 +463,9 @@ const AdminActivities: React.FC = () => {
                             <span className="admin-shell-rail-label">Home</span>
                         </Link>
                         <Link
-                            to={{ pathname: '/', search: `?persona=${encodeURIComponent(editingPersona)}` }}
-                            className="admin-shell-rail-item"
-                            title={`Apps — portal grid (${PORTAL_PERSONA_LABELS[editingPersona]})`}
+                            to={{ pathname: '/', search: `?persona=${encodeURIComponent(editor.editingPersona)}` }}
+                            className={`admin-shell-rail-item${location.pathname === '/' ? ' active' : ''}`}
+                            title={`Apps — portal grid (${PORTAL_PERSONA_LABELS[editor.editingPersona]})`}
                         >
                             <span className="admin-shell-rail-icon">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -444,7 +486,7 @@ const AdminActivities: React.FC = () => {
                                 onClick={() => {
                                     setSkipAdminLandingRedirect(true);
                                     navigate(
-                                        { pathname: '/', search: `?persona=${encodeURIComponent(editingPersona)}` },
+                                        { pathname: '/', search: `?persona=${encodeURIComponent(editor.editingPersona)}` },
                                         { state: { openApp: PORTAL_EMBED_ADOBE_FILES_APP_ID } }
                                     );
                                 }}
@@ -464,7 +506,7 @@ const AdminActivities: React.FC = () => {
                                 onClick={() => {
                                     setSkipAdminLandingRedirect(true);
                                     navigate(
-                                        { pathname: '/', search: `?persona=${encodeURIComponent(editingPersona)}` },
+                                        { pathname: '/', search: `?persona=${encodeURIComponent(editor.editingPersona)}` },
                                         { state: { openApp: 'assets-browser' } }
                                     );
                                 }}
@@ -487,9 +529,71 @@ const AdminActivities: React.FC = () => {
                             ) : null}
                         </div>
                         <div className="admin-shell-rail-divider" aria-hidden />
+                        {showPortalAdminChrome ? null : (
+                            <>
+                                {personaRailApps.map((app) => {
+                                    const onActivities =
+                                        location.pathname === '/admin/activities' &&
+                                        app.id === 'portal-activities' &&
+                                        parsePortalPersonaId(searchParams.get('persona') ?? '') === editor.editingPersona;
+                                    const railClass = `admin-shell-rail-item${onActivities ? ' active' : ''}`;
+                                    const railInner = (
+                                        <>
+                                            <span className="admin-shell-rail-icon">
+                                                <PortalAppRailIcon appId={app.id} />
+                                            </span>
+                                            <span className="admin-shell-rail-label">{app.name}</span>
+                                        </>
+                                    );
+                                    const href = app.href?.trim();
+                                    if (app.id === 'portal-activities') {
+                                        return (
+                                            <Link
+                                                key={app.id}
+                                                to={{
+                                                    pathname: '/admin/activities',
+                                                    search: `?persona=${encodeURIComponent(editor.editingPersona)}`,
+                                                }}
+                                                className={railClass}
+                                                title={app.name}
+                                                aria-label={app.name}
+                                            >
+                                                {railInner}
+                                            </Link>
+                                        );
+                                    }
+                                    if (href) {
+                                        return (
+                                            <a key={app.id} href={href} className={railClass} title={app.name} aria-label={app.name}>
+                                                {railInner}
+                                            </a>
+                                        );
+                                    }
+                                    return (
+                                        <button
+                                            key={app.id}
+                                            type="button"
+                                            className={railClass}
+                                            title={app.name}
+                                            aria-label={app.name}
+                                            onClick={() => {
+                                                setSkipAdminLandingRedirect(true);
+                                                navigate(
+                                                    { pathname: '/', search: `?persona=${encodeURIComponent(editor.editingPersona)}` },
+                                                    { state: { openApp: app.id } }
+                                                );
+                                            }}
+                                        >
+                                            {railInner}
+                                        </button>
+                                    );
+                                })}
+                            </>
+                        )}
                     </aside>
 
                     <main className="admin-shell-main">
+                        {showPortalAdminChrome ? (
                         <section className="admin-shell-agent" aria-label="Agent prompt (coming soon)">
                             <div className="admin-shell-agent-label">Prompt</div>
                             <textarea
@@ -526,7 +630,9 @@ const AdminActivities: React.FC = () => {
                                 </p>
                             </div>
                         </section>
+                        ) : null}
 
+                        {showPortalAdminChrome ? (
                         <div className="admin-shell-tabs" role="tablist" aria-label="Workspace">
                             {workspaceTabs.map((t) => (
                                 <button
@@ -541,17 +647,26 @@ const AdminActivities: React.FC = () => {
                                 </button>
                             ))}
                         </div>
+                        ) : null}
 
                         <div className="admin-shell-workspace">
-                            {workspaceTab === 'grid' ? (
+                            {(showPortalAdminChrome && workspaceTab === 'grid') || !showPortalAdminChrome ? (
                                 <div className="admin-shell-grid-wrap">
                                     <div className="admin-shell-grid-persona" role="status">
-                                        <span className="admin-shell-grid-persona-label">Applications apply to</span>
+                                        <span className="admin-shell-grid-persona-label">
+                                            {showPortalAdminChrome ? 'Applications apply to' : 'Your applications'}
+                                        </span>
                                         <span className="admin-shell-grid-persona-name">
                                             {PORTAL_PERSONA_LABELS[editor.editingPersona]}
                                         </span>
                                         <span className="admin-shell-grid-persona-hint">
-                                            Change persona on the Layout &amp; URLs tab (&quot;Layout for&quot;).
+                                            {showPortalAdminChrome ? (
+                                                <>
+                                                    Change persona on the Layout &amp; URLs tab (&quot;Layout for&quot;).
+                                                </>
+                                            ) : (
+                                                <>Tiles shown here match the portal home grid for this persona.</>
+                                            )}
                                         </span>
                                     </div>
                                     <AppGrid
@@ -560,18 +675,19 @@ const AdminActivities: React.FC = () => {
                                         topBanners={editor.config.gridTopBanners}
                                         slotHeight={editor.config.slotHeight}
                                         slotWidth={editor.config.slotWidth}
-                                        onDropSlot={handleDropSlot}
-                                        inlineSlotRemove
-                                        onRequestDeleteSlot={handleRequestDeleteSlot}
+                                        hideEmptySlots={!showPortalAdminChrome}
+                                        onDropSlot={showPortalAdminChrome ? handleDropSlot : undefined}
+                                        inlineSlotRemove={showPortalAdminChrome}
+                                        onRequestDeleteSlot={showPortalAdminChrome ? handleRequestDeleteSlot : undefined}
                                     />
                                 </div>
                             ) : null}
-                            {workspaceTab === 'layout' ? (
+                            {showPortalAdminChrome && workspaceTab === 'layout' ? (
                                 <div className="admin-shell-layout-panel">
                                     <GridEditForm {...editor} showPersonaPicker lockPersonaSelect={personaFromUrl != null} />
                                 </div>
                             ) : null}
-                            {workspaceTab === 'personas' ? (
+                            {showPortalAdminChrome && workspaceTab === 'personas' ? (
                                 <div className="admin-shell-persona-panel">
                                     <p className="admin-shell-muted">
                                         Layout and grid apply to <strong>{PORTAL_PERSONA_LABELS[editor.editingPersona]}</strong>. Use the
@@ -657,7 +773,7 @@ const AdminActivities: React.FC = () => {
                                     </div>
                                 </div>
                             ) : null}
-                            {workspaceTab === 'skin' ? (
+                            {showPortalAdminChrome && workspaceTab === 'skin' ? (
                                 <div className="admin-shell-layout-panel">
                                     <SkinEditorModal embedded isOpen onClose={() => {}} />
                                 </div>
@@ -669,6 +785,7 @@ const AdminActivities: React.FC = () => {
                         </section>
                     </main>
 
+                    {showPortalAdminChrome ? (
                     <aside className="admin-shell-right" aria-label="Applications catalog">
                         <div className="admin-shell-right-header">
                             <h2 className="admin-shell-right-title">Applications</h2>
@@ -707,6 +824,7 @@ const AdminActivities: React.FC = () => {
                             ))}
                         </div>
                     </aside>
+                    ) : null}
                 </div>
 
                 {banner ? (

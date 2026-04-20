@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useAppConfig } from '../hooks/useAppConfig.js';
 import type { CartItem } from '../types/index.js';
 // import type { HeaderBarProps } from '../types'; // COMMENTED OUT
+import { getPortalSpaRootHref } from '../utils/portalSession';
 import { getProfilePictureUrl } from '../utils/profileImage.js';
 import AdobeSignInButton from './AdobeSignInButton.js';
 import PersonaImpersonationStrip from './PersonaImpersonationStrip';
@@ -68,7 +69,7 @@ const HeaderBar: React.FC<HeaderBarPropsSimplified> = ({
         if (onReloadPortalHome) {
             onReloadPortalHome();
         } else {
-            window.location.assign('/');
+            window.location.assign(getPortalSpaRootHref());
         }
     };
 

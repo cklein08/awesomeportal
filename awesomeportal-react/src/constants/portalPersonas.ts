@@ -124,6 +124,14 @@ export function getLeftNavAppsForPersona(persona: PortalPersonaId): AppItem[] {
     ];
 }
 
+/**
+ * True when the persona’s default rail includes **Admin activities** — same cohort that should see
+ * the solo “{Persona} Activities” strip on the portal home (developer, editor, etc.; not marketeer-only).
+ */
+export function personaShowsPortalActivitiesStrip(persona: PortalPersonaId): boolean {
+    return getLeftNavAppsForPersona(persona).some((a) => a.id === 'portal-activities');
+}
+
 /** Personas that see grid customize / admin chrome on the home app grid. */
 export function personaHasPortalGridAdminChrome(persona: PortalPersonaId): boolean {
     return persona === 'portal_admin' || persona === 'org_admin';
