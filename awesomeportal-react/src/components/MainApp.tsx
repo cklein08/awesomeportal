@@ -5,12 +5,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DateValue } from 'react-aria-components';
 import '../MainApp.css';
 import '../pages/AdminActivities.css';
-import { ADOBE_FILES_WEB_URL, PORTAL_EMBED_ADOBE_FILES_APP_ID } from '../constants/adobeFilesEmbed';
+import { ADOBE_ACCOUNT_WEB_URL, ADOBE_FILES_WEB_URL, PORTAL_EMBED_ADOBE_FILES_APP_ID } from '../constants/adobeFilesEmbed';
 import { PORTAL_AGENT_MODEL_PROMPTS } from '../constants/portalAgentPrompts';
 
 import { DynamicMediaClient } from '../clients/dynamicmedia-client';
 import { DEFAULT_FACETS, type ExcFacets } from '../constants/facets';
-import { PORTAL_PERSONA_LABELS, PORTAL_PERSONA_ORDER } from '../constants/portalPersonas';
+import { PORTAL_PERSONA_LABELS } from '../constants/portalPersonas';
 import type {
     Asset,
     CartItem,
@@ -75,7 +75,6 @@ import Facets from './Facets';
 import HeaderBar from './HeaderBar';
 import PersonaActivitiesTopbar from './PersonaActivitiesTopbar';
 import PersonaImpersonateModal from './PersonaImpersonateModal';
-import { PersonaGlyph } from './PersonaGlyph';
 import ImageGallery from './ImageGallery';
 import SearchBar from './SearchBar';
 import { PortalAppRailIcon } from './PortalAppRailIcon';
@@ -365,7 +364,11 @@ function MainApp(): React.JSX.Element {
     }, []);
 
     // After showing an iframe, offer fallback message in case the app cannot be displayed (e.g. X-Frame-Options)
-    const showWorkspaceIframe = Boolean(selectedDaContentUrl) || selectedAppId === PORTAL_EMBED_ADOBE_FILES_APP_ID;
+    const showWorkspaceIframe = Boolean(
+        selectedDaContentUrl ||
+            selectedAppId === PORTAL_EMBED_ADOBE_FILES_APP_ID ||
+            (authenticated && selectedAppId === 'settings')
+    );
     useEffect(() => {
         if (!showWorkspaceIframe) return;
         setIframeCannotDisplay(false);
@@ -377,6 +380,7 @@ function MainApp(): React.JSX.Element {
     const suppressHostTopAppBar =
         Boolean(selectedDaContentUrl) ||
         selectedAppId === PORTAL_EMBED_ADOBE_FILES_APP_ID ||
+        (authenticated && selectedAppId === 'settings') ||
         selectedTileId != null;
     useEffect(() => {
         if (!suppressHostTopAppBar) return undefined;
@@ -449,18 +453,6 @@ function MainApp(): React.JSX.Element {
     const canImpersonatePortalPersona = useMemo(
         () => authenticated && canImpersonatePortalPersonas(accessToken),
         [authenticated, accessToken]
-    );
-
-    const handlePortalPersonaChange = useCallback(
-        (e: React.ChangeEvent<HTMLSelectElement>) => {
-            const next = e.target.value as PortalPersonaId;
-            if (canImpersonatePortalPersona) {
-                applyPortalPersona(next, { markPersonaPreviewStrip: true });
-            } else {
-                applyPortalPersona(next);
-            }
-        },
-        [applyPortalPersona, canImpersonatePortalPersona]
     );
 
     const imsDerivedPersona = useMemo(
@@ -1140,15 +1132,11 @@ function MainApp(): React.JSX.Element {
         // If user selected Settings, only allow when authenticated
         if (appId === 'settings') {
             if (authenticated) {
-                // Open external Adobe profile/settings in a new tab
-                // This points to Adobe account management; change if a different URL is desired
-                try {
-                    window.open('https://account.adobe.com', '_blank', 'noopener');
-                } catch (error) {
-                    console.warn('Failed to open Adobe profile/settings URL', error);
-                }
+                setSelectedAppId('settings');
+                setSelectedTileId(null);
+                setSelectedDaContentUrl(null);
+                setIframeCannotDisplay(false);
             } else {
-                // Inform the user they must sign in to use Adobe products
                 ToastQueue.negative('Please sign in to use an Adobe Product', { timeout: 4000 });
             }
             return;
@@ -1213,15 +1201,6 @@ function MainApp(): React.JSX.Element {
         setDeleteMode(false);
         setSlotToDelete(null);
     }, []);
-
-    const handleProfileClick = (): void => {
-        // Open Adobe account management in a new tab for both profile icon and Settings
-        try {
-            window.open('https://account.adobe.com', '_blank', 'noopener');
-        } catch (error) {
-            console.warn('Failed to open Adobe account URL', error);
-        }
-    };
 
     // Add breadcrumbs for navigation when inside a collection
     const breadcrumbs = selectedCollection && (
@@ -1449,17 +1428,6 @@ function MainApp(): React.JSX.Element {
                                     </span>
                                     <span className="admin-shell-rail-label">Assets</span>
                                 </button>
-                                {canImpersonatePortalPersona ? (
-                                    <button
-                                        type="button"
-                                        className="admin-shell-rail-persona-btn"
-                                        onClick={() => setPersonaImpersonateModalOpen(true)}
-                                        title="View portal as a persona"
-                                        aria-label="View portal as a persona"
-                                    >
-                                        <PersonaGlyph size={20} />
-                                    </button>
-                                ) : null}
                             </div>
                             <div className="admin-shell-rail-divider" aria-hidden />
                             {portalRailApps.map((app) => {
@@ -1684,12 +1652,14 @@ function MainApp(): React.JSX.Element {
                             </div>
                             </>
                         ) : selectedAppId === PORTAL_EMBED_ADOBE_FILES_APP_ID ? (
-                            <div className="da-content-in-frame">
-                                <iframe
-                                    title="Adobe Files"
-                                    src={ADOBE_FILES_WEB_URL}
-                                    className="da-content-in-frame-iframe"
-                                />
+                            <div className="da-content-in-frame da-content-in-frame--clip-embedded-top-app-bar">
+                                <div className="da-content-in-frame-clip">
+                                    <iframe
+                                        title="Adobe Files"
+                                        src={ADOBE_FILES_WEB_URL}
+                                        className="da-content-in-frame-iframe"
+                                    />
+                                </div>
                                 {iframeCannotDisplay && (
                                     <div className="da-content-in-frame-error" role="alert">
                                         <p className="da-content-in-frame-error-text">
@@ -1703,6 +1673,32 @@ function MainApp(): React.JSX.Element {
                                             className="app-grid-customize-btn da-content-in-frame-error-link"
                                         >
                                             Open Adobe Files in new tab
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        ) : selectedAppId === 'settings' && authenticated ? (
+                            <div className="da-content-in-frame da-content-in-frame--clip-embedded-top-app-bar">
+                                <div className="da-content-in-frame-clip">
+                                    <iframe
+                                        title="Adobe account"
+                                        src={ADOBE_ACCOUNT_WEB_URL}
+                                        className="da-content-in-frame-iframe"
+                                    />
+                                </div>
+                                {iframeCannotDisplay && (
+                                    <div className="da-content-in-frame-error" role="alert">
+                                        <p className="da-content-in-frame-error-text">
+                                            Adobe account could not be displayed in this frame (the site may block embedding). You can open it in a new tab
+                                            instead.
+                                        </p>
+                                        <a
+                                            href={ADOBE_ACCOUNT_WEB_URL}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="app-grid-customize-btn da-content-in-frame-error-link"
+                                        >
+                                            Open Adobe account in new tab
                                         </a>
                                     </div>
                                 )}
@@ -1753,33 +1749,6 @@ function MainApp(): React.JSX.Element {
                             <>
                                 {showPortalGridAdminChrome ? (
                                     <div className="app-grid-view-toggle">
-                                        <label className="portal-persona-switcher">
-                                            <span className="portal-persona-switcher-label">View as</span>
-                                            {canImpersonatePortalPersona ? (
-                                                <select
-                                                    className="portal-persona-select"
-                                                    value={portalPersona}
-                                                    onChange={handlePortalPersonaChange}
-                                                    aria-label="Portal persona"
-                                                >
-                                                    {PORTAL_PERSONA_ORDER.map((id) => (
-                                                        <option key={id} value={id}>
-                                                            {PORTAL_PERSONA_LABELS[id]}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <span className="portal-persona-readonly" aria-live="polite">
-                                                    {PORTAL_PERSONA_LABELS[portalPersona]}
-                                                </span>
-                                            )}
-                                        </label>
-                                        {canImpersonatePortalPersona ? (
-                                            <p className="portal-persona-switcher-hint">
-                                                Impersonate Marketeer, Developer, or Org admin to see that persona&apos;s rail and grid. Admin activities keeps the
-                                                same persona in sync when you change layout there.
-                                            </p>
-                                        ) : null}
                                         <button
                                             type="button"
                                             className={`app-grid-customize-btn ${viewMode === 'admin' ? 'active' : ''}`}
