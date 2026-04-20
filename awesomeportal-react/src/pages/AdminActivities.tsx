@@ -516,7 +516,7 @@ const AdminActivities: React.FC = () => {
                                 </span>
                                 <span className="admin-shell-rail-label">Assets</span>
                             </button>
-                            {canImpersonate ? (
+                            {showPortalAdminChrome && canImpersonate ? (
                                 <button
                                     type="button"
                                     className="admin-shell-rail-persona-btn"
