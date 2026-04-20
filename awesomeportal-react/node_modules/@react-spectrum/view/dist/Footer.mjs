@@ -1,0 +1,32 @@
+import {useSlotProps as $aegiv$useSlotProps, useStyleProps as $aegiv$useStyleProps, useDOMRef as $aegiv$useDOMRef, ClearSlots as $aegiv$ClearSlots} from "@react-spectrum/utils";
+import {filterDOMProps as $aegiv$filterDOMProps} from "@react-aria/utils";
+import $aegiv$react, {forwardRef as $aegiv$forwardRef} from "react";
+
+/*
+ * Copyright 2020 Adobe. All rights reserved.
+ * This file is licensed to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License. You may obtain a copy
+ * of the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under
+ * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+ * OF ANY KIND, either express or implied. See the License for the specific language
+ * governing permissions and limitations under the License.
+ */ 
+
+
+const $8d68cc89c1f9278e$export$a06f1c675e846f6f = /*#__PURE__*/ (0, $aegiv$forwardRef)(function Footer(props, ref) {
+    props = (0, $aegiv$useSlotProps)(props, 'footer');
+    let { children: children, ...otherProps } = props;
+    let { styleProps: styleProps } = (0, $aegiv$useStyleProps)(otherProps);
+    let domRef = (0, $aegiv$useDOMRef)(ref);
+    return /*#__PURE__*/ (0, $aegiv$react).createElement("footer", {
+        ...(0, $aegiv$filterDOMProps)(otherProps),
+        ...styleProps,
+        ref: domRef
+    }, /*#__PURE__*/ (0, $aegiv$react).createElement((0, $aegiv$ClearSlots), null, children));
+});
+
+
+export {$8d68cc89c1f9278e$export$a06f1c675e846f6f as Footer};
+//# sourceMappingURL=Footer.module.js.map

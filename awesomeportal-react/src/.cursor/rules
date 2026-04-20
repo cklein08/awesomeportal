@@ -1,4 +1,0 @@
-When developing React application:
-- Always move styling into css file
-- In css, define as specific as possible
-- Move interface into src/types/index.ts
