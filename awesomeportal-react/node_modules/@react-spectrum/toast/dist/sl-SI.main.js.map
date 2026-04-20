@@ -1,0 +1,1 @@
+{"mappings":"AAAA,iBAAiB;IAAG,QAAQ,CAAC,WAAW,CAAC;IACvC,YAAY,CAAC,MAAM,CAAC;IACpB,YAAY,CAAC,aAAO,CAAC;AACvB","sources":["packages/@react-spectrum/toast/intl/sl-SI.json"],"sourcesContent":["{\n  \"info\": \"Informacije\",\n  \"negative\": \"Napaka\",\n  \"positive\": \"Uspešno\"\n}\n"],"names":[],"version":3,"file":"sl-SI.main.js.map"}
