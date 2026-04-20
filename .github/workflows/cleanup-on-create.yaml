@@ -4,6 +4,8 @@
 # particular workflow file.
 on:
   create:
+    branches:
+      - main
 jobs:
   cleanup:
     runs-on: ubuntu-latest
@@ -11,10 +13,7 @@ jobs:
       contents: write
       actions: write
     # only run if commit message is "Initial commit" on main branch
-    # guard against missing head_commit (e.g. some create events) by searching the
-    # serialized event payload for the commit message string instead of directly
-    # accessing github.event.head_commit which may be undefined in some events.
-    if: ${{ github.ref == 'refs/heads/main' && contains(toJson(github.event), 'Initial commit') }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Initial commit' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
